@@ -40,41 +40,44 @@ const {
     <!-- App shell: narrow, fixed-width column even on desktop (matches tenpa.app) -->
     <header class="bg-gold text-ink relative z-[210]">
       <div
-        class="max-w-[448px] mx-auto flex items-center h-[56px] px-4 gap-2"
+        class="max-w-[448px] mx-auto relative flex items-center justify-between h-[56px] px-4"
         style="padding-top: max(0.5rem, env(safe-area-inset-top))"
       >
         <Image src={logoCircle} alt="" width={32} height={32} class="h-8 w-8 shrink-0" />
-        <span class="flex-1 min-w-0 text-center text-lg font-bold truncate">{title}</span>
 
-        <!-- Text / font settings -->
-        <div class="relative w-8 shrink-0">
-          <button id="text-settings-btn" type="button" aria-label="Text and font settings" class="flex items-center justify-center text-ink">
-            <Type size={22} />
-          </button>
-        </div>
+        <span class="absolute left-1/2 -translate-x-1/2 text-lg font-bold whitespace-nowrap">{title}</span>
 
-        <!-- Audio dialect settings -->
-        <div class="relative w-8 shrink-0">
-          <button id="audio-settings-btn" type="button" aria-label="Audio dialect settings" class="flex items-center justify-center text-ink">
-            <Headphones size={22} />
-          </button>
-        </div>
-
-        <!-- Share button + popover -->
-        <div class="relative w-8 shrink-0">
-          <button id="share-btn" type="button" aria-label="Share" class="flex items-center justify-end text-ink">
-            <Share2 size={22} />
-          </button>
-          <div
-            id="share-popover"
-            class="absolute top-full right-0 mt-2 hidden z-[250] bg-white border border-ink/10 rounded-xl shadow-xl overflow-hidden min-w-[148px]"
-          >
-            <button id="share-copy" type="button" class="w-full text-left px-4 py-3 text-sm text-ink hover:bg-ink/5 active:bg-ink/10 transition-colors">
-              Copy link
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Text / font settings -->
+          <div class="relative w-8 shrink-0">
+            <button id="text-settings-btn" type="button" aria-label="Text and font settings" class="flex items-center justify-center text-ink">
+              <Type size={22} />
             </button>
-            <button id="share-native" type="button" class="w-full text-left px-4 py-3 text-sm text-ink hover:bg-ink/5 active:bg-ink/10 transition-colors hidden border-t border-ink/10">
-              Share…
+          </div>
+
+          <!-- Audio dialect settings -->
+          <div class="relative w-8 shrink-0">
+            <button id="audio-settings-btn" type="button" aria-label="Audio dialect settings" class="flex items-center justify-center text-ink">
+              <Headphones size={22} />
             </button>
+          </div>
+
+          <!-- Share button + popover -->
+          <div class="relative w-8 shrink-0">
+            <button id="share-btn" type="button" aria-label="Share" class="flex items-center justify-end text-ink">
+              <Share2 size={22} />
+            </button>
+            <div
+              id="share-popover"
+              class="absolute top-full right-0 mt-2 hidden z-[250] bg-white border border-ink/10 rounded-xl shadow-xl overflow-hidden min-w-[148px]"
+            >
+              <button id="share-copy" type="button" class="w-full text-left px-4 py-3 text-sm text-ink hover:bg-ink/5 active:bg-ink/10 transition-colors">
+                Copy link
+              </button>
+              <button id="share-native" type="button" class="w-full text-left px-4 py-3 text-sm text-ink hover:bg-ink/5 active:bg-ink/10 transition-colors hidden border-t border-ink/10">
+                Share…
+              </button>
+            </div>
           </div>
         </div>
       </div>
