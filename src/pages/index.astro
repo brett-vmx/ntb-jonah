@@ -99,7 +99,7 @@ const chapterData = await Promise.all(
 </script>
 
 <script>
-  import { getTextLang, getFont, getTextSize, getDialect } from '../i18n/settings-store';
+  import { getTextLang, getFont, getTextSize, getDialect, DIALECT_LABELS } from '../i18n/settings-store';
 
   interface ImageBlock { type: 'image'; src: string }
   interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string }
@@ -115,11 +115,12 @@ const chapterData = await Promise.all(
     blocks: Block[];
   }
 
-  const DIALECT_LABEL: Record<'adx' | 'bod' | 'khg', string> = {
-    adx: 'Amdo',
-    bod: 'Central',
-    khg: 'Kham',
-  };
+  // "[Tibetan script]/English", e.g. ལྷ་ས/Lhasa — only the Tibetan portion
+  // gets the Tibetan font so the Latin half doesn't render in Monlam/Sambhota.
+  function dialectDisplay(dialect: 'adx' | 'bod' | 'khg'): string {
+    const { en, bo } = DIALECT_LABELS[dialect];
+    return `<span class="tibetan">${bo}</span>/${en}`;
+  }
 
   const COPYRIGHT_HTML = `
     <p style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid rgba(28,23,16,.1);font-size:.8rem;color:rgba(28,23,16,.55);line-height:1.6">
@@ -202,7 +203,7 @@ const chapterData = await Promise.all(
       audio.src = openChapterEntry.audio[dialect];
       audio.load();
       timeDisplay.textContent = `0:00 / ${openChapterEntry.duration[dialect]}`;
-      if (dialectLabel) dialectLabel.textContent = DIALECT_LABEL[dialect];
+      if (dialectLabel) dialectLabel.innerHTML = dialectDisplay(dialect);
 
       const progress = document.getElementById('modal-progress') as HTMLInputElement | null;
       if (progress) { progress.value = '0'; progress.style.setProperty('--progress', '0%'); }
@@ -234,7 +235,7 @@ const chapterData = await Promise.all(
           <div style="background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 1px 3px rgba(0,0,0,.15)">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
               <span style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">Listen</span>
-              <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${DIALECT_LABEL[dialect]}</span>
+              <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${dialectDisplay(dialect)}</span>
             </div>
             <audio id="modal-audio" preload="metadata" src="${chapter.audio[dialect]}" style="display:none"></audio>
             <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem">

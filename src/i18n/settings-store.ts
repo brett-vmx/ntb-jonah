@@ -42,6 +42,15 @@ export const TEXT_SIZE_REM: Record<TextSize, string> = {
   xl: '1.6rem',
 };
 
+// Dialect names in both scripts, shared by the header's dialect sheet
+// (Layout.astro) and the modal's LISTEN tile (index.astro) so the two never
+// drift out of sync.
+export const DIALECT_LABELS: Record<Dialect, { en: string; bo: string }> = {
+  adx: { en: 'Amdo', bo: 'ཨ་མདོ' },
+  bod: { en: 'Lhasa', bo: 'ལྷ་ས' },
+  khg: { en: 'Kham', bo: 'ཁམས' },
+};
+
 function readEnum<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   const stored = localStorage.getItem(key);
   return stored && (allowed as readonly string[]).includes(stored) ? (stored as T) : fallback;

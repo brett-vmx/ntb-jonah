@@ -127,9 +127,18 @@ const {
         <div class="w-full max-w-[448px] bg-white rounded-t-2xl p-5" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
           <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Audio dialect</p>
           <div class="flex gap-3">
-            <button type="button" data-pick-dialect="adx" class="dialect-btn flex-1 rounded-xl py-3 text-base font-semibold">Amdo</button>
-            <button type="button" data-pick-dialect="bod" class="dialect-btn flex-1 rounded-xl py-3 text-base font-semibold">Central</button>
-            <button type="button" data-pick-dialect="khg" class="dialect-btn flex-1 rounded-xl py-3 text-base font-semibold">Kham</button>
+            <button type="button" data-pick-dialect="adx" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
+              <span class="tibetan text-base font-semibold leading-none">ཨ་མདོ</span>
+              <span class="text-xs leading-none">Amdo</span>
+            </button>
+            <button type="button" data-pick-dialect="bod" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
+              <span class="tibetan text-base font-semibold leading-none">ལྷ་ས</span>
+              <span class="text-xs leading-none">Lhasa</span>
+            </button>
+            <button type="button" data-pick-dialect="khg" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
+              <span class="tibetan text-base font-semibold leading-none">ཁམས</span>
+              <span class="text-xs leading-none">Kham</span>
+            </button>
           </div>
         </div>
       </div>
