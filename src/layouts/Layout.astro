@@ -3,6 +3,7 @@ import '../styles/global.css';
 import { ViewTransitions } from 'astro:transitions';
 import logoCircle from '../assets/branding/ntb-logo-circle.png';
 import { Image } from 'astro:assets';
+import { Share2, Type, Headphones } from '@lucide/astro';
 
 interface Props {
   title?: string;
@@ -10,7 +11,7 @@ interface Props {
 }
 
 const {
-  title = 'NTB Jonah',
+  title = 'Jonah',
   description = 'The Book of Jonah in Amdo, Kham, and Central/Lhasa Tibetan, with audio narration and English text.',
 } = Astro.props;
 ---
@@ -24,6 +25,7 @@ const {
     <meta name="theme-color" content="#CFB63C" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Jonah" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -35,18 +37,253 @@ const {
     <ViewTransitions />
   </head>
   <body class="min-h-screen flex flex-col">
-    <header class="bg-gold text-ink">
-      <nav class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-center gap-3"
-           style="padding-top: max(0.75rem, env(safe-area-inset-top))">
-        <Image src={logoCircle} alt="" width={40} height={40} class="h-10 w-10" />
-        <h1 class="text-2xl font-bold tracking-tight text-ink">
-          NTB Jonah
-        </h1>
-      </nav>
+    <!-- App shell: narrow, fixed-width column even on desktop (matches tenpa.app) -->
+    <header class="bg-gold text-ink relative z-[210]">
+      <div
+        class="max-w-[448px] mx-auto flex items-center h-[56px] px-4 gap-2"
+        style="padding-top: max(0.5rem, env(safe-area-inset-top))"
+      >
+        <!-- Share button + popover -->
+        <div class="relative w-8 shrink-0">
+          <button id="share-btn" type="button" aria-label="Share" class="flex items-center justify-start text-ink">
+            <Share2 size={22} />
+          </button>
+          <div
+            id="share-popover"
+            class="absolute top-full left-0 mt-2 hidden z-[250] bg-white border border-ink/10 rounded-xl shadow-xl overflow-hidden min-w-[148px]"
+          >
+            <button id="share-copy" type="button" class="w-full text-left px-4 py-3 text-sm text-ink hover:bg-ink/5 active:bg-ink/10 transition-colors">
+              Copy link
+            </button>
+            <button id="share-native" type="button" class="w-full text-left px-4 py-3 text-sm text-ink hover:bg-ink/5 active:bg-ink/10 transition-colors hidden border-t border-ink/10">
+              Share…
+            </button>
+          </div>
+        </div>
+
+        <Image src={logoCircle} alt="" width={32} height={32} class="h-8 w-8 shrink-0" />
+        <span class="flex-1 min-w-0 text-center text-lg font-bold truncate">{title}</span>
+
+        <!-- Text / font settings -->
+        <div class="relative w-8 shrink-0">
+          <button id="text-settings-btn" type="button" aria-label="Text and font settings" class="flex items-center justify-center text-ink">
+            <Type size={22} />
+          </button>
+        </div>
+
+        <!-- Audio dialect settings -->
+        <div class="relative w-8 shrink-0">
+          <button id="audio-settings-btn" type="button" aria-label="Audio dialect settings" class="flex items-center justify-end text-ink">
+            <Headphones size={22} />
+          </button>
+        </div>
+      </div>
     </header>
 
     <main class="flex-1 w-full bg-page" transition:animate="fade">
-      <slot />
+      <div class="max-w-[448px] mx-auto">
+        <slot />
+      </div>
     </main>
+
+    <!-- ─── Text / font / size bottom sheet ─── -->
+    <div id="text-sheet" class="fixed inset-0 z-[300] hidden pointer-events-none">
+      <div id="text-sheet-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto"></div>
+      <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-auto">
+        <div class="w-full max-w-[448px] bg-white rounded-t-2xl p-5" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+          <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Language</p>
+          <div class="flex gap-3 mb-5">
+            <button type="button" data-pick-textlang="bo" class="textlang-btn tibetan flex-1 rounded-xl py-3 text-base font-semibold">བོད་ཡིག</button>
+            <button type="button" data-pick-textlang="en" class="textlang-btn flex-1 rounded-xl py-3 text-base font-semibold">English</button>
+          </div>
+
+          <div id="font-row-wrap">
+            <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Tibetan font</p>
+            <div class="flex gap-3 mb-5">
+              <button type="button" data-pick-font="ouchan5" style="font-family:'Monlam Uni OuChan5',sans-serif" class="font-btn flex-1 rounded-xl py-3 text-lg">ཨ</button>
+              <button type="button" data-pick-font="ouchan2" style="font-family:'Monlam Uni OuChan2',sans-serif" class="font-btn flex-1 rounded-xl py-3 text-lg">ཨ</button>
+              <button type="button" data-pick-font="sambhota" style="font-family:'SambhotaDege',sans-serif" class="font-btn flex-1 rounded-xl py-3 text-lg">ཨ</button>
+            </div>
+          </div>
+
+          <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Text size</p>
+          <div class="flex gap-3">
+            <button type="button" data-pick-size="sm" class="size-btn flex-1 rounded-xl py-3" style="font-size:1rem">A</button>
+            <button type="button" data-pick-size="md" class="size-btn flex-1 rounded-xl py-3" style="font-size:1.2rem">A</button>
+            <button type="button" data-pick-size="lg" class="size-btn flex-1 rounded-xl py-3" style="font-size:1.4rem">A</button>
+            <button type="button" data-pick-size="xl" class="size-btn flex-1 rounded-xl py-3" style="font-size:1.6rem">A</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Audio dialect bottom sheet ─── -->
+    <div id="audio-sheet" class="fixed inset-0 z-[300] hidden pointer-events-none">
+      <div id="audio-sheet-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto"></div>
+      <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-auto">
+        <div class="w-full max-w-[448px] bg-white rounded-t-2xl p-5" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+          <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Audio dialect</p>
+          <div class="flex gap-3">
+            <button type="button" data-pick-dialect="adx" class="dialect-btn flex-1 rounded-xl py-3 text-base font-semibold">Amdo</button>
+            <button type="button" data-pick-dialect="bod" class="dialect-btn flex-1 rounded-xl py-3 text-base font-semibold">Central</button>
+            <button type="button" data-pick-dialect="khg" class="dialect-btn flex-1 rounded-xl py-3 text-base font-semibold">Kham</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Toast ─── -->
+    <div id="share-toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[400] pointer-events-none" style="transition:opacity .25s ease;opacity:0">
+      <div class="bg-ink text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg whitespace-nowrap">Link copied!</div>
+    </div>
+
+    <script>
+      import {
+        getTextLang, setTextLang,
+        getFont, setFont,
+        getTextSize, setTextSize,
+        getDialect, setDialect,
+        applyTextSettings,
+      } from '../i18n/settings-store';
+
+      // Re-initializes on every ViewTransitions swap (astro:page-load fires on
+      // first load too, not just subsequent navigations). Without this guard,
+      // header buttons stop responding after the first `history.back()` from
+      // a chapter deep link, because top-level <script> in Astro is an ES
+      // module that only evaluates once — it never reruns its listener
+      // bindings on later swaps. The AbortController drops the previous
+      // run's listeners first so repeated swaps never double-bind the same
+      // persisted DOM nodes (same pattern as index.astro's modal init).
+      function initHeader() {
+        const prevAbort = (window as any).__headerAbort as AbortController | undefined;
+        if (prevAbort) prevAbort.abort();
+        const abort = new AbortController();
+        (window as any).__headerAbort = abort;
+        const { signal } = abort;
+
+        applyTextSettings();
+
+        // ─── Share popover ───
+        const shareBtn = document.getElementById('share-btn');
+        const sharePopover = document.getElementById('share-popover');
+        const shareCopy = document.getElementById('share-copy');
+        const shareNative = document.getElementById('share-native');
+        const shareToast = document.getElementById('share-toast') as HTMLElement | null;
+
+        if (navigator.share && shareNative) shareNative.classList.remove('hidden');
+
+        let toastTimer: ReturnType<typeof setTimeout> | null = null;
+        function showToast() {
+          if (!shareToast) return;
+          if (toastTimer) clearTimeout(toastTimer);
+          shareToast.style.opacity = '1';
+          toastTimer = setTimeout(() => { shareToast.style.opacity = '0'; }, 2000);
+        }
+
+        shareBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          sharePopover?.classList.toggle('hidden');
+        }, { signal });
+        document.addEventListener('click', (e) => {
+          if (sharePopover && !sharePopover.classList.contains('hidden')) {
+            if (!shareBtn?.contains(e.target as Node) && !sharePopover.contains(e.target as Node)) {
+              sharePopover.classList.add('hidden');
+            }
+          }
+        }, { signal });
+        shareCopy?.addEventListener('click', async () => {
+          sharePopover?.classList.add('hidden');
+          try {
+            await navigator.clipboard.writeText(window.location.href);
+            showToast();
+          } catch {}
+        }, { signal });
+        shareNative?.addEventListener('click', async () => {
+          sharePopover?.classList.add('hidden');
+          try {
+            await navigator.share({ title: 'Jonah', url: window.location.href });
+          } catch {}
+        }, { signal });
+
+        // ─── Text / font / size sheet ───
+        const textSheet = document.getElementById('text-sheet');
+        const textSheetBackdrop = document.getElementById('text-sheet-backdrop');
+        const textSettingsBtn = document.getElementById('text-settings-btn');
+        const fontRowWrap = document.getElementById('font-row-wrap');
+        const textLangBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-textlang]'));
+        const fontBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-font]'));
+        const sizeBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-size]'));
+
+        function refreshTextSheet() {
+          const lang = getTextLang();
+          const font = getFont();
+          const size = getTextSize();
+          textLangBtns.forEach((b) => {
+            const active = b.dataset.pickTextlang === lang;
+            b.classList.toggle('bg-gold', active);
+            b.classList.toggle('bg-page', !active);
+          });
+          if (fontRowWrap) fontRowWrap.style.display = lang === 'bo' ? '' : 'none';
+          fontBtns.forEach((b) => {
+            const active = b.dataset.pickFont === font;
+            b.classList.toggle('bg-gold', active);
+            b.classList.toggle('bg-page', !active);
+          });
+          sizeBtns.forEach((b) => {
+            const active = b.dataset.pickSize === size;
+            b.classList.toggle('bg-gold', active);
+            b.classList.toggle('bg-page', !active);
+          });
+        }
+
+        textSettingsBtn?.addEventListener('click', () => {
+          textSheet?.classList.remove('hidden');
+          refreshTextSheet();
+        }, { signal });
+        textSheetBackdrop?.addEventListener('click', () => textSheet?.classList.add('hidden'), { signal });
+
+        textLangBtns.forEach((b) => b.addEventListener('click', () => {
+          setTextLang(b.dataset.pickTextlang as 'bo' | 'en');
+          refreshTextSheet();
+        }, { signal }));
+        fontBtns.forEach((b) => b.addEventListener('click', () => {
+          setFont(b.dataset.pickFont as 'ouchan5' | 'ouchan2' | 'sambhota');
+          applyTextSettings();
+          refreshTextSheet();
+        }, { signal }));
+        sizeBtns.forEach((b) => b.addEventListener('click', () => {
+          setTextSize(b.dataset.pickSize as 'sm' | 'md' | 'lg' | 'xl');
+          applyTextSettings();
+          refreshTextSheet();
+        }, { signal }));
+
+        // ─── Audio dialect sheet ───
+        const audioSheet = document.getElementById('audio-sheet');
+        const audioSheetBackdrop = document.getElementById('audio-sheet-backdrop');
+        const audioSettingsBtn = document.getElementById('audio-settings-btn');
+        const dialectBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-dialect]'));
+
+        function refreshAudioSheet() {
+          const dialect = getDialect();
+          dialectBtns.forEach((b) => {
+            const active = b.dataset.pickDialect === dialect;
+            b.classList.toggle('bg-gold', active);
+            b.classList.toggle('bg-page', !active);
+          });
+        }
+
+        audioSettingsBtn?.addEventListener('click', () => {
+          audioSheet?.classList.remove('hidden');
+          refreshAudioSheet();
+        }, { signal });
+        audioSheetBackdrop?.addEventListener('click', () => audioSheet?.classList.add('hidden'), { signal });
+        dialectBtns.forEach((b) => b.addEventListener('click', () => {
+          setDialect(b.dataset.pickDialect as 'adx' | 'bod' | 'khg');
+          refreshAudioSheet();
+        }, { signal }));
+      }
+
+      document.addEventListener('astro:page-load', initHeader);
+    </script>
   </body>
 </html>

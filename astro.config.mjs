@@ -15,7 +15,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'script',
       manifest: {
-        name: 'NTB Jonah',
+        name: 'Jonah',
         short_name: 'Jonah',
         description: 'The Book of Jonah in Amdo, Kham, and Central/Lhasa Tibetan, with audio narration and English text.',
         theme_color: '#CFB63C',

@@ -34,23 +34,14 @@ const chapterData = await Promise.all(
 ---
 
 <Layout>
-  <div class="mx-auto max-w-4xl px-4 py-6 sm:py-8">
-    <p class="tibetan text-ink/70 mb-1 text-center text-lg">ལུང་སྟོན་པ་ཡོ་ནཱའི་མདོ།</p>
-    <p class="text-ink/50 mb-8 text-center">The Book of Jonah — Amdo · Kham · Central (Lhasa) Tibetan</p>
-
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="px-4 py-6">
+    <div class="grid grid-cols-2 gap-4">
       {
         chapters.map((c) => (
           <ChapterCard chapterNumber={c.data.chapterNumber} labelBo={c.data.labelBo} cover={c.data.cover} />
         ))
       }
     </div>
-
-    <p class="mt-12 text-sm text-ink/50 text-center">
-      Text © 2016–2025 New Tibetan Bible translation committee, used under
-      <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" class="text-gold-deep hover:underline">CC BY-NC-ND 4.0</a>.
-      Illustrations courtesy of Sweet Publishing (public domain).
-    </p>
   </div>
 
   <!-- ===================== CHAPTER MODAL ===================== -->
@@ -59,7 +50,7 @@ const chapterData = await Promise.all(
     <div
       id="modal-panel"
       class="absolute bottom-0 left-0 right-0 rounded-t-2xl max-h-[92vh]
-             md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[680px] md:rounded-2xl md:max-h-[90vh]
+             md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[448px] md:rounded-2xl md:max-h-[90vh]
              bg-page flex flex-col transition-transform duration-300 translate-y-full"
     >
       <div class="flex-1 overflow-y-auto" style="padding-bottom:80px">
@@ -101,11 +92,6 @@ const chapterData = await Promise.all(
     border: none;
     cursor: pointer;
   }
-
-  /* Language toggle: show only the active language's blocks. Images (not */
-  /* wrapped in either .lang-bo/.lang-en) are unaffected and always show.  */
-  #modal-blocks.lang-en-active .lang-bo { display: none; }
-  #modal-blocks.lang-bo-active .lang-en { display: none; }
 </style>
 
 <script define:vars={{ chapterData }}>
@@ -113,6 +99,8 @@ const chapterData = await Promise.all(
 </script>
 
 <script>
+  import { getTextLang, getFont, getTextSize, getDialect } from '../i18n/settings-store';
+
   interface ImageBlock { type: 'image'; src: string }
   interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string }
   type Block = ImageBlock | VerseBlock;
@@ -126,30 +114,37 @@ const chapterData = await Promise.all(
     blocks: Block[];
   }
 
-  const DIALECTS: { key: 'adx' | 'bod' | 'khg'; label: string }[] = [
-    { key: 'adx', label: 'Amdo' },
-    { key: 'bod', label: 'Central' },
-    { key: 'khg', label: 'Kham' },
-  ];
-  const DEFAULT_DIALECT: 'adx' | 'bod' | 'khg' = 'bod';
+  const DIALECT_LABEL: Record<'adx' | 'bod' | 'khg', string> = {
+    adx: 'Amdo',
+    bod: 'Central',
+    khg: 'Kham',
+  };
 
-  function blocksToHtml(blocks: Block[]): string {
+  const COPYRIGHT_HTML = `
+    <p style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid rgba(28,23,16,.1);font-size:.8rem;color:rgba(28,23,16,.55);line-height:1.6">
+      Text © 2016–2025 New Tibetan Bible translation committee, used under
+      <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" style="color:#a38a1e;text-decoration:underline">CC BY-NC-ND 4.0</a>.
+      Illustrations courtesy of Sweet Publishing (public domain).
+    </p>`;
+
+  function blocksToHtml(blocks: Block[], lang: 'bo' | 'en'): string {
     return blocks
       .map((b) => {
         if (b.type === 'image') {
           return `<img src="${b.src}" alt="" loading="lazy" style="width:100%;border-radius:10px;margin:1.25rem 0" />`;
         }
-        const boLines = b.bo.length > 1
-          ? b.bo.map((line) => `<div>${line}</div>`).join('')
-          : b.bo[0];
-        return `
-          <div class="verse-block" style="margin-bottom:1rem">
-            <div class="lang-bo tibetan" style="font-size:1.15rem;line-height:2">
+        if (lang === 'bo') {
+          const boLines = b.bo.length > 1
+            ? b.bo.map((line) => `<div>${line}</div>`).join('')
+            : b.bo[0];
+          return `
+            <div class="verse-block tibetan" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:2">
               <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${boLines}
-            </div>
-            <div class="lang-en" style="line-height:1.75">
-              <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${b.en}
-            </div>
+            </div>`;
+        }
+        return `
+          <div class="verse-block" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:1.75">
+            <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${b.en}
           </div>`;
       })
       .join('');
@@ -168,7 +163,7 @@ const chapterData = await Promise.all(
     const chapters: ChapterEntry[] = (window as unknown as { __CHAPTERS__: ChapterEntry[] }).__CHAPTERS__ ?? [];
     let modalOpen   = false;
     let pushedState = false;
-    let currentDialect: 'adx' | 'bod' | 'khg' = DEFAULT_DIALECT;
+    let openChapterEntry: ChapterEntry | null = null;
 
     const prevAbort = (window as any).__modalAbort as AbortController | undefined;
     if (prevAbort) prevAbort.abort();
@@ -176,15 +171,42 @@ const chapterData = await Promise.all(
     (window as any).__modalAbort = abort;
     const { signal } = abort;
 
+    function renderReadSection() {
+      if (!openChapterEntry) return;
+      const blocksEl = document.getElementById('modal-blocks');
+      if (blocksEl) blocksEl.innerHTML = blocksToHtml(openChapterEntry.blocks, getTextLang());
+    }
+
+    function updateAudioForDialect() {
+      if (!openChapterEntry) return;
+      const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      const timeDisplay = document.getElementById('modal-time-display') as HTMLElement | null;
+      const dialectLabel = document.getElementById('modal-dialect-label');
+      if (!audio || !timeDisplay) return;
+
+      const dialect = getDialect();
+      audio.pause();
+      audio.src = openChapterEntry.audio[dialect];
+      audio.load();
+      timeDisplay.textContent = `0:00 / ${openChapterEntry.duration[dialect]}`;
+      if (dialectLabel) dialectLabel.textContent = DIALECT_LABEL[dialect];
+
+      const progress = document.getElementById('modal-progress') as HTMLInputElement | null;
+      if (progress) { progress.value = '0'; progress.style.setProperty('--progress', '0%'); }
+      const playIcon = document.getElementById('modal-play-icon') as SVGElement | null;
+      const pauseIcon = document.getElementById('modal-pause-icon') as SVGElement | null;
+      if (playIcon) playIcon.style.display = '';
+      if (pauseIcon) pauseIcon.style.display = 'none';
+    }
+
+    window.addEventListener('jonah:text-settings-changed', renderReadSection, { signal });
+    window.addEventListener('jonah:dialect-changed', updateAudioForDialect, { signal });
+
     function openChapter(n: number) {
       const chapter = chapters.find((c) => c.chapterNumber === n);
       if (!chapter) return;
-      currentDialect = DEFAULT_DIALECT;
-
-      const dialectBtns = DIALECTS.map(
-        (d) => `<button type="button" class="dialect-btn" data-dialect="${d.key}"
-          style="flex:1;padding:.5rem .25rem;border-radius:8px;border:none;cursor:pointer;font-size:.8rem;font-weight:600;letter-spacing:.02em;background:${d.key === currentDialect ? 'rgba(28,23,16,.85)' : 'rgba(28,23,16,.12)'};color:${d.key === currentDialect ? '#fff' : '#1c1710'}">${d.label}</button>`,
-      ).join('');
+      openChapterEntry = chapter;
+      const dialect = getDialect();
 
       content.innerHTML = `
         <img src="${chapter.coverSrc}" alt="Chapter ${chapter.chapterNumber}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" />
@@ -192,19 +214,13 @@ const chapterData = await Promise.all(
           <p class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem">${chapter.labelBo}</p>
           <h2 class="tibetan" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5">${chapter.sectionTitleBo}</h2>
 
-          <!-- Language toggle -->
-          <div style="display:inline-flex;background:rgba(28,23,16,.08);border-radius:9999px;padding:4px;margin-bottom:1.25rem">
-            <button type="button" id="lang-bo-btn" style="padding:.4rem 1.1rem;border-radius:9999px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;background:#1c1710;color:#fff">བོད་ཡིག</button>
-            <button type="button" id="lang-en-btn" style="padding:.4rem 1.1rem;border-radius:9999px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;background:transparent;color:#1c1710">English</button>
-          </div>
-
           <!-- LISTEN tile -->
           <div style="background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 1px 3px rgba(0,0,0,.15)">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
               <span style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">Listen</span>
-              <div id="dialect-switcher" style="display:flex;gap:.35rem;width:auto">${dialectBtns}</div>
+              <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${DIALECT_LABEL[dialect]}</span>
             </div>
-            <audio id="modal-audio" preload="metadata" src="${chapter.audio[currentDialect]}" style="display:none"></audio>
+            <audio id="modal-audio" preload="metadata" src="${chapter.audio[dialect]}" style="display:none"></audio>
             <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem">
               <button id="modal-play-btn" type="button" aria-label="Play"
                 style="width:76px;height:76px;flex-shrink:0;border-radius:9999px;background:#1c1710;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)">
@@ -214,7 +230,7 @@ const chapterData = await Promise.all(
               <div style="flex:1;min-width:0">
                 <input id="modal-progress" type="range" min="0" max="100" value="0" step="0.1"
                   style="width:100%;height:6px;-webkit-appearance:none;appearance:none;border-radius:9999px;outline:none;cursor:pointer;--progress:0%;background:linear-gradient(to right,#1c1710 var(--progress),rgba(28,23,16,.25) var(--progress))" />
-                <span id="modal-time-display" style="display:block;margin-top:.4rem;font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[currentDialect]}</span>
+                <span id="modal-time-display" style="display:block;margin-top:.4rem;font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
               </div>
             </div>
           </div>
@@ -222,17 +238,17 @@ const chapterData = await Promise.all(
           <!-- READ -->
           <section style="margin-top:1.75rem;margin-bottom:1rem">
             <div style="background:#fff;border-radius:10px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1)">
-              <div id="modal-blocks" class="lang-bo-active">
-                ${blocksToHtml(chapter.blocks)}
+              <div id="modal-blocks">
+                ${blocksToHtml(chapter.blocks, getTextLang())}
               </div>
             </div>
           </section>
+
+          ${COPYRIGHT_HTML}
         </div>
       `;
 
-      initLanguageToggle();
-      initDialectSwitcher(chapter);
-      initAudioPlayer(chapter.duration[currentDialect]);
+      initAudioPlayer(chapter.duration[dialect]);
 
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
@@ -249,55 +265,6 @@ const chapterData = await Promise.all(
         history.pushState({ modal: n }, '', `/chapter/${n}`);
         pushedState = true;
       }
-    }
-
-    function initLanguageToggle() {
-      const boBtn = document.getElementById('lang-bo-btn') as HTMLButtonElement | null;
-      const enBtn = document.getElementById('lang-en-btn') as HTMLButtonElement | null;
-      const blocksEl = document.getElementById('modal-blocks') as HTMLElement | null;
-      if (!boBtn || !enBtn || !blocksEl) return;
-
-      function setLang(lang: 'bo' | 'en') {
-        blocksEl!.className = lang === 'bo' ? 'lang-bo-active' : 'lang-en-active';
-        boBtn!.style.background = lang === 'bo' ? '#1c1710' : 'transparent';
-        boBtn!.style.color = lang === 'bo' ? '#fff' : '#1c1710';
-        enBtn!.style.background = lang === 'en' ? '#1c1710' : 'transparent';
-        enBtn!.style.color = lang === 'en' ? '#fff' : '#1c1710';
-      }
-      boBtn.addEventListener('click', () => setLang('bo'));
-      enBtn.addEventListener('click', () => setLang('en'));
-    }
-
-    function initDialectSwitcher(chapter: ChapterEntry) {
-      const switcher = document.getElementById('dialect-switcher');
-      const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
-      const timeDisplay = document.getElementById('modal-time-display') as HTMLElement | null;
-      if (!switcher || !audio || !timeDisplay) return;
-
-      switcher.querySelectorAll<HTMLButtonElement>('.dialect-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const key = btn.dataset.dialect as 'adx' | 'bod' | 'khg';
-          if (key === currentDialect) return;
-          currentDialect = key;
-
-          switcher.querySelectorAll<HTMLButtonElement>('.dialect-btn').forEach((b) => {
-            const active = b === btn;
-            b.style.background = active ? 'rgba(28,23,16,.85)' : 'rgba(28,23,16,.12)';
-            b.style.color = active ? '#fff' : '#1c1710';
-          });
-
-          audio.pause();
-          audio.src = chapter.audio[currentDialect];
-          audio.load();
-          timeDisplay.textContent = `0:00 / ${chapter.duration[currentDialect]}`;
-          const progress = document.getElementById('modal-progress') as HTMLInputElement | null;
-          if (progress) { progress.value = '0'; progress.style.setProperty('--progress', '0%'); }
-          const playIcon = document.getElementById('modal-play-icon') as SVGElement | null;
-          const pauseIcon = document.getElementById('modal-pause-icon') as SVGElement | null;
-          if (playIcon) playIcon.style.display = '';
-          if (pauseIcon) pauseIcon.style.display = 'none';
-        });
-      });
     }
 
     function initAudioPlayer(initialDuration: string) {
@@ -358,6 +325,7 @@ const chapterData = await Promise.all(
     function closeModal(fromPopstate = false) {
       if (!modalOpen) return;
       modalOpen = false;
+      openChapterEntry = null;
 
       const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
       if (audio) { audio.pause(); audio.src = ''; audio.load(); }

@@ -1,4 +1,4 @@
-# NTB Jonah
+# Jonah
 
 A mobile-first PWA for reading and listening to the Book of Jonah in three
 Tibetan dialects — Amdo, Kham, and Central (Lhasa) — alongside the English

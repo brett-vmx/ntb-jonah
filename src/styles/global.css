@@ -71,6 +71,14 @@
   }
 
   .tibetan {
-    font-family: var(--font-tibetan);
+    font-family: var(--font-tibetan-active, var(--font-tibetan));
   }
+}
+
+/* Native-app feel on touch devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  overscroll-behavior-y: none;
 }

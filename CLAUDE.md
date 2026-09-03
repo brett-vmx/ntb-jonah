@@ -1,4 +1,4 @@
-# NTB Jonah — Claude Code Context
+# Jonah — Claude Code Context
 
 ## What this project is
 A mobile-first PWA for reading/listening to the Book of Jonah in three
@@ -52,12 +52,36 @@ and Central are three separate audio recordings of it, not three separate
 texts. The dialect switcher swaps `<audio>` src; it never changes the
 displayed Tibetan text.
 
-### Language toggle, not translation swap of layout
-The Tibetan/English toggle shows/hides parallel `.lang-bo` / `.lang-en`
-elements via a class on the `#modal-blocks` wrapper (`lang-bo-active` /
-`lang-en-active`) — both language versions are always in the DOM. This
-avoids re-rendering and keeps inline images (which aren't wrapped in either
-language span) untouched by the toggle.
+### Reading settings are global, not per-modal (mirrors tenpa.app)
+Text language (Tibetan/English), Tibetan font, text size, and audio dialect
+are app-wide settings, not controls inside each chapter modal — chosen from
+two header icons (`Type` → text/font/size bottom sheet, `Headphones` →
+dialect bottom sheet), persisted to `localStorage`, in `src/i18n/settings-store.ts`.
+Same localStorage + `CustomEvent` pattern as tenpa's `language-store.ts`:
+- `jonah:text-settings-changed` — fired on text-lang/font/size change. The
+  open chapter modal (if any) listens and re-renders `#modal-blocks` only
+  (`renderReadSection()` in index.astro) — the `<audio>` element is left
+  completely alone so in-progress playback is never interrupted.
+- `jonah:dialect-changed` — fired on dialect change. The open modal updates
+  only the `<audio>` src + duration label (`updateAudioForDialect()`) —
+  the READ section is untouched.
+Font and text-size changes don't even need the event: they're applied as
+CSS custom properties on `:root` (`--font-tibetan-active`,
+`--reading-font-size`) by `applyTextSettings()`, and verse blocks reference
+those vars directly, so they update live with zero re-render.
+
+### Header buttons need re-init after every view transition
+`Layout.astro`'s header script (share popover, both settings sheets) is
+wrapped in `document.addEventListener('astro:page-load', initHeader)` with
+an `AbortController` guard (same pattern as index.astro's `initModal()`).
+This is NOT optional boilerplate — top-level `<script>` in an Astro
+component is an ES module that only evaluates once. Opening a chapter does
+`history.pushState('/chapter/N')`; closing it calls `history.back()`, which
+Astro's `<ViewTransitions />` intercepts and swaps client-side. Without the
+`astro:page-load` re-init, the header buttons silently stop responding after
+the first such round-trip because their listeners were bound to DOM nodes
+that no longer exist post-swap. Reproduce-and-verify this specific sequence
+(open a chapter → close it → click a header icon) after touching Layout.astro.
 
 ### PWA service worker injection
 `@vite-pwa/astro` does NOT automatically inject the manifest link or SW
@@ -119,22 +143,33 @@ public/icons/                 PWA icon PNGs
 source-assets/                Original client files — see README.md
 ```
 
+## App shell
+Narrow fixed-width column (`max-w-[448px] mx-auto`) wraps the header AND
+main content — same treatment as tenpa.app, so the 2-col chapter grid stays
+2 columns even on a wide desktop viewport instead of reflowing to 4. The
+chapter modal is capped at the same 448px on desktop for visual consistency.
+
+**Header** (`Layout.astro`): share icon + popover (Copy link / native Share
+sheet when available) on the left, "Jonah" title + circle logo centered,
+`Type` (text/font/size) and `Headphones` (dialect) icons on the right —
+structure and behavior mirror tenpa.app's share popover and language-picker
+bottom sheet, recolored to Jonah's gold/ink palette instead of tenpa's dark
+theme.
+
 ## Page structure
 Essentially one page (`src/pages/index.astro`):
-1. Title (Tibetan + English subtitle)
-2. 2-col (mobile) / 4-col (desktop) grid of 4 chapter cards — square image,
-   dark scrim + big white numeral (per client reference: a food-photography
-   meal-plan app with the same "numeral over photo" card treatment), Tibetan
-   chapter label at the bottom
-3. Copyright/attribution footer
+1. 2-col grid of 4 chapter cards — square image, dark scrim + big white
+   numeral (per client reference: a food-photography meal-plan app with the
+   same "numeral over photo" card treatment), Tibetan chapter label at the
+   bottom
 
 **Modal** (opens on chapter card click): cover image, chapter label +
-section title (from SFM `\cl`/`\s` markers), language toggle (Tibetan/
-English, Tibetan default), LISTEN tile (dialect switcher + big 76px play
-button + progress bar, gold bg / dark ink content), READ section with
-verses and inline images in position, full text always shown (no
+section title (from SFM `\cl`/`\s` markers), LISTEN tile (current dialect
+name + big 76px play button + progress bar, gold bg / dark ink content —
+dialect itself is picked from the header, not inside the tile), READ section
+with verses and inline images in position (full text always shown, no
 read-more truncation — these are short scripture chapters, not story
-transcripts).
+transcripts), copyright/attribution note at the very bottom.
 
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
@@ -145,6 +180,11 @@ transcripts).
 - Do not use plain gold (`#CFB63C`) as small text/icon color on light
   backgrounds — fails contrast; use `gold-deep` or ink instead
 - Do not remove the manually-injected PWA tags from Layout.astro
+- Do not add per-modal language/font/dialect toggles back — these are global
+  header settings now (`settings-store.ts`); the modal only reflects them
+- Do not add a new top-level `<script>` to Layout.astro without wrapping its
+  init logic in `document.addEventListener('astro:page-load', ...)` with an
+  `AbortController` guard — see "Header buttons need re-init" above
 
 ## Deployment
 - Push to GitHub → Cloudflare Pages auto-deploys
