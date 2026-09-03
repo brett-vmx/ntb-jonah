@@ -1,0 +1,423 @@
+---
+import { getCollection } from 'astro:content';
+import { getImage } from 'astro:assets';
+import Layout from '../layouts/Layout.astro';
+import ChapterCard from '../components/ChapterCard.astro';
+
+const all = await getCollection('chapters');
+const byOrder = (a: any, b: any) => a.data.order - b.data.order;
+const chapters = all.sort(byOrder);
+
+const chapterData = await Promise.all(
+  chapters.map(async (c) => {
+    const optimizedCover = await getImage({ src: c.data.cover, width: 640, format: 'webp', quality: 80 });
+    const blocks = await Promise.all(
+      c.data.blocks.map(async (b) => {
+        if (b.type === 'image') {
+          const optimized = await getImage({ src: b.file, width: 800, format: 'webp', quality: 80 });
+          return { type: 'image', src: optimized.src };
+        }
+        return b;
+      }),
+    );
+    return {
+      chapterNumber: c.data.chapterNumber,
+      labelBo: c.data.labelBo,
+      sectionTitleBo: c.data.sectionTitleBo,
+      coverSrc: optimizedCover.src,
+      audio: c.data.audio,
+      duration: c.data.duration,
+      blocks,
+    };
+  }),
+);
+---
+
+<Layout>
+  <div class="mx-auto max-w-4xl px-4 py-6 sm:py-8">
+    <p class="tibetan text-ink/70 mb-1 text-center text-lg">ལུང་སྟོན་པ་ཡོ་ནཱའི་མདོ།</p>
+    <p class="text-ink/50 mb-8 text-center">The Book of Jonah — Amdo · Kham · Central (Lhasa) Tibetan</p>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {
+        chapters.map((c) => (
+          <ChapterCard chapterNumber={c.data.chapterNumber} labelBo={c.data.labelBo} cover={c.data.cover} />
+        ))
+      }
+    </div>
+
+    <p class="mt-12 text-sm text-ink/50 text-center">
+      Text © 2016–2025 New Tibetan Bible translation committee, used under
+      <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" class="text-gold-deep hover:underline">CC BY-NC-ND 4.0</a>.
+      Illustrations courtesy of Sweet Publishing (public domain).
+    </p>
+  </div>
+
+  <!-- ===================== CHAPTER MODAL ===================== -->
+  <div id="chapter-modal" class="fixed inset-0 z-50 hidden">
+    <div id="modal-backdrop" class="absolute inset-0 bg-black/60"></div>
+    <div
+      id="modal-panel"
+      class="absolute bottom-0 left-0 right-0 rounded-t-2xl max-h-[92vh]
+             md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[680px] md:rounded-2xl md:max-h-[90vh]
+             bg-page flex flex-col transition-transform duration-300 translate-y-full"
+    >
+      <div class="flex-1 overflow-y-auto" style="padding-bottom:80px">
+        <div id="modal-content"></div>
+      </div>
+      <button id="modal-close-desktop" type="button" aria-label="Close chapter"
+        class="hidden md:flex"
+        style="position:absolute;top:1rem;right:1rem;z-index:10;width:2.25rem;height:2.25rem;align-items:center;justify-content:center;border-radius:9999px;background:rgba(255,255,255,.85);border:none;cursor:pointer;color:#6b7280">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div class="flex md:hidden" style="position:absolute;bottom:0;left:0;right:0;justify-content:center;padding:24px 0 20px;background:linear-gradient(to bottom,transparent,#f7f5ef 55%);pointer-events:none">
+        <button id="modal-close" type="button"
+          style="background:#1C1710;border:none;border-radius:999px;padding:10px 32px;font-size:13px;font-weight:600;color:white;cursor:pointer;letter-spacing:.03em;pointer-events:auto">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style is:global>
+  #modal-progress::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: #1c1710;
+    border: none;
+    cursor: pointer;
+  }
+  #modal-progress::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: #1c1710;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Language toggle: show only the active language's blocks. Images (not */
+  /* wrapped in either .lang-bo/.lang-en) are unaffected and always show.  */
+  #modal-blocks.lang-en-active .lang-bo { display: none; }
+  #modal-blocks.lang-bo-active .lang-en { display: none; }
+</style>
+
+<script define:vars={{ chapterData }}>
+  window.__CHAPTERS__ = chapterData;
+</script>
+
+<script>
+  interface ImageBlock { type: 'image'; src: string }
+  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string }
+  type Block = ImageBlock | VerseBlock;
+  interface ChapterEntry {
+    chapterNumber: number;
+    labelBo: string;
+    sectionTitleBo: string;
+    coverSrc: string;
+    audio: { adx: string; bod: string; khg: string };
+    duration: { adx: string; bod: string; khg: string };
+    blocks: Block[];
+  }
+
+  const DIALECTS: { key: 'adx' | 'bod' | 'khg'; label: string }[] = [
+    { key: 'adx', label: 'Amdo' },
+    { key: 'bod', label: 'Central' },
+    { key: 'khg', label: 'Kham' },
+  ];
+  const DEFAULT_DIALECT: 'adx' | 'bod' | 'khg' = 'bod';
+
+  function blocksToHtml(blocks: Block[]): string {
+    return blocks
+      .map((b) => {
+        if (b.type === 'image') {
+          return `<img src="${b.src}" alt="" loading="lazy" style="width:100%;border-radius:10px;margin:1.25rem 0" />`;
+        }
+        const boLines = b.bo.length > 1
+          ? b.bo.map((line) => `<div>${line}</div>`).join('')
+          : b.bo[0];
+        return `
+          <div class="verse-block" style="margin-bottom:1rem">
+            <div class="lang-bo tibetan" style="font-size:1.15rem;line-height:2">
+              <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${boLines}
+            </div>
+            <div class="lang-en" style="line-height:1.75">
+              <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${b.en}
+            </div>
+          </div>`;
+      })
+      .join('');
+  }
+
+  function initModal() {
+    const modal           = document.getElementById('chapter-modal');
+    const backdrop        = document.getElementById('modal-backdrop');
+    const panel           = document.getElementById('modal-panel');
+    const closeBtn        = document.getElementById('modal-close');
+    const desktopCloseBtn = document.getElementById('modal-close-desktop');
+    const content         = document.getElementById('modal-content');
+    const scrollDiv       = panel?.querySelector<HTMLElement>('.overflow-y-auto') ?? null;
+    if (!modal || !backdrop || !panel || !closeBtn || !content) return;
+
+    const chapters: ChapterEntry[] = (window as unknown as { __CHAPTERS__: ChapterEntry[] }).__CHAPTERS__ ?? [];
+    let modalOpen   = false;
+    let pushedState = false;
+    let currentDialect: 'adx' | 'bod' | 'khg' = DEFAULT_DIALECT;
+
+    const prevAbort = (window as any).__modalAbort as AbortController | undefined;
+    if (prevAbort) prevAbort.abort();
+    const abort = new AbortController();
+    (window as any).__modalAbort = abort;
+    const { signal } = abort;
+
+    function openChapter(n: number) {
+      const chapter = chapters.find((c) => c.chapterNumber === n);
+      if (!chapter) return;
+      currentDialect = DEFAULT_DIALECT;
+
+      const dialectBtns = DIALECTS.map(
+        (d) => `<button type="button" class="dialect-btn" data-dialect="${d.key}"
+          style="flex:1;padding:.5rem .25rem;border-radius:8px;border:none;cursor:pointer;font-size:.8rem;font-weight:600;letter-spacing:.02em;background:${d.key === currentDialect ? 'rgba(28,23,16,.85)' : 'rgba(28,23,16,.12)'};color:${d.key === currentDialect ? '#fff' : '#1c1710'}">${d.label}</button>`,
+      ).join('');
+
+      content.innerHTML = `
+        <img src="${chapter.coverSrc}" alt="Chapter ${chapter.chapterNumber}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" />
+        <div style="padding:1.5rem 1.25rem 1rem">
+          <p class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem">${chapter.labelBo}</p>
+          <h2 class="tibetan" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5">${chapter.sectionTitleBo}</h2>
+
+          <!-- Language toggle -->
+          <div style="display:inline-flex;background:rgba(28,23,16,.08);border-radius:9999px;padding:4px;margin-bottom:1.25rem">
+            <button type="button" id="lang-bo-btn" style="padding:.4rem 1.1rem;border-radius:9999px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;background:#1c1710;color:#fff">བོད་ཡིག</button>
+            <button type="button" id="lang-en-btn" style="padding:.4rem 1.1rem;border-radius:9999px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;background:transparent;color:#1c1710">English</button>
+          </div>
+
+          <!-- LISTEN tile -->
+          <div style="background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 1px 3px rgba(0,0,0,.15)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+              <span style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">Listen</span>
+              <div id="dialect-switcher" style="display:flex;gap:.35rem;width:auto">${dialectBtns}</div>
+            </div>
+            <audio id="modal-audio" preload="metadata" src="${chapter.audio[currentDialect]}" style="display:none"></audio>
+            <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem">
+              <button id="modal-play-btn" type="button" aria-label="Play"
+                style="width:76px;height:76px;flex-shrink:0;border-radius:9999px;background:#1c1710;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)">
+                <svg id="modal-play-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <svg id="modal-pause-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" aria-hidden="true" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              </button>
+              <div style="flex:1;min-width:0">
+                <input id="modal-progress" type="range" min="0" max="100" value="0" step="0.1"
+                  style="width:100%;height:6px;-webkit-appearance:none;appearance:none;border-radius:9999px;outline:none;cursor:pointer;--progress:0%;background:linear-gradient(to right,#1c1710 var(--progress),rgba(28,23,16,.25) var(--progress))" />
+                <span id="modal-time-display" style="display:block;margin-top:.4rem;font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[currentDialect]}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- READ -->
+          <section style="margin-top:1.75rem;margin-bottom:1rem">
+            <div style="background:#fff;border-radius:10px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+              <div id="modal-blocks" class="lang-bo-active">
+                ${blocksToHtml(chapter.blocks)}
+              </div>
+            </div>
+          </section>
+        </div>
+      `;
+
+      initLanguageToggle();
+      initDialectSwitcher(chapter);
+      initAudioPlayer(chapter.duration[currentDialect]);
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      panel.scrollTop = 0;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          panel.classList.remove('translate-y-full');
+          panel.classList.add('translate-y-0');
+        });
+      });
+      modalOpen = true;
+
+      if (window.location.pathname !== `/chapter/${n}`) {
+        history.pushState({ modal: n }, '', `/chapter/${n}`);
+        pushedState = true;
+      }
+    }
+
+    function initLanguageToggle() {
+      const boBtn = document.getElementById('lang-bo-btn') as HTMLButtonElement | null;
+      const enBtn = document.getElementById('lang-en-btn') as HTMLButtonElement | null;
+      const blocksEl = document.getElementById('modal-blocks') as HTMLElement | null;
+      if (!boBtn || !enBtn || !blocksEl) return;
+
+      function setLang(lang: 'bo' | 'en') {
+        blocksEl!.className = lang === 'bo' ? 'lang-bo-active' : 'lang-en-active';
+        boBtn!.style.background = lang === 'bo' ? '#1c1710' : 'transparent';
+        boBtn!.style.color = lang === 'bo' ? '#fff' : '#1c1710';
+        enBtn!.style.background = lang === 'en' ? '#1c1710' : 'transparent';
+        enBtn!.style.color = lang === 'en' ? '#fff' : '#1c1710';
+      }
+      boBtn.addEventListener('click', () => setLang('bo'));
+      enBtn.addEventListener('click', () => setLang('en'));
+    }
+
+    function initDialectSwitcher(chapter: ChapterEntry) {
+      const switcher = document.getElementById('dialect-switcher');
+      const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      const timeDisplay = document.getElementById('modal-time-display') as HTMLElement | null;
+      if (!switcher || !audio || !timeDisplay) return;
+
+      switcher.querySelectorAll<HTMLButtonElement>('.dialect-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.dialect as 'adx' | 'bod' | 'khg';
+          if (key === currentDialect) return;
+          currentDialect = key;
+
+          switcher.querySelectorAll<HTMLButtonElement>('.dialect-btn').forEach((b) => {
+            const active = b === btn;
+            b.style.background = active ? 'rgba(28,23,16,.85)' : 'rgba(28,23,16,.12)';
+            b.style.color = active ? '#fff' : '#1c1710';
+          });
+
+          audio.pause();
+          audio.src = chapter.audio[currentDialect];
+          audio.load();
+          timeDisplay.textContent = `0:00 / ${chapter.duration[currentDialect]}`;
+          const progress = document.getElementById('modal-progress') as HTMLInputElement | null;
+          if (progress) { progress.value = '0'; progress.style.setProperty('--progress', '0%'); }
+          const playIcon = document.getElementById('modal-play-icon') as SVGElement | null;
+          const pauseIcon = document.getElementById('modal-pause-icon') as SVGElement | null;
+          if (playIcon) playIcon.style.display = '';
+          if (pauseIcon) pauseIcon.style.display = 'none';
+        });
+      });
+    }
+
+    function initAudioPlayer(initialDuration: string) {
+      const audio      = document.getElementById('modal-audio')       as HTMLAudioElement | null;
+      const playBtn    = document.getElementById('modal-play-btn')    as HTMLButtonElement | null;
+      const playIcon   = document.getElementById('modal-play-icon')   as SVGElement | null;
+      const pauseIcon  = document.getElementById('modal-pause-icon')  as SVGElement | null;
+      const progress   = document.getElementById('modal-progress')    as HTMLInputElement | null;
+      const timeDisplay = document.getElementById('modal-time-display') as HTMLElement | null;
+      if (!audio || !playBtn || !playIcon || !pauseIcon || !progress || !timeDisplay) return;
+
+      let totalLabel = initialDuration;
+
+      function fmt(secs: number): string {
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+      }
+
+      function setPlaying(playing: boolean) {
+        playIcon!.style.display  = playing ? 'none' : '';
+        pauseIcon!.style.display = playing ? '' : 'none';
+        playBtn!.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+      }
+
+      playBtn.addEventListener('click', () => {
+        if (audio.paused) { audio.play(); setPlaying(true); }
+        else              { audio.pause(); setPlaying(false); }
+      });
+
+      audio.addEventListener('timeupdate', () => {
+        if (!audio.duration) return;
+        const pct = (audio.currentTime / audio.duration) * 100;
+        progress.value = String(pct);
+        progress.style.setProperty('--progress', pct + '%');
+        timeDisplay.textContent = `${fmt(audio.currentTime)} / ${totalLabel}`;
+      });
+
+      audio.addEventListener('loadedmetadata', () => {
+        totalLabel = fmt(audio.duration);
+        timeDisplay.textContent = `${fmt(audio.currentTime)} / ${totalLabel}`;
+      });
+
+      progress.addEventListener('input', () => {
+        if (!audio.duration) return;
+        audio.currentTime = (parseFloat(progress.value) / 100) * audio.duration;
+        progress.style.setProperty('--progress', progress.value + '%');
+      });
+
+      audio.addEventListener('ended', () => {
+        setPlaying(false);
+        progress.value = '0';
+        progress.style.setProperty('--progress', '0%');
+        timeDisplay.textContent = `0:00 / ${totalLabel}`;
+      });
+    }
+
+    function closeModal(fromPopstate = false) {
+      if (!modalOpen) return;
+      modalOpen = false;
+
+      const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      if (audio) { audio.pause(); audio.src = ''; audio.load(); }
+
+      panel!.classList.remove('translate-y-0');
+      panel!.classList.add('translate-y-full');
+
+      let closed = false;
+      const finish = () => {
+        if (closed) return;
+        closed = true;
+        modal!.classList.add('hidden');
+        document.body.style.overflow = '';
+        content!.innerHTML = '';
+      };
+      panel!.addEventListener('transitionend', finish, { once: true });
+      setTimeout(finish, 350);
+
+      if (!fromPopstate && pushedState) history.back();
+      pushedState = false;
+    }
+
+    document.querySelectorAll<HTMLAnchorElement>('a[data-chapter]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        openChapter(Number(link.dataset.chapter));
+      });
+    });
+
+    closeBtn.addEventListener('click', () => closeModal(false));
+    if (desktopCloseBtn) desktopCloseBtn.addEventListener('click', () => closeModal(false));
+    backdrop.addEventListener('click', () => closeModal(false));
+
+    let touchStartY = 0;
+    panel.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    panel.addEventListener('touchend', (e) => {
+      if (window.innerWidth >= 768) return;
+      const deltaY = e.changedTouches[0].clientY - touchStartY;
+      if (deltaY > 80 && (scrollDiv?.scrollTop ?? 0) === 0) {
+        closeModal(false);
+      }
+    }, { passive: true });
+
+    window.addEventListener('popstate', () => {
+      if (modalOpen) closeModal(true);
+    }, { signal });
+
+    const m = window.location.pathname.match(/^\/chapter\/(\d+)$/);
+    if (m) {
+      const n = Number(m[1]);
+      if (chapters.find((c) => c.chapterNumber === n)) {
+        pushedState = false;
+        openChapter(n);
+      }
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    initModal();
+  });
+</script>

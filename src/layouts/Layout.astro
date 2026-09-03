@@ -1,0 +1,52 @@
+---
+import '../styles/global.css';
+import { ViewTransitions } from 'astro:transitions';
+import logoCircle from '../assets/branding/ntb-logo-circle.png';
+import { Image } from 'astro:assets';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'NTB Jonah',
+  description = 'The Book of Jonah in Amdo, Kham, and Central/Lhasa Tibetan, with audio narration and English text.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="bo">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#CFB63C" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script src="/registerSW.js" is:inline></script>
+    <title>{title}</title>
+    <ViewTransitions />
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <header class="bg-gold text-ink">
+      <nav class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-center gap-3"
+           style="padding-top: max(0.75rem, env(safe-area-inset-top))">
+        <Image src={logoCircle} alt="" width={40} height={40} class="h-10 w-10" />
+        <h1 class="text-2xl font-bold tracking-tight text-ink">
+          NTB Jonah
+        </h1>
+      </nav>
+    </header>
+
+    <main class="flex-1 w-full bg-page" transition:animate="fade">
+      <slot />
+    </main>
+  </body>
+</html>

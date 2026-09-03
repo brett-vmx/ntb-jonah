@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Self-hosted Tibetan fonts (Unicode). OuChan5 is the primary reading */
+/* face — wider glyph spacing, easier at small sizes on a phone than   */
+/* the more compact OuChan2. SambhotaDege offered as a display option. */
+/* ------------------------------------------------------------------ */
+@font-face {
+  font-family: "Monlam Uni OuChan5";
+  src: url("/fonts/MonlamUniOuChan5.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Monlam Uni OuChan2";
+  src: url("/fonts/MonlamUniOuChan2.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "SambhotaDege";
+  src: url("/fonts/SambhotaDege.ttf") format("truetype");
+  font-display: swap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Design tokens — Tailwind v4 @theme.                                 */
+/* Each token is also exposed as a CSS var, e.g. var(--color-gold).    */
+/* ------------------------------------------------------------------ */
+@theme {
+  /* Brand palette — from NTB-web-logo.png (mountains / river / sun) */
+  --color-gold: #cfb63c;        /* mountain gold — fills: header, audio tile, solid badges */
+  --color-gold-deep: #a38a1e;   /* darkened gold — safe as small accent text/links on white */
+  --color-cream: #ece1b1;       /* river/sun tone — soft pill backgrounds */
+  --color-ink: #1c1710;         /* near-black warm brown — body text, dark UI elements */
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-page: #f7f5ef;        /* warm off-white page background */
+
+  /* Base typography — 20px body for oral / low-literacy readers */
+  --text-base: 1.25rem;         /* 20px */
+
+  /* Tibetan reading faces */
+  --font-tibetan: "Monlam Uni OuChan5", "Monlam Uni OuChan2", "SambhotaDege", sans-serif;
+
+  /* Rounding */
+  --radius-card: 0.625rem;      /* 10px — cards sit in the 8–12px band */
+}
+
+/* ------------------------------------------------------------------ */
+/* Base layer                                                          */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    background-color: var(--color-gold); /* fills safe-area-inset-top region behind status bar */
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--color-ink);
+    background-color: var(--color-gold); /* matches html so no seam in status bar area */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Native audio player tinted with the brand accent */
+  audio {
+    accent-color: var(--color-gold-deep);
+  }
+
+  .tibetan {
+    font-family: var(--font-tibetan);
+  }
+}

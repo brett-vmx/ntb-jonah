@@ -1,0 +1,46 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  chapterNumber: number;
+  labelBo: string;
+  cover: ImageMetadata;
+}
+
+const { chapterNumber, labelBo, cover } = Astro.props;
+---
+
+<a
+  href={`/chapter/${chapterNumber}`}
+  data-chapter={chapterNumber}
+  class="chapter-card group relative block aspect-square overflow-hidden rounded-card shadow-sm
+         transition-all duration-200 hover:scale-[1.03] hover:shadow-xl
+         focus-visible:outline-2 focus-visible:outline-gold-deep focus-visible:outline-offset-2"
+>
+  <Image
+    src={cover}
+    alt={`Chapter ${chapterNumber} — ${labelBo}`}
+    width={640}
+    height={640}
+    class="h-full w-full object-cover"
+    loading="lazy"
+  />
+  <!-- Dark scrim: flat tint for overall legibility + radial vignette behind the numeral -->
+  <div class="absolute inset-0 bg-black/35"></div>
+  <div
+    class="absolute inset-0"
+    style="background:radial-gradient(circle at center, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,0) 75%)"
+  ></div>
+  <div class="absolute inset-0 flex items-center justify-center">
+    <span
+      class="font-bold text-white leading-none select-none"
+      style="font-size:clamp(4rem,18vw,7rem);text-shadow:0 2px 12px rgba(0,0,0,.5)"
+    >
+      {chapterNumber}
+    </span>
+  </div>
+  <span class="tibetan absolute bottom-3 left-3 right-3 text-white text-sm sm:text-base font-medium drop-shadow">
+    {labelBo}
+  </span>
+</a>

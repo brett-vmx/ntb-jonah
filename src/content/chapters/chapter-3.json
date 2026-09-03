@@ -1,0 +1,104 @@
+{
+  "chapterNumber": 3,
+  "order": 3,
+  "labelBo": "ལེའུ་གསུམ་པ།",
+  "sectionTitleBo": "ཡོ་ནཱ་ཁོ་རང་ནིན་ཝེ་གྲོང་ཁྱེར་དུ་ཕྱིན་པ།",
+  "cover": "../../assets/chapters/covers/chapter-3.webp",
+  "verseCount": 10,
+  "audio": {
+    "adx": "/audio/adx/chapter-3.mp3",
+    "bod": "/audio/bod/chapter-3.mp3",
+    "khg": "/audio/khg/chapter-3.mp3"
+  },
+  "duration": {
+    "adx": "2:28",
+    "bod": "1:39",
+    "khg": "1:40"
+  },
+  "blocks": [
+    {
+      "type": "verse",
+      "number": 1,
+      "bo": [
+        "དེ་ནས་དཀོན་མཆོག་ཡ་ཝཱེའི་བཀའ་ནི་སླར་ཡང་ཡོ་ནཱ་ལ་བྱུང་ནས་འདི་སྐད་དུ།"
+      ],
+      "en": "Then the word of the LORD came to Jonah a second time:"
+    },
+    {
+      "type": "verse",
+      "number": 2,
+      "bo": [
+        "ཡར་ལོངས་ལ་གྲོང་ཁྱེར་ཆེན་པོ་ནིན་ཝེ་རུ་སོང་ནས། ངས་ཁྱོད་ལ་བསྒོས་པའི་ཐ་ཚིག་སྒྲོགས་ཤིག་ཅེས་གསུངས་པས།"
+      ],
+      "en": "“Get up! Go to the great city of Nineveh and proclaim to it the message that I give you.”"
+    },
+    {
+      "type": "verse",
+      "number": 3,
+      "bo": [
+        "ཡོ་ནཱ་ཡར་ལངས་ནས་དཀོན་མཆོག་ཡ་ཝཱེའི་བཀའ་བཞིན་དུ་ནིན་ཝེ་རུ་ཕྱིན་པ་རེད། གྲོང་ཁྱེར་དེ་ནི་དཀོན་མཆོག་གི་ཐུགས་སུ་གལ་ཆེན་ཞིག་ཡིན་ཞིང་། ཉིན་གསུམ་གྱི་ལམ་ཐག་ཡོད་དོ།།"
+      ],
+      "en": "This time Jonah got up and went to Nineveh, in accordance with the word of the LORD. Now Nineveh was an exceedingly great city, requiring a three-day journey."
+    },
+    {
+      "type": "verse",
+      "number": 4,
+      "bo": [
+        "དེ་ནས་ཁོ་རང་གྲོང་ཁྱེར་དེའི་ནང་དུ་སོང་པ་དང་། ཉིན་གཅིག་གི་རིང་ལ་སོང་ནས་སྐད་གསང་མཐོན་པོས་བཀའ་གྱེར་བ་སྟེ། ཉིན་བཞི་བཅུའི་རྗེས་སུ་ནིན་ཝེ་རྩ་མེད་མཛད་ངེས་ཡིན་ཞེས་བསྒྲགས་སོ།།"
+      ],
+      "en": "On the first day of his journey, Jonah set out into the city and proclaimed, “Forty more days and Nineveh will be overturned!”"
+    },
+    {
+      "type": "verse",
+      "number": 5,
+      "bo": [
+        "དེ་ནས་ནིན་ཝེ་པ་རྣམས་དཀོན་མཆོག་ལ་དད་པར་གྱུར་པ་དང་། སྨྱུང་གནས་བསྲུང་རྒྱུའི་དོན་ཕྱོགས་ཀུན་ལ་བསྒྲགས་ཤིང་། གོང་འོག་ཚང་མས་རྩིད་རས་ཀྱི་གོས་གྱོན་ནོ།།"
+      ],
+      "en": "And the Ninevites believed God. They proclaimed a fast and dressed in sackcloth, from the greatest of them to the least."
+    },
+    {
+      "type": "verse",
+      "number": 6,
+      "bo": [
+        "ཡང་ནིན་ཝེའི་རྒྱལ་པོས་འཕྲིན་འདི་ཐོས་པས། ཁྲི་ལས་བབས། ན་བཟའ་ཕུད། རྩིད་རས་ཀྱི་གོས་གྱོན་པ་དང་ཐལ་བའི་ནང་དུ་བསྡད་དེ།"
+      ],
+      "en": "When word reached the king of Nineveh, he got up from his throne, took off his royal robe, covered himself with sackcloth, and sat in ashes."
+    },
+    {
+      "type": "verse",
+      "number": 7,
+      "bo": [
+        "ཆབ་ཤོག་བཏང་ནས་ནིན་ཝེའི་ས་ཕྱོགས་ཡོངས་སུ་འདི་ལྟར་དུ། རྒྱལ་པོ་དང་བློན་པོ་རྣམས་ཀྱིས་གྲོས་ཐག་བཅད་པ་བཞིན་འདི་ལྟར་སྨྲས་པ་སྟེ། མིའམ། སྒོ་ཕྱུགས་སམ། བ་ཁྱུའམ། ར་ལུག་གི་ཁྱུ་གང་གིས་ཁ་ལ་ཅི་ཡང་མྱང་དུ་མ་འཇུག དེ་རྣམས་ལ་ཅི་ཡང་སྤྱོད་དུ་མ་འཇུག ཆུ་ཡང་འཐུང་དུ་མ་འཇུག"
+      ],
+      "en": "Then he issued a proclamation in Nineveh: “By the decree of the king and his nobles: Let no man or beast, herd or flock, taste anything at all. They must not eat or drink."
+    },
+    {
+      "type": "image",
+      "file": "../../assets/chapters/inline/p7_Jon_03_02_RG.webp"
+    },
+    {
+      "type": "verse",
+      "number": 8,
+      "bo": [
+        "དེར་མ་ཟད་མི་དང་སྒོ་ཕྱུགས་གཉིས་ཀ་རྩིད་རས་ཀྱི་གོས་ཀྱིས་བཀླུབས་པ་དང་། དཀོན་མཆོག་ལ་ནན་གྱིས་ཞུ་བ་ཕུལ་ཏེ། རང་རང་གི་སྤྱོད་ལམ་ངན་པ་དང་། རང་རང་གི་ལག་པའི་གདུག་རྩུབ་སྤོངས་ཤིག"
+      ],
+      "en": "Furthermore, let both man and beast be covered with sackcloth, and have everyone call out earnestly to God. Let each one turn from his evil ways and from the violence in his hands."
+    },
+    {
+      "type": "verse",
+      "number": 9,
+      "bo": [
+        "སུ་ཞིག་གིས་ཤེས་སམ། དཀོན་མཆོག་གིས་བློ་ཁ་བསྒྱུར་ནས་ཐུགས་ཁྲོ་ཚ་པོ་ཞི་བར་མཛད་ཅིང་། རང་ཅག་རྣམས་སྲོག་ཐར་དུ་གཏོང་ཡང་སྲིད་ཅེས་བསྒྲགས་གཏམ་སྤེལ་ཏོ།།"
+      ],
+      "en": "Who knows? God may turn and relent; He may turn from His fierce anger, so that we will not perish.”"
+    },
+    {
+      "type": "verse",
+      "number": 10,
+      "bo": [
+        "དེ་ནས་ཁོ་རྣམས་ཀྱིས་སྤྱོད་ལམ་ངན་པ་སྤངས་པ་དཀོན་མཆོག་གིས་གཟིགས་ཤིང་། ཁོང་གིས་བློ་ཁ་བསྒྱུར་ནས་སྔོན་ལ་གསུངས་པའི་ཆག་སྒོ་ཁོ་རྣམས་ལ་མཛད་ངེས་པ་དེ་ཅི་ཡང་མ་མཛད་དོ།།"
+      ],
+      "en": "When God saw their actions—that they had turned from their evil ways—He relented from the disaster He had threatened to bring upon them."
+    }
+  ]
+}

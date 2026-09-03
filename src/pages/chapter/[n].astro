@@ -1,0 +1,69 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import { getImage, Image } from 'astro:assets';
+import { ArrowLeft } from '@lucide/astro';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const chapters = await getCollection('chapters');
+  return chapters.map((c) => ({
+    params: { n: String(c.data.chapterNumber) },
+    props: { chapter: c },
+  }));
+}
+
+const { chapter } = Astro.props;
+const { chapterNumber, labelBo, sectionTitleBo, cover, audio, duration, blocks } = chapter.data;
+
+const blockImages = await Promise.all(
+  blocks.map(async (b) => (b.type === 'image' ? (await getImage({ src: b.file, width: 800, format: 'webp', quality: 80 })).src : null)),
+);
+---
+
+<Layout title={`Jonah ${chapterNumber} — NTB Jonah`}>
+  <article class="mx-auto max-w-[680px] px-4 py-6 sm:py-8">
+    <a href="/" class="inline-flex items-center gap-1.5 text-gold-deep hover:text-ink font-medium mb-5 transition-colors">
+      <ArrowLeft size={20} aria-hidden="true" />
+      Back to Chapters
+    </a>
+
+    <div class="aspect-square overflow-hidden rounded-card bg-ink/5 shadow-sm">
+      <Image src={cover} alt={`Chapter ${chapterNumber}`} width={680} height={680} class="h-full w-full object-cover" loading="eager" />
+    </div>
+
+    <p class="tibetan text-gold-deep font-bold mt-6 mb-1">{labelBo}</p>
+    <h1 class="tibetan text-2xl sm:text-3xl font-bold text-ink leading-snug">{sectionTitleBo}</h1>
+
+    <!-- Listen (Central/Lhasa dialect by default; use the app for Amdo/Kham) -->
+    <div class="mt-6 rounded-2xl p-4 shadow-sm" style="background:#CFB63C">
+      <p class="text-sm font-bold tracking-widest text-ink uppercase mb-3">Listen (Central)</p>
+      <audio controls preload="metadata" class="w-full" src={audio.bod}>
+        Your browser does not support the audio element.
+      </audio>
+    </div>
+
+    <!-- Read (Tibetan + English) -->
+    <section class="mt-8 mb-4">
+      <div class="rounded-card bg-surface shadow-sm p-5">
+        {
+          blocks.map((b, i) =>
+            b.type === 'image' ? (
+              <img src={blockImages[i] ?? ''} alt="" loading="lazy" class="w-full rounded-md my-5" />
+            ) : (
+              <div class="mb-4">
+                <p class="tibetan text-lg leading-loose text-ink">
+                  <sup class="text-gold-deep font-bold mr-1">{b.number}</sup>
+                  {b.bo.join(' ')}
+                </p>
+                <p class="text-ink/70 leading-relaxed mt-1">
+                  <sup class="text-gold-deep font-bold mr-1">{b.number}</sup>
+                  {b.en}
+                </p>
+              </div>
+            ),
+          )
+        }
+      </div>
+    </section>
+  </article>
+</Layout>

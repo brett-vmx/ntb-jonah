@@ -1,0 +1,116 @@
+{
+  "chapterNumber": 4,
+  "order": 4,
+  "labelBo": "ལེའུ་བཞི་པ།",
+  "sectionTitleBo": "ཡོ་ནཱས་དཀོན་མཆོག་ཡ་ཝཱེའི་ཐུགས་རྗེ་ལ་གཤེ་གཤེ་བཏང་བ།",
+  "cover": "../../assets/chapters/covers/chapter-4.webp",
+  "verseCount": 11,
+  "audio": {
+    "adx": "/audio/adx/chapter-4.mp3",
+    "bod": "/audio/bod/chapter-4.mp3",
+    "khg": "/audio/khg/chapter-4.mp3"
+  },
+  "duration": {
+    "adx": "2:49",
+    "bod": "1:55",
+    "khg": "1:53"
+  },
+  "blocks": [
+    {
+      "type": "verse",
+      "number": 1,
+      "bo": [
+        "དོན་དེར་ཡོ་ནཱ་ཤིན་ཏུ་མ་དགའ་ཞིང་ཁྲོ་བར་གྱུར་ནས།"
+      ],
+      "en": "Jonah, however, was greatly displeased, and he became angry."
+    },
+    {
+      "type": "verse",
+      "number": 2,
+      "bo": [
+        "དཀོན་མཆོག་ཡ་ཝཱེ་ལ་གསོལ་བ་བཏབ་པ་ནི། ཀྱེ་དཀོན་མཆོག་ཡ་ཝཱེ་ལགས། ང་རང་ཡུལ་དུ་ཡོད་དུས་འདི་ལྟར་ཞུས་པ་མ་ཡིན་ནམ། ཁྱེད་ནི་དཀོན་མཆོག་ཐུགས་རྗེ་ཅན་དང་། སྙིང་རྗེ་ཆེན་པོ་མངའ་བ། རང་དགར་ཐུགས་མི་ཁྲོ་བ། བྱམས་བརྩེ་མཐའ་ཡས་པ། བློ་ཁ་བསྒྱུར་ནས་ཆག་སྒོ་མི་མཛད་པའང་ངས་ཤེས་པས། སྔོན་ཆད་བདག་ཐཱར་ཞིས་གྲོང་ཁྱེར་དུ་བྲོས་པ་ཡིན།"
+      ],
+      "en": "So he prayed to the LORD, saying, “O LORD, is this not what I said while I was still in my own country? This is why I was so quick to flee toward Tarshish. I knew that You are a gracious and compassionate God, slow to anger, abounding in loving devotion—One who relents from sending disaster."
+    },
+    {
+      "type": "verse",
+      "number": 3,
+      "bo": [
+        "ཀྱེ་དཀོན་མཆོག་ཡ་ཝཱེ་ལགས། ད་ནི་ང་སྲོག་དང་འབྲལ་བར་མཛོད་ཅིག འདི་ལྟར་གསོན་པ་ལས་འཆི་བ་ལེགས་སོ་ཞེས་ཞུས་པ་དང་།"
+      ],
+      "en": "And now, O LORD, please take my life from me, for it is better for me to die than to live.”"
+    },
+    {
+      "type": "verse",
+      "number": 4,
+      "bo": [
+        "དཀོན་མཆོག་ཡ་ཝཱེས་ཁོ་ལ། ཁྱོད་འདི་ལྟར་ཁྲོས་པར་རིགས་སམ་ཞེས་གསུངས་སོ།།"
+      ],
+      "en": "But the LORD replied, “Have you any right to be angry?”"
+    },
+    {
+      "type": "verse",
+      "number": 5,
+      "bo": [
+        "དེ་ནས་ཡོ་ནཱ་གྲོང་ཁྱེར་ལས་ཐོན་ཏེ་ཤར་ཕྱོགས་སུ་སོང་ནས་བསྡད་པ་དང་། གནས་དེར་སྤྱིལ་བུ་ཞིག་བཟོས་ཤིང་དེའི་བསིལ་གྲིབ་འོག་ཏུ་བསྡད་དེ། གྲོང་ཁྱེར་དེར་དོན་དག་ཅི་འབྱུང་ལ་བསྒུགས་སོ།།"
+      ],
+      "en": "Then Jonah left the city and sat down east of it, where he made himself a shelter and sat in its shade to see what would happen to the city."
+    },
+    {
+      "type": "verse",
+      "number": 6,
+      "bo": [
+        "དེ་ནས་དཀོན་མཆོག་ཡ་ཝཱེས་རྩི་ཤིང་ཞིག་ཡོ་ནཱའི་གོང་དུ་རིང་པོ་སྐྱེས་པར་མཛད་ནས། ཁོའི་མགོ་ལ་བསིལ་གདུགས་བཞིན་འཁོར་བར་བྱས་ཤིང་ཁོ་དཀའ་སྡུག་ལས་ཀྱང་ཐར་བར་མཛད། ཡོ་ནཱ་རྩི་ཤིང་དེ་ལ་རབ་ཏུ་དགའ་བར་གྱུར་ཏོ།།"
+      ],
+      "en": "So the LORD God appointed a vine, and it grew up to provide shade over Jonah’s head to ease his discomfort, and Jonah was greatly pleased with the plant."
+    },
+    {
+      "type": "image",
+      "file": "../../assets/chapters/inline/p8_Jon_04_02_RG.webp"
+    },
+    {
+      "type": "verse",
+      "number": 7,
+      "bo": [
+        "འོན་ཀྱང་ཕྱི་ཉིན་ཐོ་རངས་དཀོན་མཆོག་གིས་འབུ་ཞིག་བཀོད་པ་དང་། འབུ་དེས་རྩི་ཤིང་བརྟོལ་ཞིང་བརྙིད་པར་བྱས་སོ།།"
+      ],
+      "en": "When dawn came the next day, God appointed a worm that attacked the plant so that it withered."
+    },
+    {
+      "type": "verse",
+      "number": 8,
+      "bo": [
+        "ཉི་འོད་ཤར་བ་ན་དཀོན་མཆོག་གིས་ཤར་ཕྱོགས་ནས་ཚ་རླུང་ཞིག་བརྒྱུགས་སུ་བཅུག་ནས། ཡོ་ནཱའི་མགོ་ལ་ཉི་འོད་ཕོག་སྟེ་བརྒྱལ་ལ་ཉེ་བས། ཡོ་ནཱས་ང་རང་གསོན་པ་ལས་འཆི་བ་ལེགས་སོ་ཞེས་སྨྲས་ཏེ་ཁོས་རང་ཉིད་འཆི་བར་ཞུ་བ་བྱས་སོ།།"
+      ],
+      "en": "As the sun was rising, God appointed a scorching east wind, and the sun beat down on Jonah’s head so that he grew faint and wished to die, saying, “It is better for me to die than to live.”"
+    },
+    {
+      "type": "verse",
+      "number": 9,
+      "bo": [
+        "དེ་ནས་དཀོན་མཆོག་གིས་ཡོ་ནཱ་ལ་འདི་སྐད་དུ། རྩི་ཤིང་དེའི་དོན་དུ་ཁོང་ཁྲོ་ལང་འོས་སམ་ཞེས་གསུངས་པ་དང་། ཁོས་ལན་དུ། འཆི་བར་འདོད་པ་ཙམ་དུ་ཁྲོ་བར་རིགས་སོ་ཞེས་ཞུས་སོ།།"
+      ],
+      "en": "Then God asked Jonah, “Have you any right to be angry about the plant?” “I do,” he replied. “I am angry enough to die!”"
+    },
+    {
+      "type": "image",
+      "file": "../../assets/chapters/inline/p9_Jon_04_03_RG.webp"
+    },
+    {
+      "type": "verse",
+      "number": 10,
+      "bo": [
+        "ཡང་དཀོན་མཆོག་ཡ་ཝཱེས་ཁོ་ལ། མཚན་མོ་ཞིག་ལ་སྐྱེས་ནས་མཚན་མོ་ཞིག་ལ་བསྐམས་པ། ཁྱོད་ཀྱིས་མ་འབད་པ་དང་སྐྱེས་སུ་མ་བཅུག་པའི་རྩི་ཤིང་དེ་ལ་སྙིང་རྗེ་བསྐྱེད་ན།"
+      ],
+      "en": "But the LORD said, “You cared about the plant, which you neither tended nor made grow. It sprang up in a night and perished in a night."
+    },
+    {
+      "type": "verse",
+      "number": 11,
+      "bo": [
+        "གྲོང་ཁྱེར་ཆེན་པོ་ནིན་ཝེ་འདི་རུ་ལག་པ་གཡས་གཡོན་གྱི་དབྱེ་བའང་མི་འཁོར་བའི་མི་ཁྲི་སྐོར་བཅུ་གཉིས་ལྷག་དང་། སྒོ་ཕྱུགས་ཀྱང་མང་པོ་ཡོད་ཅིང་། ངས་དེ་རྣམས་ལ་སྙིང་རྗེ་བྱེད་པར་མི་རིགས་སམ་ཞེས་གསུངས་སོ།། །།"
+      ],
+      "en": "So should I not care about the great city of Nineveh, which has more than 120,000 people who cannot tell their right hand from their left, and many cattle as well?”"
+    }
+  ]
+}
