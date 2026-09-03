@@ -10,7 +10,6 @@ const chapters = all.sort(byOrder);
 
 const chapterData = await Promise.all(
   chapters.map(async (c) => {
-    const optimizedCover = await getImage({ src: c.data.cover, width: 640, format: 'webp', quality: 80 });
     const blocks = await Promise.all(
       c.data.blocks.map(async (b) => {
         if (b.type === 'image') {
@@ -24,7 +23,8 @@ const chapterData = await Promise.all(
       chapterNumber: c.data.chapterNumber,
       labelBo: c.data.labelBo,
       sectionTitleBo: c.data.sectionTitleBo,
-      coverSrc: optimizedCover.src,
+      labelEn: c.data.labelEn,
+      sectionTitleEn: c.data.sectionTitleEn,
       audio: c.data.audio,
       duration: c.data.duration,
       blocks,
@@ -58,7 +58,7 @@ const chapterData = await Promise.all(
       </div>
       <button id="modal-close-desktop" type="button" aria-label="Close chapter"
         class="hidden md:flex"
-        style="position:absolute;top:1rem;right:1rem;z-index:10;width:2.25rem;height:2.25rem;align-items:center;justify-content:center;border-radius:9999px;background:rgba(255,255,255,.85);border:none;cursor:pointer;color:#6b7280">
+        style="position:absolute;top:1rem;right:1rem;z-index:10;width:2.25rem;height:2.25rem;align-items:center;justify-content:center;border-radius:9999px;background:#CFB63C;border:none;cursor:pointer;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.2)">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -108,7 +108,8 @@ const chapterData = await Promise.all(
     chapterNumber: number;
     labelBo: string;
     sectionTitleBo: string;
-    coverSrc: string;
+    labelEn: string;
+    sectionTitleEn: string;
     audio: { adx: string; bod: string; khg: string };
     duration: { adx: string; bod: string; khg: string };
     blocks: Block[];
@@ -173,8 +174,20 @@ const chapterData = await Promise.all(
 
     function renderReadSection() {
       if (!openChapterEntry) return;
+      const lang = getTextLang();
       const blocksEl = document.getElementById('modal-blocks');
-      if (blocksEl) blocksEl.innerHTML = blocksToHtml(openChapterEntry.blocks, getTextLang());
+      if (blocksEl) blocksEl.innerHTML = blocksToHtml(openChapterEntry.blocks, lang);
+
+      const labelEl = document.getElementById('modal-label');
+      const titleEl = document.getElementById('modal-title');
+      if (labelEl) {
+        labelEl.textContent = lang === 'bo' ? openChapterEntry.labelBo : openChapterEntry.labelEn;
+        labelEl.classList.toggle('tibetan', lang === 'bo');
+      }
+      if (titleEl) {
+        titleEl.textContent = lang === 'bo' ? openChapterEntry.sectionTitleBo : openChapterEntry.sectionTitleEn;
+        titleEl.classList.toggle('tibetan', lang === 'bo');
+      }
     }
 
     function updateAudioForDialect() {
@@ -207,12 +220,15 @@ const chapterData = await Promise.all(
       if (!chapter) return;
       openChapterEntry = chapter;
       const dialect = getDialect();
+      const lang = getTextLang();
+      const label = lang === 'bo' ? chapter.labelBo : chapter.labelEn;
+      const sectionTitle = lang === 'bo' ? chapter.sectionTitleBo : chapter.sectionTitleEn;
+      const tibetanClass = lang === 'bo' ? ' tibetan' : '';
 
       content.innerHTML = `
-        <img src="${chapter.coverSrc}" alt="Chapter ${chapter.chapterNumber}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" />
-        <div style="padding:1.5rem 1.25rem 1rem">
-          <p class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem">${chapter.labelBo}</p>
-          <h2 class="tibetan" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5">${chapter.sectionTitleBo}</h2>
+        <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
+          <p id="modal-label" class="${tibetanClass.trim()}" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem;padding-right:2.5rem">${label}</p>
+          <h2 id="modal-title" class="${tibetanClass.trim()}" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5;padding-right:2.5rem">${sectionTitle}</h2>
 
           <!-- LISTEN tile -->
           <div style="background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 1px 3px rgba(0,0,0,.15)">

@@ -16,6 +16,8 @@ const chapters = defineCollection({
       order: z.number(),
       labelBo: z.string(), // e.g. ལེའུ་དང་པོ། ("Chapter One")
       sectionTitleBo: z.string(),
+      labelEn: z.string(), // e.g. "Chapter 1" — shown when text language is English
+      sectionTitleEn: z.string(),
       cover: image(),
       verseCount: z.number(),
       audio: z.object({

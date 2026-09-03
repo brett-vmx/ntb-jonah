@@ -47,6 +47,17 @@ const COVER_IMAGES = {
   4: `${COVER_DIR}/chapter-4.webp`,
 };
 
+// English chapter label + section title, shown in the modal when the reader's
+// text-language setting is English. These are editorial titles (not in the
+// SFM or BSB source — English translations don't carry section headings) —
+// short study-Bible-style outline titles matching each Tibetan sectionTitleBo.
+const ENGLISH_TITLES = {
+  1: { label: 'Chapter 1', section: 'Jonah Flees from the LORD' },
+  2: { label: 'Chapter 2', section: "Jonah's Prayer" },
+  3: { label: 'Chapter 3', section: 'Jonah Goes to Nineveh' },
+  4: { label: 'Chapter 4', section: "Jonah's Anger at the LORD's Compassion" },
+};
+
 // Dialect audio durations in seconds, read with ffprobe from the source MP3s
 // (adx/bod/khg = Amdo/Central-Lhasa/Kham per John's note: bod=Central, adx=Amdo, khg=Kham).
 const DURATIONS = {
@@ -179,6 +190,8 @@ function buildChapter(n, sfmChapter, bsbChapter) {
     order: n,
     labelBo: sfmChapter.label,
     sectionTitleBo: sfmChapter.section,
+    labelEn: ENGLISH_TITLES[n].label,
+    sectionTitleEn: ENGLISH_TITLES[n].section,
     cover: COVER_IMAGES[n],
     verseCount: verseNums.length,
     audio: {
