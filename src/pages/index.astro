@@ -253,9 +253,11 @@ const chapterData = await Promise.all(
       if (!audio || !timeDisplay) return;
 
       const dialect = getDialect();
+      const rate = audio.playbackRate; // preserved across load() by spec, but pin it explicitly
       audio.pause();
       audio.src = openChapterEntry.audio[dialect];
       audio.load();
+      audio.playbackRate = rate;
       timeDisplay.textContent = `0:00 / ${openChapterEntry.duration[dialect]}`;
       if (dialectLabel) dialectLabel.innerHTML = dialectDisplay(dialect);
 
@@ -303,7 +305,11 @@ const chapterData = await Promise.all(
               <div style="flex:1;min-width:0">
                 <input id="modal-progress" type="range" min="0" max="100" value="0" step="0.1"
                   style="width:100%;height:6px;-webkit-appearance:none;appearance:none;border-radius:9999px;outline:none;cursor:pointer;--progress:0%;background:linear-gradient(to right,#1c1710 var(--progress),rgba(28,23,16,.25) var(--progress))" />
-                <span id="modal-time-display" style="display:block;margin-top:.4rem;font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.4rem">
+                  <span id="modal-time-display" style="font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
+                  <button id="modal-speed-btn" type="button" aria-label="Playback speed"
+                    style="font-size:.8rem;font-weight:700;color:#1c1710;background:rgba(28,23,16,.12);border:none;border-radius:9999px;padding:.2rem .7rem;cursor:pointer">1×</button>
+                </div>
               </div>
             </div>
           </div>
@@ -340,6 +346,8 @@ const chapterData = await Promise.all(
       }
     }
 
+    const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+
     function initAudioPlayer(initialDuration: string) {
       const audio      = document.getElementById('modal-audio')       as HTMLAudioElement | null;
       const playBtn    = document.getElementById('modal-play-btn')    as HTMLButtonElement | null;
@@ -347,9 +355,17 @@ const chapterData = await Promise.all(
       const pauseIcon  = document.getElementById('modal-pause-icon')  as SVGElement | null;
       const progress   = document.getElementById('modal-progress')    as HTMLInputElement | null;
       const timeDisplay = document.getElementById('modal-time-display') as HTMLElement | null;
-      if (!audio || !playBtn || !playIcon || !pauseIcon || !progress || !timeDisplay) return;
+      const speedBtn   = document.getElementById('modal-speed-btn')   as HTMLButtonElement | null;
+      if (!audio || !playBtn || !playIcon || !pauseIcon || !progress || !timeDisplay || !speedBtn) return;
 
       let totalLabel = initialDuration;
+      let speedIndex = SPEEDS.indexOf(1);
+
+      speedBtn.addEventListener('click', () => {
+        speedIndex = (speedIndex + 1) % SPEEDS.length;
+        audio.playbackRate = SPEEDS[speedIndex];
+        speedBtn.textContent = `${SPEEDS[speedIndex]}×`;
+      });
 
       function fmt(secs: number): string {
         const m = Math.floor(secs / 60);
