@@ -97,6 +97,19 @@ the first such round-trip because their listeners were bound to DOM nodes
 that no longer exist post-swap. Reproduce-and-verify this specific sequence
 (open a chapter → close it → click a header icon) after touching Layout.astro.
 
+### Header safe-area padding needs a real minimum, not just env()
+The header's top padding is `max(1.5rem, env(safe-area-inset-top))`, not
+plain `env(safe-area-inset-top)`. On notched/Dynamic-Island iPhones the env()
+value alone (44–59px) is plenty, but on non-notched devices (iPhone SE, etc.)
+`env(safe-area-inset-top)` resolves to **0** even though `viewport-fit=cover`
+still draws our content full-bleed under the status bar in Safari and in
+installed-PWA standalone mode — Safari is what actually honors
+`viewport-fit=cover`; Chrome/Firefox for iOS don't extend content under the
+status bar the same way, which is why the header only looked cramped in
+Safari and standalone, not other mobile browsers. Don't drop the fixed
+1.5rem minimum thinking env() alone is "more correct" — test on a
+non-notched device (or just trust this note) before changing it.
+
 ### PWA service worker injection
 `@vite-pwa/astro` does NOT automatically inject the manifest link or SW
 registration script into Astro 5 HTML output. Both are manually added to
