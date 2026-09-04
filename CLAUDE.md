@@ -52,6 +52,20 @@ and Central are three separate audio recordings of it, not three separate
 texts. The dialect switcher swaps `<audio>` src; it never changes the
 displayed Tibetan text.
 
+### Verse-timing / read-along highlight
+`source-assets/timing/{dialect}_32_JON_{n}.txt` files (John's forced-aligner
+export — tab-separated `start\tend\t[verse]`, start===end so it's really one
+timestamp per line, verse number only present on that verse's first line)
+are parsed by `gen-chapters.mjs` into `chapter.timing.{adx,bod,khg}`: an
+array of `{verse, time}` verse-start timestamps, or `null` if that dialect's
+file doesn't exist yet in `source-assets/timing/`. Only Amdo has timing so
+far. `applyVerseHighlight()` in index.astro runs on every `timeupdate` and
+lights up the `[data-verse]` block whose interval contains `audio.currentTime`
+— it's a no-op (and clears any existing highlight) when the current dialect's
+timing is `null`, so bod/khg just silently don't highlight until John sends
+those files. Re-run `npm run gen-chapters` after dropping in new timing
+files — don't hand-edit the `timing` field in the generated JSON.
+
 ### Reading settings are global, not per-modal (mirrors tenpa.app)
 Text language (Tibetan/English), Tibetan font, text size, and audio dialect
 are app-wide settings, not controls inside each chapter modal — chosen from

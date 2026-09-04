@@ -20,17 +20,19 @@ dialects) are cached at install time.
 
 ```
 source-assets/          Original files from the client — SFM text, RTF (English),
-                         PDF layout reference, raw JPGs/MP3s/fonts. Not used directly
-                         by the app; kept as the source of truth for regeneration.
+                         PDF layout reference, raw JPGs/MP3s/fonts, per-dialect
+                         verse-timing exports (timing/). Not used directly by
+                         the app; kept as the source of truth for regeneration.
 scripts/
-  gen-chapters.mjs       Parses source-assets/32JONNTB.SFM (Tibetan) and
-                         Jonah_BSB.rtf (English) into src/content/chapters/*.json.
-                         Re-run this (`npm run gen-chapters`) any time the source
-                         text changes — don't hand-edit the generated JSON.
+  gen-chapters.mjs       Parses source-assets/32JONNTB.SFM (Tibetan),
+                         Jonah_BSB.rtf (English), and source-assets/timing/*.txt
+                         into src/content/chapters/*.json. Re-run this
+                         (`npm run gen-chapters`) any time the source text or
+                         timing files change — don't hand-edit the generated JSON.
 src/
   content.config.ts      Content collection schema (chapters)
   content/chapters/      Generated per-chapter data (verses, inline image
-                         placement, audio paths, durations)
+                         placement, audio paths, durations, verse timing)
   assets/chapters/       Optimized cover + inline illustration images (webp)
   assets/branding/       Logo variants
   components/            ChapterCard.astro

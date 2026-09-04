@@ -27,6 +27,7 @@ const chapterData = await Promise.all(
       sectionTitleEn: c.data.sectionTitleEn,
       audio: c.data.audio,
       duration: c.data.duration,
+      timing: c.data.timing,
       blocks,
     };
   }),
@@ -92,6 +93,18 @@ const chapterData = await Promise.all(
     border: none;
     cursor: pointer;
   }
+
+  /* Read-along highlight for the verse currently playing (only lights up */
+  /* when the active dialect has verse-timing data — see settings-store.ts). */
+  #modal-blocks [data-verse].verse-active {
+    background: rgba(207, 182, 60, 0.22);
+    border-radius: 8px;
+    margin-left: -0.6rem;
+    margin-right: -0.6rem;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+    transition: background-color 0.2s ease;
+  }
 </style>
 
 <script define:vars={{ chapterData }}>
@@ -104,6 +117,7 @@ const chapterData = await Promise.all(
   interface ImageBlock { type: 'image'; src: string }
   interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string }
   type Block = ImageBlock | VerseBlock;
+  type TimingTrack = { verse: number; time: number }[] | null;
   interface ChapterEntry {
     chapterNumber: number;
     labelBo: string;
@@ -112,6 +126,7 @@ const chapterData = await Promise.all(
     sectionTitleEn: string;
     audio: { adx: string; bod: string; khg: string };
     duration: { adx: string; bod: string; khg: string };
+    timing: { adx: TimingTrack; bod: TimingTrack; khg: TimingTrack };
     blocks: Block[];
   }
 
@@ -140,12 +155,12 @@ const chapterData = await Promise.all(
             ? b.bo.map((line) => `<div>${line}</div>`).join('')
             : b.bo[0];
           return `
-            <div class="verse-block tibetan" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:2">
+            <div class="verse-block tibetan" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:2">
               <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${boLines}
             </div>`;
         }
         return `
-          <div class="verse-block" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:1.75">
+          <div class="verse-block" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:1.75">
             <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${b.en}
           </div>`;
       })
@@ -189,6 +204,45 @@ const chapterData = await Promise.all(
         titleEl.textContent = lang === 'bo' ? openChapterEntry.sectionTitleBo : openChapterEntry.sectionTitleEn;
         titleEl.classList.toggle('tibetan', lang === 'bo');
       }
+
+      applyVerseHighlight(); // re-render wiped #modal-blocks, so the highlight needs reapplying
+    }
+
+    // Read-along highlight: lights up the verse block matching the audio's
+    // current playback position, using the active dialect's verse-start
+    // timestamps (null for dialects without timing data yet — see
+    // settings-store.ts / gen-chapters.mjs). Called on every audio
+    // 'timeupdate' tick, plus whenever the READ section re-renders or the
+    // dialect (and therefore the timing track) changes, so the highlight
+    // never lags behind a settings change.
+    function applyVerseHighlight() {
+      const blocksEl = document.getElementById('modal-blocks');
+      const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      if (!blocksEl || !openChapterEntry) return;
+
+      const prevActive = blocksEl.querySelector('[data-verse].verse-active');
+      const timings = openChapterEntry.timing[getDialect()];
+      if (!timings || !audio) {
+        prevActive?.classList.remove('verse-active');
+        return;
+      }
+
+      const t = audio.currentTime;
+      let activeVerse: number | null = null;
+      for (const entry of timings) {
+        if (entry.time <= t) activeVerse = entry.verse;
+        else break; // timings are chronological, so the first later entry ends the search
+      }
+
+      if (prevActive && Number(prevActive.getAttribute('data-verse')) === activeVerse) return;
+      prevActive?.classList.remove('verse-active');
+      if (activeVerse === null) return;
+
+      const el = blocksEl.querySelector(`[data-verse="${activeVerse}"]`);
+      if (el) {
+        el.classList.add('verse-active');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
 
     function updateAudioForDialect() {
@@ -211,6 +265,8 @@ const chapterData = await Promise.all(
       const pauseIcon = document.getElementById('modal-pause-icon') as SVGElement | null;
       if (playIcon) playIcon.style.display = '';
       if (pauseIcon) pauseIcon.style.display = 'none';
+
+      applyVerseHighlight(); // dialect change swaps the timing track too
     }
 
     window.addEventListener('jonah:text-settings-changed', renderReadSection, { signal });
@@ -318,6 +374,7 @@ const chapterData = await Promise.all(
         progress.value = String(pct);
         progress.style.setProperty('--progress', pct + '%');
         timeDisplay.textContent = `${fmt(audio.currentTime)} / ${totalLabel}`;
+        applyVerseHighlight();
       });
 
       audio.addEventListener('loadedmetadata', () => {
@@ -329,6 +386,7 @@ const chapterData = await Promise.all(
         if (!audio.duration) return;
         audio.currentTime = (parseFloat(progress.value) / 100) * audio.duration;
         progress.style.setProperty('--progress', progress.value + '%');
+        applyVerseHighlight();
       });
 
       audio.addEventListener('ended', () => {

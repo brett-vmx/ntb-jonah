@@ -8,6 +8,13 @@ const verseBlock = z.object({
   en: z.string(),
 });
 
+// Verse-start timestamps (seconds) for read-along highlighting, from John's
+// forced-aligner export. Only Amdo exists so far — bod/khg are null until
+// those timing files arrive; the reading UI just skips highlighting then.
+const timingTrack = z
+  .array(z.object({ verse: z.number(), time: z.number() }))
+  .nullable();
+
 const chapters = defineCollection({
   loader: glob({ pattern: '**/*.json', base: './src/content/chapters' }),
   schema: ({ image }) =>
@@ -29,6 +36,11 @@ const chapters = defineCollection({
         adx: z.string(),
         bod: z.string(),
         khg: z.string(),
+      }),
+      timing: z.object({
+        adx: timingTrack,
+        bod: timingTrack,
+        khg: timingTrack,
       }),
       blocks: z.array(
         z.discriminatedUnion('type', [

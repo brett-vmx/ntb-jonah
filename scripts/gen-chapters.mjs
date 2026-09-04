@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.dirname(fileURLToPath(import.meta.url)) + '/..';
 const SFM_PATH = path.join(ROOT, 'source-assets/32JONNTB.SFM');
 const RTF_PATH = path.join(ROOT, 'source-assets/Jonah_BSB.rtf');
+const TIMING_DIR = path.join(ROOT, 'source-assets/timing');
 const OUT_DIR = path.join(ROOT, 'src/content/chapters');
 
 // Paths below are relative to src/content/chapters/, resolved by content.config.ts's
@@ -161,7 +162,50 @@ function parseBsb(raw) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Merge into per-chapter block lists and write JSON
+// 3. Parse per-dialect verse-timing files (word/verse-aligned export from
+//    John's forced-aligner). Each line is "start\tend\t[verseNumber]" —
+//    start === end (a single timestamp, not a range), and the verse number
+//    is only present on the line marking that verse's first spoken syllable.
+//    The other, unnumbered lines are finer phrase-level markers within the
+//    verse; not used yet, but harmless to ignore.
+//
+//    Only Amdo (adx) timing files exist so far — bod/khg return null and the
+//    app just skips read-along highlighting for those dialects until John
+//    sends the rest. Filenames follow either the adx audio convention
+//    (chapter-N, no padding) or the bod audio convention (chapter-0N) since
+//    we don't yet know which one future dialects will use.
+// ---------------------------------------------------------------------------
+
+function findTimingFile(dialect, n) {
+  const candidates = [
+    `${dialect}_32_JON_${n}.txt`,
+    `${dialect}_32_JON_${String(n).padStart(2, '0')}.txt`,
+  ];
+  for (const name of candidates) {
+    const p = path.join(TIMING_DIR, name);
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function parseTiming(dialect, n) {
+  const filePath = findTimingFile(dialect, n);
+  if (!filePath) return null;
+
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const verses = [];
+  for (const line of raw.split('\n')) {
+    const cols = line.split('\t');
+    if (cols.length < 3) continue;
+    const verse = parseInt(cols[2].trim(), 10);
+    if (Number.isNaN(verse)) continue; // unnumbered sub-verse marker — skip
+    verses.push({ verse, time: parseFloat(cols[0]) });
+  }
+  return verses.length ? verses : null;
+}
+
+// ---------------------------------------------------------------------------
+// 4. Merge into per-chapter block lists and write JSON
 // ---------------------------------------------------------------------------
 
 function buildChapter(n, sfmChapter, bsbChapter) {
@@ -204,6 +248,11 @@ function buildChapter(n, sfmChapter, bsbChapter) {
       bod: fmtDuration(DURATIONS[n].bod),
       khg: fmtDuration(DURATIONS[n].khg),
     },
+    timing: {
+      adx: parseTiming('adx', n),
+      bod: parseTiming('bod', n),
+      khg: parseTiming('khg', n),
+    },
     blocks,
   };
 }
@@ -221,8 +270,11 @@ function main() {
     const chapter = buildChapter(n, sfmChapters[n], bsbChapters[n]);
     const outPath = path.join(OUT_DIR, `chapter-${n}.json`);
     fs.writeFileSync(outPath, JSON.stringify(chapter, null, 2) + '\n');
+    const timingDialects = Object.entries(chapter.timing)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
     console.log(
-      `chapter ${n}: ${chapter.verseCount} verses, ${chapter.blocks.filter((b) => b.type === 'image').length} inline images -> ${path.relative(ROOT, outPath)}`,
+      `chapter ${n}: ${chapter.verseCount} verses, ${chapter.blocks.filter((b) => b.type === 'image').length} inline images, timing: [${timingDialects.join(', ') || 'none'}] -> ${path.relative(ROOT, outPath)}`,
     );
   }
 }

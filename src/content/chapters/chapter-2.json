@@ -17,6 +17,52 @@
     "bod": "1:33",
     "khg": "1:31"
   },
+  "timing": {
+    "adx": [
+      {
+        "verse": 1,
+        "time": 2.005
+      },
+      {
+        "verse": 2,
+        "time": 9.859
+      },
+      {
+        "verse": 3,
+        "time": 23.496
+      },
+      {
+        "verse": 4,
+        "time": 41.91
+      },
+      {
+        "verse": 5,
+        "time": 55.669
+      },
+      {
+        "verse": 6,
+        "time": 66.568
+      },
+      {
+        "verse": 7,
+        "time": 87.282
+      },
+      {
+        "verse": 8,
+        "time": 101.371
+      },
+      {
+        "verse": 9,
+        "time": 109.215
+      },
+      {
+        "verse": 10,
+        "time": 126.602
+      }
+    ],
+    "bod": null,
+    "khg": null
+  },
   "blocks": [
     {
       "type": "verse",
