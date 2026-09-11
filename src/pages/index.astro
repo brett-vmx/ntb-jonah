@@ -55,7 +55,12 @@ const chapterData = await Promise.all(
           <img src="/badges/app-store-badge.svg" alt="Download on the App Store" style="height:42px" />
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.tibetanapp" target="_blank" rel="noopener noreferrer" aria-label="Get New Tibetan Bible on Google Play">
-          <img src="/badges/google-play-badge.png" alt="Get it on Google Play" style="height:42px" />
+          <!-- Google's official badge PNG bakes in ~16% transparent margin on
+               all sides (unlike Apple's tightly-cropped SVG), so it needs a
+               taller display height for its visible logo to match Apple's
+               42px — 42 / (168/250) ≈ 62.5px. Still the official artwork
+               as-is, just scaled to look the same size next to Apple's. -->
+          <img src="/badges/google-play-badge.png" alt="Get it on Google Play" style="height:62.5px" />
         </a>
       </div>
     </section>
@@ -132,6 +137,12 @@ const chapterData = await Promise.all(
   function dialectDisplay(dialect: 'adx' | 'bod' | 'khg', lang: 'bo' | 'en'): string {
     const { en, bo } = DIALECT_LABELS[dialect];
     return lang === 'bo' ? `<span class="tibetan">${bo}</span>` : en;
+  }
+
+  // The LISTEN bar's own label, translated (provisional — flag for John to
+  // confirm the exact wording he'd want here).
+  function listenLabel(lang: 'bo' | 'en'): string {
+    return lang === 'bo' ? 'ཉན་པ' : 'LISTEN';
   }
 
   const COPYRIGHT_HTML = `
@@ -261,6 +272,12 @@ const chapterData = await Promise.all(
       const dialectLabelEl = document.getElementById('modal-dialect-label');
       if (dialectLabelEl) dialectLabelEl.innerHTML = dialectDisplay(getDialect(), lang);
 
+      const listenLabelEl = document.getElementById('modal-listen-label');
+      if (listenLabelEl) {
+        listenLabelEl.textContent = listenLabel(lang);
+        listenLabelEl.classList.toggle('tibetan', lang === 'bo');
+      }
+
       applyVerseHighlight(); // re-render wiped #modal-blocks, so the highlight needs reapplying
     }
 
@@ -371,14 +388,18 @@ const chapterData = await Promise.all(
         <div style="margin:0 1.25rem 1rem;background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 2px 8px rgba(0,0,0,.2)">
           <!-- Row 1: LISTEN + dialect -->
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">Listen</span>
+            <span id="modal-listen-label" class="${lang === 'bo' ? 'tibetan' : ''}" style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">${listenLabel(lang)}</span>
             <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${dialectDisplay(dialect, lang)}</span>
           </div>
           <audio id="modal-audio" preload="metadata" src="${chapter.audio[dialect]}" style="display:none"></audio>
 
           <!-- Row 2: audio position, combined with play/pause — the circle
-               that marks where playback is also toggles play/pause. -->
-          <div style="padding:14px 0">
+               that marks where playback is also toggles play/pause. The
+               track is inset horizontally by half the button's width (17px)
+               so the button's own edges — not its center — land flush with
+               the LISTEN label's left edge and the dialect/speed controls'
+               right edge at the 0%/100% extremes. -->
+          <div style="padding:19px 17px">
             <div id="modal-progress-track" style="position:relative;width:100%;height:6px;border-radius:9999px;background:rgba(28,23,16,.25);cursor:pointer;touch-action:none">
               <div id="modal-progress-fill" style="position:absolute;top:0;left:0;height:100%;border-radius:9999px;background:#1c1710;width:0%;pointer-events:none"></div>
               <button id="modal-play-btn" type="button" aria-label="Play"
@@ -389,7 +410,11 @@ const chapterData = await Promise.all(
             </div>
           </div>
 
-          <!-- Row 3: time indicator — prev/next chevrons — speed. -->
+          <!-- Row 3: time indicator — prev/next chevrons — speed. The speed
+               button has a fixed width (wide enough for its longest label,
+               "0.75×"/"0.85×") so the chevrons' centered position (via
+               justify-content:space-between) never shifts as the label
+               text changes width. -->
           <div style="display:flex;align-items:center;justify-content:space-between">
             <span id="modal-time-display" style="font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
             <div style="display:flex;align-items:center;gap:1.5rem">
@@ -401,7 +426,7 @@ const chapterData = await Promise.all(
               </button>
             </div>
             <button id="modal-speed-btn" type="button" aria-label="Playback speed"
-              style="background:none;border:none;padding:0;font-size:.8rem;font-weight:700;color:#1c1710;cursor:pointer">1×</button>
+              style="background:none;border:none;padding:0;width:2.75rem;text-align:right;font-size:.8rem;font-weight:700;color:#1c1710;cursor:pointer">1×</button>
           </div>
         </div>
       `;

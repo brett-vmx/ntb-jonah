@@ -196,7 +196,28 @@ no background either — both were pill/circle-shaped before this round.
 Row 3 (time / chevrons / speed) uses `justify-content: space-between` with
 exactly three children so the chevron pair sits visually centered between
 the time indicator and the speed control, per feedback, without needing
-absolute positioning.
+absolute positioning. The speed button has a **fixed** `width` (2.75rem)
+instead of sizing to its own text — its label changes length across the
+seven speed values ("1×" vs. "0.75×"), and under `space-between` a
+changing flanking-item width shifts the middle item's (the chevrons')
+computed gap, so without a fixed width the chevrons visibly jumped
+position every time the speed changed.
+
+The row 2 wrapper around the seek track is inset `padding: 19px 17px`
+(vertical 19px = the 14px needed to clear the 34px circle's overhang past
+the 6px track, plus 5px more breathing room per feedback; horizontal 17px
+= half the circle's width) — the horizontal inset means the track's own
+0%/100% extremes put the *circle's edge*, not its center, flush with the
+LISTEN label's left edge and the dialect/speed controls' right edge,
+matching row 1 and row 3's content width exactly. Don't make the track
+`width: 100%` of the full tile again — it needs this narrower, inset track
+to keep the button from overhanging the tile's edges.
+
+The "LISTEN" label itself is translated per the current reading language
+(`listenLabel(lang)` in index.astro — `'ཉན་པ'` for Tibetan) and, like the
+dialect label, needs refreshing in `renderReadSection()` on a language
+change, not just at initial chapter open. The Tibetan wording is
+provisional — flag it for John to confirm his preferred term.
 
 ### Header safe-area padding needs a real minimum, not just env()
 The header's top padding is `max(1.5rem, env(safe-area-inset-top))`, not
@@ -267,13 +288,19 @@ All three current fonts are self-hosted via `@font-face` in
 ```
 src/assets/chapters/covers/   Homepage chapter-card images (webp, square-cropped)
 src/assets/chapters/inline/   In-reading illustrations (webp)
-src/assets/branding/          Logo variants (circle, inverse, full)
+src/assets/branding/          Logo variants — ntb-logo-mark-white.png (transparent
+                               background, current header logo) plus older circle/
+                               inverse/full variants kept for reference
 public/audio/{adx,bod,khg}/   Dialect audio, chapter-N.mp3
 public/fonts/                 Tibetan Unicode fonts
 public/icons/                 PWA icon PNGs
 public/badges/                Official Apple/Google store badges (app-store-badge.svg,
                                google-play-badge.png) — do not reskin, Apple/Google both
-                               require using their own badge artwork as-is
+                               require using their own badge artwork as-is. Google's PNG
+                               bakes in ~16% transparent margin on every side (Apple's SVG
+                               doesn't), so it's displayed taller (62.5px vs. Apple's 42px)
+                               to make the two visible logos read as the same size —
+                               re-check this ratio if the badge files are ever replaced.
 source-assets/                Original client files — see README.md
 ```
 
@@ -283,16 +310,32 @@ main content — same treatment as tenpa.app, so the 2-col chapter grid stays
 2 columns even on a wide desktop viewport instead of reflowing to 4. The
 chapter modal is capped at the same 448px on desktop for visual consistency.
 
-**Header** (`Layout.astro`): circle logo on the left (white mountain/river/
-sun mark on a solid gold badge — the *inverse* of the logo's native
-gold-on-white coloring, because gold-on-white measures ~2:1 contrast, see
-below), static "Jonah" title absolutely centered, `Settings` (gear icon —
-all reading + audio settings, one sheet) and `Share2` (popover: Copy link /
+**Header** (`Layout.astro`): logo on the left — the white mountain/river/sun
+mark with a **transparent** background (`ntb-logo-mark-white.png`, keyed out
+from the gold-filled circle badge version via the blue channel, since gold
+and white differ most on blue: `t = (b-60)/(255-60)`), `rounded-full` with a
+thin semi-transparent white border drawn in CSS to read as a circle badge
+without an actual gold fill — a fully gold-filled badge read as too heavy at
+header size, and the badge's own built-in padding (art doesn't touch the
+1024×1024 canvas edges) already centers the mark nicely inside a CSS circle.
+Static "Jonah" title absolutely centered, `Settings` (gear icon — all
+reading + audio settings, one sheet) and `Share2` (popover: Copy link /
 native Share) icons on the right. Share used to be on the left with the
 logo centered next to the title — moved to the right icon cluster so the
 logo could stand alone on the left. Structure and behavior mirror
 tenpa.app's share popover and settings bottom sheet, recolored to Jonah's
 gold/ink palette instead of tenpa's dark theme.
+
+The header row has **no fixed height** — it used to be `h-[56px]`, which
+(under Tailwind's border-box preflight) meant a large safe-area
+`padding-top` shrank the row's own content box smaller than the 40px logo,
+so the logo spilled out past the header's bottom edge. The row now sizes
+itself from `padding-top: max(1.25rem, env(safe-area-inset-top))` +
+content + a fixed `padding-bottom: 0.875rem`, so it simply grows taller on
+deep-notch devices instead of clipping. Verified in real mobile Safari
+(iOS Simulator, notched iPhone) and at a 375px Chromium mobile viewport
+(stands in for Chrome/Firefox on iOS, where `env(safe-area-inset-top)`
+is always 0) — both render the header with room to spare.
 
 The settings sheet's dim backdrop is `pointer-events:none` — only the sheet
 panel itself is interactive — so the page underneath (chapter text or the
@@ -359,6 +402,19 @@ content.
   circle on the LISTEN seek track doubles as play/pause now (see "Play/pause
   is the position circle" above); don't add backgrounds back to the
   prev/next chevrons or the speed button either
+- Do not give the speed button an auto/content-based width again — it must
+  stay fixed-width or the chevrons visibly shift position across the seven
+  speed values (see "Play/pause is the position circle" above)
+- Do not spell out "Verse-by-verse"/"Paragraph" or shrink the audio dialect
+  labels back down in English — layout uses "1 2 3"/"¶" glyphs, and the
+  English dialect labels (Amdo/Central/Kham) match the layout row's text-xl
+  size, both per feedback
+- Do not put the gold circle fill back on the header logo — it's now a
+  transparent-background mark (`ntb-logo-mark-white.png`) with a CSS
+  `rounded-full` + border for the circle look, not a pre-filled badge image
+- Do not put a fixed height back on the header row (`h-[56px]` etc.) — see
+  "The header row has no fixed height" above; it must size from its own
+  content so a large safe-area inset can't squeeze the logo into overflow
 
 ## Deployment
 - Push to GitHub → Cloudflare Pages auto-deploys

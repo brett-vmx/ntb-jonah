@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
 import { ViewTransitions } from 'astro:transitions';
-import logoCircle from '../assets/branding/ntb-logo-circle-inverse.png';
+import logoCircle from '../assets/branding/ntb-logo-mark-white.png';
 import { Image } from 'astro:assets';
 import { Share2, Settings } from '@lucide/astro';
 
@@ -40,10 +40,16 @@ const {
     <!-- App shell: narrow, fixed-width column even on desktop (matches tenpa.app) -->
     <header class="bg-gold text-ink relative z-[210]">
       <div
-        class="max-w-[448px] mx-auto relative flex items-center justify-between h-[56px] px-4"
-        style="padding-top: max(1.5rem, env(safe-area-inset-top))"
+        class="max-w-[448px] mx-auto relative flex items-center justify-between px-4"
+        style="padding-top: max(1.25rem, env(safe-area-inset-top)); padding-bottom: 0.875rem"
       >
-        <Image src={logoCircle} alt="" width={40} height={40} class="h-10 w-10 shrink-0" />
+        <!-- No fixed header height here on purpose — a fixed h-[56px] plus a
+             large safe-area padding-top squeezed the flex row's own content
+             box shorter than the 40px logo, so the logo spilled out past the
+             header's bottom edge. Letting the row size from its own content
+             (padding-top + tallest child + padding-bottom) means the header
+             simply grows taller on deep-notch devices instead of clipping. -->
+        <Image src={logoCircle} alt="" width={40} height={40} class="h-10 w-10 shrink-0 rounded-full" style="border:1.5px solid rgba(255,255,255,.7)" />
 
         <span class="absolute left-1/2 -translate-x-1/2 text-lg font-bold whitespace-nowrap">{title}</span>
 
@@ -117,7 +123,7 @@ const {
 
           <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Layout</p>
           <div class="flex gap-3 mb-5">
-            <button type="button" data-pick-layout="verse" aria-label="Verse-by-verse" class="layout-btn flex-1 rounded-xl py-3 text-xl font-semibold">1</button>
+            <button type="button" data-pick-layout="verse" aria-label="Verse-by-verse" class="layout-btn flex-1 rounded-xl py-3 text-xl font-semibold">1 2 3</button>
             <button type="button" data-pick-layout="paragraph" aria-label="Paragraph" class="layout-btn flex-1 rounded-xl py-3 text-xl font-semibold">¶</button>
           </div>
 
@@ -125,15 +131,15 @@ const {
           <div class="flex gap-3">
             <button type="button" data-pick-dialect="adx" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
               <span class="dialect-label-bo tibetan text-base font-semibold leading-none">ཨ་མདོ</span>
-              <span class="dialect-label-en text-xs leading-none">Amdo</span>
+              <span class="dialect-label-en text-xl font-semibold leading-none">Amdo</span>
             </button>
             <button type="button" data-pick-dialect="bod" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
               <span class="dialect-label-bo tibetan text-base font-semibold leading-none">བོད་སྐད</span>
-              <span class="dialect-label-en text-xs leading-none">Central</span>
+              <span class="dialect-label-en text-xl font-semibold leading-none">Central</span>
             </button>
             <button type="button" data-pick-dialect="khg" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
               <span class="dialect-label-bo tibetan text-base font-semibold leading-none">ཁམས</span>
-              <span class="dialect-label-en text-xs leading-none">Kham</span>
+              <span class="dialect-label-en text-xl font-semibold leading-none">Kham</span>
             </button>
           </div>
         </div>
