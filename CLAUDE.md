@@ -265,50 +265,90 @@ registration script into Astro 5 HTML output. Both are manually added to
 - `<script src="/registerSW.js" is:inline></script>`
 Do not remove these — this is intentional (same as C2C).
 
-### Workbox audio caching — precache everything, no download button
-`maximumFileSizeToCacheInBytes` is 5MB in the VitePWA config. All 12 dialect
-audio files (largest ~2.1MB, ~13MB total) are precached at install via
-`globPatterns` including `mp3`. This was a deliberate simplification: given
-the small total size, there's no separate "download" affordance — installing
-the PWA is enough to get full offline audio for all three dialects. A manual
-download button can be added later if still wanted (C2C's `handleDownload`
-pattern, using `window.open` in standalone iOS mode to avoid the
-undismissable share sheet from `<a download>`).
+The service worker is a **hand-written source file**, `src/sw.js`, built
+via VitePWA's `strategies: 'injectManifest'` (astro.config.mjs) — not the
+declarative `generateSW` most `@vite-pwa/astro` examples show. This was a
+deliberate switch (see "Cloudflare Pages doesn't support Range requests"
+above) needed specifically so audio could be excluded from the automatic
+precache and routed through its own Range-aware strategy instead.
+`self.__WB_MANIFEST` in `src/sw.js` is a build-time placeholder — the
+actual file list is injected by the `injectManifest` build step, same as
+`self.__WB_MANIFEST` would be in any Workbox `injectManifest` setup; don't
+hand-edit it.
 
-### Cloudflare Pages doesn't support Range requests — Workbox papers over it
-**Real bug, found via testing, not a guess:** the prev/next-verse buttons and
-the LISTEN seek track both stopped working — silently snapping back to 0
-instead of jumping to the requested position — reproducibly in every
-browser. Root cause: Cloudflare Pages' static asset serving ignores the
-`Range` header entirely and always returns a plain `200` with the full file
-body, never a `206 Partial Content` / `Accept-Ranges: bytes` (confirmed with
-`curl -H "Range: bytes=..."` directly against `https://ntb-jonah.pages.dev`,
-compared against `astro preview`'s local server, which *does* support Range
-correctly — that gap is what made this only reproduce on the deployed site,
-not in local dev). Without Range support, `HTMLMediaElement.seekable`
-correctly reports `[0, 0]` — the browser has no way to know it can fetch an
-arbitrary future byte range — so any seek ahead of what's already been
-sequentially downloaded is rejected and reverts. This is a platform
-limitation of Cloudflare Pages, not fixable via a `_headers` file (Range
-support is a serving-layer capability, not a response header you can just
-declare).
+### Workbox audio caching — warmed at install, not precached, no download button
+All 12 dialect audio files (largest ~2.1MB, ~13MB total) are fetched into
+`audio-range-cache` at install time via `warmStrategyCache()` in
+`src/sw.js` — deliberately *not* via the standard precache (`mp3` is
+excluded from `injectManifest.globPatterns` in astro.config.mjs; see "
+Cloudflare Pages doesn't support Range requests" above for why). This is a
+deliberate simplification: given the small total size, there's no separate
+"download" affordance — installing the PWA is enough to get full offline
+audio for all three dialects, same as before. A manual download button can
+be added later if still wanted (C2C's `handleDownload` pattern, using
+`window.open` in standalone iOS mode to avoid the undismissable share sheet
+from `<a download>`).
 
-Fixed at the service-worker layer instead: `astro.config.mjs`'s `workbox`
-config has a `runtimeCaching` rule matching `/audio/.*\.mp3$/` with
-`handler: 'CacheFirst'` and `options.rangeRequests: true` — this wires up
-Workbox's `RangeRequestsPlugin`, which fetches the whole (small, ~1-2MB)
-file once into its own `audio-range-cache`, then synthesizes real 206
-partial responses for any Range request straight from that cached copy,
-completely independent of what the origin can do. Verified end-to-end after
-this fix: `audio.seekable` reports the full `[0, duration]` range and both
-the prev/next buttons and the seek track work correctly. This does mean a
-file is fetched in full on its first request (same as our existing
-full-audio precache already does) rather than progressively — a non-issue
-given these files' size. Don't remove this thinking `Accept-Ranges` can be
-added via response headers, and don't be fooled by local testing looking
-fine — `astro dev`/`astro preview` support Range natively, so this bug is
-invisible locally and only appears against the real Cloudflare Pages
-deployment.
+### Cloudflare Pages doesn't support Range requests — custom SW papers over it
+**Real bug, found via testing, not a guess — and fixed twice, because the
+first fix looked right but wasn't:** the prev/next-verse buttons, verse
+highlighting, and the LISTEN seek track all stopped working — silently
+snapping back to 0 instead of jumping to the requested position —
+reproducibly in every browser. Root cause: Cloudflare Pages' static asset
+serving ignores the `Range` header entirely and always returns a plain
+`200` with the full file body, never a `206 Partial Content` /
+`Accept-Ranges: bytes` (confirmed with `curl -H "Range: bytes=..."` directly
+against `https://ntb-jonah.pages.dev`, compared against `astro preview`'s
+local server, which *does* support Range correctly — that gap is what made
+this only reproduce on the deployed site, not in local dev). Without Range
+support, `HTMLMediaElement.seekable` correctly reports `[0, 0]` — the
+browser has no way to know it can fetch an arbitrary future byte range — so
+any seek ahead of what's already been sequentially downloaded is rejected
+and reverts. This is a platform limitation of Cloudflare Pages, not fixable
+via a `_headers` file (Range support is a serving-layer capability, not a
+response header you can just declare). All three symptoms are downstream of
+this one thing, not three separate bugs — normal straight-through playback
+never needed arbitrary seeking, so it worked the whole time.
+
+**The first attempt at fixing this didn't actually work**, and the reason
+why is the important part: it added a `runtimeCaching` rule
+(`handler: 'CacheFirst'`, `options.rangeRequests: true`) alongside the
+default full-audio precache (`globPatterns` included `mp3`). That looked
+reasonable — Workbox's own docs even suggest this shape — but
+`precacheAndRoute()` registers its own route for every precached URL, and
+that route is checked *before* any separately-registered `runtimeCaching`
+route and serves the plain, fully-cached file with no Range awareness at
+all, for every request, Range header or not. The competing `runtimeCaching`
+route was dead code the whole time. This wasn't caught immediately because
+testing right after deploying it happened to look like it worked — don't
+trust a one-off manual test here; verify by explicitly waiting for the
+service worker's install/precache to *fully* finish before testing a seek,
+in a freshly cleared origin (unregister the SW, delete all caches, reload
+twice), or a race condition can make a broken fix look fine.
+
+The actual fix (`src/sw.js`, `astro.config.mjs`): switched from
+`generateSW` to Workbox's **`injectManifest`** strategy with a hand-written
+service worker, following Workbox's official "Serving cached audio and
+video" recipe exactly. Audio is now excluded from the automatic precache
+(`injectManifest.globPatterns` in astro.config.mjs has no `mp3`) and is the
+only thing a dedicated `CacheFirst` route (`request.destination === 'audio'`
+— not a URL pattern, matching the recipe) handles, with
+`RangeRequestsPlugin` + `CacheableResponsePlugin` in its own
+`audio-range-cache` — there is no second route for these URLs to conflict
+with. `workbox-recipes`' `warmStrategyCache()` pre-fetches all 12 dialect
+files into that same cache at install time (via that same strategy object),
+preserving the original "full offline audio immediately after install"
+behavior without going through the plain precache at all. The `<audio>`
+element also needs `crossorigin="anonymous"` (index.astro) — Workbox's own
+recipe calls this out as required even for same-origin media.
+
+Don't put `mp3` back in `injectManifest.globPatterns` "to be safe" — that
+recreates the exact competing-route bug above. Don't revert to `generateSW`
+for this reason either. Verified end-to-end after this fix, with the
+service worker's install fully settled before testing: `audio.seekable`
+reports the full `[0, duration]` range, prev/next-verse buttons work, verse
+highlighting follows a next/prev jump correctly, and dragging the seek
+track lands exactly on the requested position.
 
 ### No framework islands
 Vanilla JS only. Do not add Preact, React, Vue, or any other framework.

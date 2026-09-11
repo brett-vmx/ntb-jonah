@@ -421,7 +421,7 @@ const chapterData = await Promise.all(
             <span id="modal-listen-label" class="${lang === 'bo' ? 'tibetan' : ''}" style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">${listenLabel(lang)}</span>
             <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${dialectDisplay(dialect, lang)}</span>
           </div>
-          <audio id="modal-audio" preload="metadata" src="${chapter.audio[dialect]}" style="display:none"></audio>
+          <audio id="modal-audio" preload="metadata" crossorigin="anonymous" src="${chapter.audio[dialect]}" style="display:none"></audio>
 
           <!-- Row 2: audio position, combined with play/pause — the circle
                that marks where playback is also toggles play/pause. The

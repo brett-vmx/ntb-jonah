@@ -14,6 +14,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script',
+      // injectManifest (custom src/sw.js), not generateSW — needed so audio
+      // can be excluded from the automatic precache and routed only through
+      // the CacheFirst+RangeRequestsPlugin strategy in src/sw.js. See that
+      // file's comments for why generateSW's declarative runtimeCaching
+      // wasn't enough on its own.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       manifest: {
         name: 'Jonah',
         short_name: 'Jonah',
@@ -29,37 +37,16 @@ export default defineConfig({
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
-      workbox: {
-        // All 12 dialect audio files (largest is ~2.1MB) are precached at install
-        // so playback works fully offline once the PWA is installed — no separate
-        // download step needed.
-        globPatterns: ['**/*.{html,js,css,webp,png,jpg,mp3,ttf}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB — covers all audio files
-        // Cloudflare Pages does not honor Range requests for static assets — it
-        // always returns the full file with a plain 200, never a 206 Partial
-        // Content / Accept-Ranges header, regardless of the Range header sent.
-        // Without Range support, HTMLMediaElement.seekable collapses to [0,0]
-        // and any seek to a not-yet-downloaded position (the seek track, the
-        // prev/next-verse buttons) silently fails and snaps back — reproducible
-        // even with the file fully buffered client-side, in every browser.
-        // workbox-range-requests fixes this at the service-worker layer: this
-        // route fetches the whole file once (small either way, ~1-2MB) and then
-        // synthesizes real 206 partial responses for any Range request straight
-        // from that cached copy, independent of what the origin server can do.
-        // Don't remove this thinking Accept-Ranges can be fixed via a `_headers`
-        // file — Cloudflare Pages' Range support is a platform capability, not
-        // something togglable through response headers.
-        runtimeCaching: [
-          {
-            urlPattern: /\/audio\/.*\.mp3$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'audio-range-cache',
-              rangeRequests: true,
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+      injectManifest: {
+        // mp3 deliberately excluded — audio is NOT part of the generated
+        // precache manifest. It's handled entirely by src/sw.js's own
+        // CacheFirst+RangeRequestsPlugin route instead, which is what
+        // actually makes seeking work (see src/sw.js for the full story).
+        // Putting mp3 back here re-introduces a competing precache route
+        // for those same URLs, which wins over the Range-aware route and
+        // silently breaks prev/next-verse and the seek track again.
+        globPatterns: ['**/*.{html,js,css,webp,png,jpg,ttf}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),
   ],
