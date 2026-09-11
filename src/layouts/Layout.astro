@@ -34,6 +34,30 @@ const {
     <link rel="manifest" href="/manifest.webmanifest" />
     <script src="/registerSW.js" is:inline></script>
     <title>{title}</title>
+    <!-- Astro's ClientRouter treats ANY popstate as a real page-transition
+         target and fetches/morphs whatever page matches the URL —
+         including our own history.pushState('/chapter/N') calls for the
+         SPA chapter modal (index.astro), which aren't real navigations at
+         all. Landing back on the *static* /chapter/[n].astro fallback page
+         after using the browser's back/forward buttons is the visible
+         symptom. This is a known, unresolved Astro bug:
+         github.com/withastro/astro/issues/13943 ("ClientRouter Triggers
+         Full Reload on history.back() from Manually Pushed State") — no
+         official fix exists, so this script (which registers its listener
+         before <ViewTransitions />'s own script runs, since it's earlier
+         in the document) intercepts popstate first and calls
+         stopImmediatePropagation() so Astro's router never sees the event
+         and never fetches the wrong page. It re-dispatches as a custom
+         event so index.astro's own modal logic (which has the actual
+         open/close functions in scope) can still react to it. Don't
+         remove this or move it after <ViewTransitions /> — order matters,
+         since listeners on the same target run in registration order. -->
+    <script is:inline>
+      window.addEventListener('popstate', function (e) {
+        e.stopImmediatePropagation();
+        window.dispatchEvent(new CustomEvent('jonah:popstate', { detail: { state: e.state } }));
+      });
+    </script>
     <ViewTransitions />
   </head>
   <body class="min-h-screen flex flex-col">

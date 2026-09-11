@@ -173,6 +173,44 @@ the first such round-trip because their listeners were bound to DOM nodes
 that no longer exist post-swap. Reproduce-and-verify this specific sequence
 (open a chapter → close it → click a header icon) after touching Layout.astro.
 
+### Astro's ClientRouter hijacks our own back/forward — intercepted deliberately
+**Real bug, reproduced and fixed, not a guess:** using the browser's own
+back/forward buttons around an open chapter modal would sometimes land on
+the *static* `/chapter/[n].astro` fallback page (native `<audio controls>`,
+"← Back to Chapters" link, "Chapter N — Jonah" title) instead of reopening
+the SPA modal — most reliably reproduced by: open a chapter, close it
+(URL back to `/`), then press the browser's **forward** button. Root
+cause: `<ViewTransitions />` (`astro:transitions`'s `ClientRouter`) listens
+for `popstate` on `window` and, whenever it doesn't recognize the
+resulting URL as "already handled," fetches and morphs in whatever page
+actually exists at that URL — treating our own `history.pushState('',
+'/chapter/N')` for the modal exactly like a real navigation to a
+different page, because it has no way to know it wasn't one. This is a
+known, unresolved upstream Astro bug, not something wrong in our own
+history-handling logic:
+[withastro/astro#13943](https://github.com/withastro/astro/issues/13943)
+("ClientRouter Triggers Full Reload on history.back() from Manually
+Pushed State") — as of writing there's no official fix or supported flag
+to opt a `pushState` call out of this.
+
+Fixed with a targeted interception, not a workaround inside index.astro's
+own popstate handler (that runs too late — Astro's router, registered
+earlier in `<head>`, already acted by the time a later `<body>` script's
+listener would run). `Layout.astro` has a tiny inline `<script>`
+**deliberately placed before `<ViewTransitions />`** that registers its
+own `popstate` listener first and calls `e.stopImmediatePropagation()`,
+so Astro's router never sees the event at all, then re-dispatches a
+`jonah:popstate` custom event so index.astro's actual modal logic (which
+has `openChapter`/`closeModal` in scope) can still react. index.astro's
+`syncModalToUrl()` listens for that custom event instead of native
+`popstate`, and handles **both** directions — closing on `/` (previously
+the only case handled) and opening/switching chapters on `/chapter/N`
+(previously unhandled, since forward-navigation into a chapter had never
+been needed before pushState-based routing was layered on). Don't move
+that early script after `<ViewTransitions />`, and don't replace it with
+a plain listener in index.astro's own script — order relative to Astro's
+own script registration is the entire mechanism this fix relies on.
+
 ### Header title stays short — "Jonah", not the full bilingual name
 John asked to try `བོད་འགྱུར་གསར་མ། ཡོ་ནཱ།` (Tibetan) / "New Tibetan Bible -
 Jonah" (English) as the header title. Tested at 375px (iPhone SE/mini width)

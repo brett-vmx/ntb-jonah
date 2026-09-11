@@ -691,18 +691,34 @@ const chapterData = await Promise.all(
       }
     }, { passive: true });
 
-    window.addEventListener('popstate', () => {
-      if (modalOpen) closeModal(true);
-    }, { signal });
-
-    const m = window.location.pathname.match(/^\/chapter\/(\d+)$/);
-    if (m) {
-      const n = Number(m[1]);
-      if (chapters.find((c) => c.chapterNumber === n)) {
-        pushedState = false;
-        openChapter(n);
+    // Handles both directions of browser back/forward: closes the modal
+    // when the URL lands back on '/', opens (or switches to) the right
+    // chapter's modal when it lands on '/chapter/N' — covers forward
+    // navigation into a chapter, not just backward out of one. Listens for
+    // our own 'jonah:popstate' custom event (dispatched by the early
+    // interceptor script in Layout.astro), not the native 'popstate'
+    // directly — see that script's comment for why: Astro's ClientRouter
+    // treats a native popstate as a real page-transition target and
+    // fetches the static /chapter/[n].astro fallback instead, a known
+    // unresolved Astro bug (withastro/astro#13943). Also runs once
+    // unconditionally on load to open the right chapter for a direct
+    // /chapter/N link, same as before.
+    function syncModalToUrl() {
+      const m = window.location.pathname.match(/^\/chapter\/(\d+)$/);
+      if (m) {
+        const n = Number(m[1]);
+        if (openChapterEntry?.chapterNumber === n) return; // already showing it
+        if (chapters.find((c) => c.chapterNumber === n)) {
+          pushedState = false; // URL already reflects this state — openChapter() won't push again
+          openChapter(n);
+        }
+      } else if (modalOpen) {
+        closeModal(true);
       }
     }
+
+    window.addEventListener('jonah:popstate', syncModalToUrl, { signal });
+    syncModalToUrl();
   }
 
   document.addEventListener('astro:page-load', () => {
