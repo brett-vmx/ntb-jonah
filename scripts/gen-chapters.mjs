@@ -183,9 +183,14 @@ function parseBsb(raw) {
 // ---------------------------------------------------------------------------
 
 function findTimingFile(dialect, n) {
+  const nn = String(n).padStart(2, '0');
   const candidates = [
     `${dialect}_32_JON_${n}.txt`,
-    `${dialect}_32_JON_${String(n).padStart(2, '0')}.txt`,
+    `${dialect}_32_JON_${nn}.txt`,
+    // John's bod timing files use a third convention: hyphens throughout,
+    // zero-padded, with a "-timing" suffix — e.g. bod-32-JON-01-timing.txt.
+    `${dialect}-32-JON-${n}-timing.txt`,
+    `${dialect}-32-JON-${nn}-timing.txt`,
   ];
   for (const name of candidates) {
     const p = path.join(TIMING_DIR, name);

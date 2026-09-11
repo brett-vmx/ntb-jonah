@@ -64,8 +64,98 @@
         "time": 150.34
       }
     ],
-    "bod": null,
-    "khg": null
+    "bod": [
+      {
+        "verse": 1,
+        "time": 2.66
+      },
+      {
+        "verse": 2,
+        "time": 5.86
+      },
+      {
+        "verse": 3,
+        "time": 26.2
+      },
+      {
+        "verse": 4,
+        "time": 34.28
+      },
+      {
+        "verse": 5,
+        "time": 38.92
+      },
+      {
+        "verse": 6,
+        "time": 49
+      },
+      {
+        "verse": 7,
+        "time": 61.1
+      },
+      {
+        "verse": 8,
+        "time": 67.62
+      },
+      {
+        "verse": 9,
+        "time": 79.7
+      },
+      {
+        "verse": 10,
+        "time": 90.48
+      },
+      {
+        "verse": 11,
+        "time": 99.66
+      }
+    ],
+    "khg": [
+      {
+        "verse": 1,
+        "time": 3.085
+      },
+      {
+        "verse": 2,
+        "time": 7.19
+      },
+      {
+        "verse": 3,
+        "time": 25.964
+      },
+      {
+        "verse": 4,
+        "time": 33.098
+      },
+      {
+        "verse": 5,
+        "time": 38.094
+      },
+      {
+        "verse": 6,
+        "time": 48.279
+      },
+      {
+        "verse": 7,
+        "time": 60.998
+      },
+      {
+        "verse": 8,
+        "time": 67.706
+      },
+      {
+        "verse": 9,
+        "time": 80.077
+      },
+      {
+        "verse": 10,
+        "time": 90.287
+      },
+      {
+        "verse": 11,
+        "time": 99.523
+      }
+    ]
   },
   "blocks": [
     {

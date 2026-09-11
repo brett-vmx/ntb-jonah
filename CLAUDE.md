@@ -72,18 +72,37 @@ refreshing on a language change, not just a dialect change — see
 `renderReadSection()` in index.astro.
 
 ### Verse-timing / read-along highlight
-`source-assets/timing/{dialect}_32_JON_{n}.txt` files (John's forced-aligner
-export — tab-separated `start\tend\t[verse]`, start===end so it's really one
-timestamp per line, verse number only present on that verse's first line)
-are parsed by `gen-chapters.mjs` into `chapter.timing.{adx,bod,khg}`: an
-array of `{verse, time}` verse-start timestamps, or `null` if that dialect's
-file doesn't exist yet in `source-assets/timing/`. Only Amdo has timing so
-far. `applyVerseHighlight()` in index.astro runs on every `timeupdate` and
-lights up the `[data-verse]` block whose interval contains `audio.currentTime`
-— it's a no-op (and clears any existing highlight) when the current dialect's
-timing is `null`, so bod/khg just silently don't highlight until John sends
-those files. Re-run `npm run gen-chapters` after dropping in new timing
-files — don't hand-edit the `timing` field in the generated JSON.
+`source-assets/timing/*.txt` files (John's forced-aligner export) are
+parsed by `gen-chapters.mjs` into `chapter.timing.{adx,bod,khg}`: an array
+of `{verse, time}` verse-start timestamps, or `null` if that dialect's file
+doesn't exist yet in `source-assets/timing/`. All three dialects have
+timing now (bod and khg arrived later than adx) — `findTimingFile()` in
+gen-chapters.mjs tries **three** filename conventions since John's exports
+haven't been consistent: `{dialect}_32_JON_{n}.txt` and its zero-padded
+form (adx, khg), and `{dialect}-32-JON-{nn}-timing.txt` — hyphens
+throughout, zero-padded, "-timing" suffix (bod). Check a new dialect's
+actual filenames against all three before assuming a fourth pattern is
+needed.
+
+The row format has varied too, but `parseTiming()` handles both without
+changes: adx/khg are tab-separated `start\tend\t[verse]` with start===end
+(really one timestamp per line); bod's files additionally open with a
+UTF-8 BOM and four `\`-prefixed SFM-style header lines (`\id JON`, `\c 1`,
+etc.) before the data, use CRLF line endings, and have **genuinely
+different** start/end columns per line (verse N's end equals verse N+1's
+start — a real duration span, not a duplicated point). None of that needed
+new parsing logic: the header lines have no tabs so the existing
+`cols.length < 3` check already skips them, `cols[0]` (start) is what we
+want either way, and `.trim()` on the verse-number column already absorbs
+the trailing `\r` from CRLF. Only the filename-matching needed a fix.
+
+`applyVerseHighlight()` in index.astro runs on every `timeupdate` and
+lights up the `[data-verse]` block whose interval contains
+`audio.currentTime` — it's a no-op (and clears any existing highlight) if
+a dialect's timing is ever `null` again in the future (e.g. a new dialect
+added before its timing file arrives). Re-run `npm run gen-chapters` after
+dropping in new/changed timing files — don't hand-edit the `timing` field
+in the generated JSON.
 
 The same timing track also drives **prev/next verse** buttons on the LISTEN
 tile (`#modal-prev-btn`/`#modal-next-btn` in index.astro), modeled directly
