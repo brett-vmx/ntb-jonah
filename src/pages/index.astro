@@ -538,12 +538,6 @@ const chapterData = await Promise.all(
         playBtn!.style.left = clamped + '%';
       }
 
-      playBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (audio.paused) { audio.play(); setPlaying(true); }
-        else              { audio.pause(); setPlaying(false); }
-      });
-
       function seekFromClientX(clientX: number) {
         const rect = track!.getBoundingClientRect();
         const pct = ((clientX - rect.left) / rect.width) * 100;
@@ -551,6 +545,47 @@ const chapterData = await Promise.all(
         if (audio.duration) audio.currentTime = (clamped / 100) * audio.duration;
         setProgressPct(clamped);
       }
+
+      function togglePlay() {
+        if (audio.paused) { audio.play(); setPlaying(true); }
+        else              { audio.pause(); setPlaying(false); }
+      }
+
+      // The circle is both the play/pause tap target AND a drag-to-seek
+      // thumb (it looks exactly like one, so it needs to behave like one —
+      // per feedback, people were trying to grab it and drag it, which did
+      // nothing when it only had a plain click handler). A pointerdown on
+      // the circle starts a drag; if the pointer never moves more than a
+      // few px before release, treat it as a tap (toggle play/pause)
+      // instead. Pointer capture keeps the drag tracking correctly even
+      // once the finger moves off the small circle and onto the rest of
+      // the track.
+      const DRAG_MOVE_THRESHOLD = 6;
+      let buttonDragging = false;
+      let buttonDragMoved = false;
+      let buttonDragStartX = 0;
+
+      playBtn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        buttonDragging = true;
+        buttonDragMoved = false;
+        buttonDragStartX = e.clientX;
+        playBtn!.setPointerCapture(e.pointerId);
+      });
+      playBtn.addEventListener('pointermove', (e) => {
+        if (!buttonDragging) return;
+        if (!buttonDragMoved && Math.abs(e.clientX - buttonDragStartX) > DRAG_MOVE_THRESHOLD) {
+          buttonDragMoved = true;
+        }
+        if (buttonDragMoved) seekFromClientX(e.clientX);
+      });
+      playBtn.addEventListener('pointerup', (e) => {
+        if (!buttonDragging) return;
+        buttonDragging = false;
+        if (buttonDragMoved) applyVerseHighlight();
+        else togglePlay();
+      });
+      playBtn.addEventListener('pointercancel', () => { buttonDragging = false; });
 
       track.addEventListener('pointerdown', (e) => {
         if (playBtn!.contains(e.target as Node)) return;

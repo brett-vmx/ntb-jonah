@@ -185,12 +185,31 @@ small circle that marks the current position on the seek track
 (`#modal-play-btn`, absolutely positioned at `left: {progress}%` on top of
 `#modal-progress-track`) *is* the play/pause control, holding both the
 play and pause SVGs (toggled via display none/'') and swapping icon on
-click. The track itself is a plain div (not a native `<input type=range>`
+tap. The track itself is a plain div (not a native `<input type=range>`
 any more), driven entirely by pointer events: `pointerdown`/`pointermove`
 on the track compute a seek position from `clientX` vs. the track's
 `getBoundingClientRect()`, `pointerup` re-applies the verse highlight.
-The play button's click handler calls `e.stopPropagation()` so tapping it
-doesn't also fire the track's seek handler underneath it. Prev/next are
+
+The circle itself needs its own pointerdown/pointermove/pointerup handling
+(not just a `click` listener) — it visually reads as a draggable scrubber
+thumb, and people tried to grab it and drag it left/right, which a plain
+click handler can't do anything with (this was a real reported bug: "I
+can't move the play button back and forth"). `buttonDragging`/
+`buttonDragMoved`/`buttonDragStartX` in index.astro distinguish a tap
+(toggle play/pause) from a drag (seek) by movement distance
+(`DRAG_MOVE_THRESHOLD = 6px`) between the circle's own pointerdown and
+pointerup — `playBtn.setPointerCapture()` keeps the drag tracking correctly
+even once the finger moves off the small circle and onto the rest of the
+track. Don't go back to a plain `click` listener on the circle — it works
+fine for mouse users clicking without moving, which is exactly why this
+bug wasn't obvious in casual testing, but breaks the drag gesture real
+touch users reach for first.
+
+The track's own `pointerdown` handler (below) explicitly skips when the
+event target is inside the circle (`playBtn.contains(e.target)`), so the
+circle's own handlers above are the only thing driving a drag that starts
+on the circle; the track's handlers take over for drags/taps that start
+elsewhere on the track. Prev/next are
 plain chevrons (stroke SVG, no background/circle) and the speed button has
 no background either — both were pill/circle-shaped before this round.
 Chevron `stroke-width` is `3.5`, not the thinner `2.5` first used — at 20px
