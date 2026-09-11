@@ -3,7 +3,7 @@ import '../styles/global.css';
 import { ViewTransitions } from 'astro:transitions';
 import logoCircle from '../assets/branding/ntb-logo-circle-inverse.png';
 import { Image } from 'astro:assets';
-import { Share2, SlidersHorizontal } from '@lucide/astro';
+import { Share2, Settings } from '@lucide/astro';
 
 interface Props {
   title?: string;
@@ -51,7 +51,7 @@ const {
           <!-- Reading + audio settings (language, font, size, layout, dialect — all in one sheet) -->
           <div class="relative w-8 shrink-0">
             <button id="settings-btn" type="button" aria-label="Reading and audio settings" class="flex items-center justify-center text-ink">
-              <SlidersHorizontal size={22} />
+              <Settings size={22} />
             </button>
           </div>
 
@@ -82,11 +82,16 @@ const {
       </div>
     </main>
 
-    <!-- ─── Reading + audio settings bottom sheet ─── -->
+    <!-- ─── Reading + audio settings bottom sheet ───
+         The dim backdrop is decorative only (pointer-events-none) so touches
+         pass through to whatever is behind the sheet (chapter text, homepage)
+         and it stays scrollable while the sheet is open — closing on an
+         outside tap is handled by a document-level listener in the script
+         below instead of a backdrop click handler. -->
     <div id="settings-sheet" class="fixed inset-0 z-[300] hidden pointer-events-none">
-      <div id="settings-sheet-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto"></div>
-      <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-auto">
-        <div class="w-full max-w-[448px] bg-white rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+      <div id="settings-sheet-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none"></div>
+      <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none">
+        <div id="settings-sheet-panel" class="w-full max-w-[448px] bg-white rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto pointer-events-auto" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
           <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Language</p>
           <div class="flex gap-3 mb-5">
             <button type="button" data-pick-textlang="bo" class="textlang-btn tibetan flex-1 rounded-xl py-3 text-base font-semibold">བོད་ཡིག</button>
@@ -96,9 +101,9 @@ const {
           <div id="font-row-wrap">
             <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Tibetan font</p>
             <div class="flex gap-3 mb-5">
-              <button type="button" data-pick-font="ouchan2" style="font-family:'Monlam Uni OuChan2',sans-serif" class="font-btn flex-1 rounded-xl py-3 text-lg">ཨ</button>
-              <button type="button" data-pick-font="choukmatik" style="font-family:'Monlam Uni ChoukMatik',sans-serif" class="font-btn flex-1 rounded-xl py-3 text-lg">ཨ</button>
-              <button type="button" data-pick-font="dutsa2" style="font-family:'Monlam Uni Dutsa2',sans-serif" class="font-btn flex-1 rounded-xl py-3 text-lg">ཨ</button>
+              <button type="button" data-pick-font="ouchan2" style="font-family:'Monlam Uni OuChan2',sans-serif" class="font-btn flex-1 h-16 rounded-xl flex items-center justify-center text-3xl">ཨ</button>
+              <button type="button" data-pick-font="choukmatik" style="font-family:'Monlam Uni ChoukMatik',sans-serif" class="font-btn flex-1 h-16 rounded-xl flex items-center justify-center text-3xl">ཨ</button>
+              <button type="button" data-pick-font="dutsa2" style="font-family:'Monlam Uni Dutsa2',sans-serif" class="font-btn flex-1 h-16 rounded-xl flex items-center justify-center text-3xl">ཨ</button>
             </div>
           </div>
 
@@ -112,27 +117,23 @@ const {
 
           <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Layout</p>
           <div class="flex gap-3 mb-5">
-            <button type="button" data-pick-layout="verse" class="layout-btn flex-1 rounded-xl py-3 text-base font-semibold">
-              <span aria-hidden="true">Ⅰ</span> Verse-by-verse
-            </button>
-            <button type="button" data-pick-layout="paragraph" class="layout-btn flex-1 rounded-xl py-3 text-base font-semibold">
-              <span aria-hidden="true">¶</span> Paragraph
-            </button>
+            <button type="button" data-pick-layout="verse" aria-label="Verse-by-verse" class="layout-btn flex-1 rounded-xl py-3 text-xl font-semibold">1</button>
+            <button type="button" data-pick-layout="paragraph" aria-label="Paragraph" class="layout-btn flex-1 rounded-xl py-3 text-xl font-semibold">¶</button>
           </div>
 
           <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Audio dialect</p>
           <div class="flex gap-3">
             <button type="button" data-pick-dialect="adx" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
-              <span class="tibetan text-base font-semibold leading-none">ཨ་མདོ</span>
-              <span class="text-xs leading-none">Amdo</span>
+              <span class="dialect-label-bo tibetan text-base font-semibold leading-none">ཨ་མདོ</span>
+              <span class="dialect-label-en text-xs leading-none">Amdo</span>
             </button>
             <button type="button" data-pick-dialect="bod" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
-              <span class="tibetan text-base font-semibold leading-none">བོད་སྐད</span>
-              <span class="text-xs leading-none">Central</span>
+              <span class="dialect-label-bo tibetan text-base font-semibold leading-none">བོད་སྐད</span>
+              <span class="dialect-label-en text-xs leading-none">Central</span>
             </button>
             <button type="button" data-pick-dialect="khg" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
-              <span class="tibetan text-base font-semibold leading-none">ཁམས</span>
-              <span class="text-xs leading-none">Kham</span>
+              <span class="dialect-label-bo tibetan text-base font-semibold leading-none">ཁམས</span>
+              <span class="dialect-label-en text-xs leading-none">Kham</span>
             </button>
           </div>
         </div>
@@ -215,7 +216,7 @@ const {
 
         // ─── Reading + audio settings sheet ───
         const settingsSheet = document.getElementById('settings-sheet');
-        const settingsSheetBackdrop = document.getElementById('settings-sheet-backdrop');
+        const settingsSheetPanel = document.getElementById('settings-sheet-panel');
         const settingsBtn = document.getElementById('settings-btn');
         const fontRowWrap = document.getElementById('font-row-wrap');
         const textLangBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-textlang]'));
@@ -223,6 +224,8 @@ const {
         const sizeBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-size]'));
         const layoutBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-layout]'));
         const dialectBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-dialect]'));
+        const dialectLabelBoEls = Array.from(document.querySelectorAll<HTMLElement>('.dialect-label-bo'));
+        const dialectLabelEnEls = Array.from(document.querySelectorAll<HTMLElement>('.dialect-label-en'));
 
         function refreshSettingsSheet() {
           const lang = getTextLang();
@@ -257,13 +260,24 @@ const {
             b.classList.toggle('bg-gold', active);
             b.classList.toggle('bg-page', !active);
           });
+          // Dialect buttons show only the current reading language's script,
+          // not both stacked.
+          dialectLabelBoEls.forEach((el) => el.classList.toggle('hidden', lang !== 'bo'));
+          dialectLabelEnEls.forEach((el) => el.classList.toggle('hidden', lang !== 'en'));
         }
 
         settingsBtn?.addEventListener('click', () => {
           settingsSheet?.classList.remove('hidden');
           refreshSettingsSheet();
         }, { signal });
-        settingsSheetBackdrop?.addEventListener('click', () => settingsSheet?.classList.add('hidden'), { signal });
+        // Backdrop has pointer-events:none (so the page stays scrollable
+        // behind the sheet) — close on any outside click/tap instead.
+        document.addEventListener('click', (e) => {
+          if (!settingsSheet || settingsSheet.classList.contains('hidden')) return;
+          const target = e.target as Node;
+          if (settingsSheetPanel?.contains(target) || settingsBtn?.contains(target)) return;
+          settingsSheet.classList.add('hidden');
+        }, { signal });
 
         textLangBtns.forEach((b) => b.addEventListener('click', () => {
           setTextLang(b.dataset.pickTextlang as 'bo' | 'en');

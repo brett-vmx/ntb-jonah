@@ -63,7 +63,13 @@ reverted per John. Paired with **བོད་སྐད** ("Tibetan/Central speec
 than ལྷ་ས (the place name "Lhasa"), which also echoes the dialect's own file
 code, `bod`. Both labels live in one place — `DIALECT_LABELS` in
 `settings-store.ts` — consumed by both the header's dialect row and the
-modal's LISTEN tile so they can't drift apart.
+modal's LISTEN tile so they can't drift apart. Only the **current reading
+language's** script is shown, not both stacked (tried both-scripts-at-once
+first, then simplified per feedback) — the header row toggles
+`.dialect-label-bo`/`.dialect-label-en` visibility, and the modal's
+`dialectDisplay(dialect, lang)` takes the same `lang` argument. Both need
+refreshing on a language change, not just a dialect change — see
+`renderReadSection()` in index.astro.
 
 ### Verse-timing / read-along highlight
 `source-assets/timing/{dialect}_32_JON_{n}.txt` files (John's forced-aligner
@@ -102,16 +108,27 @@ so there's no separate English paragraph map. The read-along highlight
 targets `[data-verse]` regardless of mode, so it works unchanged in both —
 don't special-case highlighting per layout.
 
+Chapter 2's poetic `\q1` lines (multiple lines per verse) are only ever
+rendered as separate lines in **verse-by-verse** mode (`verseInnerHtml()`'s
+one-`<div>`-per-line branch). In **paragraph** mode they're folded into
+flowing text — `b.bo.join(' ')`, a plain space, not `<br>` — matching how
+the English (BSB) side already renders (RTF never carried per-line poetry
+breaks, so English paragraphs were always flowing text). An earlier version
+kept the `<br>` line breaks inside paragraph mode too, which looked like a
+formatting bug (hard breaks interrupting a flowing paragraph) per feedback —
+don't reintroduce per-line `<br>`s in `blocksToHtmlParagraph()`.
+
 ### Reading settings are global, not per-modal (mirrors tenpa.app)
 Text language (Tibetan/English), Tibetan font, text size, layout
 (verse/paragraph), and audio dialect are app-wide settings, not controls
 inside each chapter modal — all five chosen from **one** header icon
-(`SlidersHorizontal` → a single bottom sheet with every row), persisted to
-`localStorage`, in `src/i18n/settings-store.ts`. This used to be two
-separate icons/sheets (text settings + dialect settings) — merged into one
-to free up header width for a longer title John wanted to try (see "Header
-title stays short" below). Same localStorage + `CustomEvent` pattern as
-tenpa's `language-store.ts`:
+(`Settings` — a plain gear, chosen over `SlidersHorizontal` per feedback —
+opening a single bottom sheet with every row), persisted to `localStorage`,
+in `src/i18n/settings-store.ts`. This used to be two separate icons/sheets
+(text settings + dialect settings) — merged into one to free up header
+width for a longer title John wanted to try (see "Header title stays short"
+below). Same localStorage + `CustomEvent` pattern as tenpa's
+`language-store.ts`:
 - `jonah:text-settings-changed` — fired on text-lang/font/size change. The
   open chapter modal (if any) listens and re-renders `#modal-blocks` only
   (`renderReadSection()` in index.astro) — the `<audio>` element is left
@@ -161,6 +178,25 @@ button (top-right, always visible now, not `hidden md:flex` split from a
 separate mobile "Close" pill) is what replaced the old mobile-only
 gradient-pill dismiss affordance — simpler, one control for every
 breakpoint, plus swipe-down-to-dismiss still works on mobile.
+
+### Play/pause is the position circle, not a separate 72px button
+Per feedback, there's no dedicated big play/pause button anymore — the
+small circle that marks the current position on the seek track
+(`#modal-play-btn`, absolutely positioned at `left: {progress}%` on top of
+`#modal-progress-track`) *is* the play/pause control, holding both the
+play and pause SVGs (toggled via display none/'') and swapping icon on
+click. The track itself is a plain div (not a native `<input type=range>`
+any more), driven entirely by pointer events: `pointerdown`/`pointermove`
+on the track compute a seek position from `clientX` vs. the track's
+`getBoundingClientRect()`, `pointerup` re-applies the verse highlight.
+The play button's click handler calls `e.stopPropagation()` so tapping it
+doesn't also fire the track's seek handler underneath it. Prev/next are
+plain chevrons (stroke SVG, no background/circle) and the speed button has
+no background either — both were pill/circle-shaped before this round.
+Row 3 (time / chevrons / speed) uses `justify-content: space-between` with
+exactly three children so the chevron pair sits visually centered between
+the time indicator and the speed control, per feedback, without needing
+absolute positioning.
 
 ### Header safe-area padding needs a real minimum, not just env()
 The header's top padding is `max(1.5rem, env(safe-area-inset-top))`, not
@@ -250,13 +286,21 @@ chapter modal is capped at the same 448px on desktop for visual consistency.
 **Header** (`Layout.astro`): circle logo on the left (white mountain/river/
 sun mark on a solid gold badge — the *inverse* of the logo's native
 gold-on-white coloring, because gold-on-white measures ~2:1 contrast, see
-below), static "Jonah" title absolutely centered, `SlidersHorizontal`
-(all reading + audio settings, one sheet) and `Share2` (popover: Copy link /
+below), static "Jonah" title absolutely centered, `Settings` (gear icon —
+all reading + audio settings, one sheet) and `Share2` (popover: Copy link /
 native Share) icons on the right. Share used to be on the left with the
 logo centered next to the title — moved to the right icon cluster so the
 logo could stand alone on the left. Structure and behavior mirror
 tenpa.app's share popover and settings bottom sheet, recolored to Jonah's
 gold/ink palette instead of tenpa's dark theme.
+
+The settings sheet's dim backdrop is `pointer-events:none` — only the sheet
+panel itself is interactive — so the page underneath (chapter text or the
+homepage) stays scrollable while the sheet is open, rather than being
+blocked by a full-viewport backdrop. Closing on an outside tap is handled by
+a `document`-level click listener (checking the click target isn't inside
+the sheet panel or the settings button), the same pattern as the share
+popover's outside-click close, not a backdrop click handler.
 
 ## Page structure
 Essentially one page (`src/pages/index.astro`):
@@ -272,11 +316,18 @@ Essentially one page (`src/pages/index.astro`):
 per the reading-layout setting; full text always shown, no read-more
 truncation — these are short scripture chapters, not story transcripts)
 scroll inside `#modal-content`; a **sticky LISTEN bar** (`#modal-listen-bar`)
-below that never scrolls away — current dialect name, progress bar,
-prev-verse / play / next-verse transport controls, and a playback-speed
-cycling button (0.5×/0.75×/0.85×/1×/1.1×/1.2×/1.5×). Dialect itself is
-picked from the header settings sheet, not inside the tile. Copyright/
-attribution note is the last thing inside the scrolling content.
+below that never scrolls away, laid out as three rows:
+1. "LISTEN" label + current dialect name (current reading language's
+   script only — see "Dialect labels" above).
+2. The seek track — the circle marking playback position doubles as the
+   play/pause button (see "Play/pause is the position circle" below).
+3. Time indicator, prev/next-verse chevrons, and the playback-speed
+   cycling button (0.5×/0.75×/0.85×/1×/1.1×/1.2×/1.5×), laid out with
+   `justify-content: space-between` so the chevrons land visually between
+   the time and the speed control.
+Dialect itself is picked from the header settings sheet, not inside the
+tile. Copyright/attribution note is the last thing inside the scrolling
+content.
 
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
@@ -290,8 +341,8 @@ attribution note is the last thing inside the scrolling content.
 - Do not add per-modal language/font/dialect toggles back — these are global
   header settings now (`settings-store.ts`); the modal only reflects them
 - Do not split the header settings back into two icons (Type + Headphones) —
-  they were merged into one `SlidersHorizontal` sheet specifically to free
-  up header width; re-splitting them reopens the header-title space problem
+  they were merged into one `Settings` (gear) sheet specifically to free up
+  header width; re-splitting them reopens the header-title space problem
 - Do not put the full "New Tibetan Bible - Jonah" / `བོད་འགྱུར་གསར་མ། ཡོ་ནཱ།`
   title back in the header without re-verifying the 375px fit test above
 - Do not reskin or recreate the App Store/Google Play badges — use the
@@ -299,6 +350,15 @@ attribution note is the last thing inside the scrolling content.
 - Do not add a new top-level `<script>` to Layout.astro without wrapping its
   init logic in `document.addEventListener('astro:page-load', ...)` with an
   `AbortController` guard — see "Header buttons need re-init" above
+- Do not show both scripts (Tibetan + English) on the dialect buttons again —
+  only the current reading language's script shows now, per feedback
+- Do not give the settings sheet's backdrop `pointer-events: auto` again —
+  it must stay `none` so the page underneath stays scrollable/tappable while
+  the sheet is open; close-on-outside-click is a `document` listener instead
+- Do not reintroduce a separate large play/pause button — the position
+  circle on the LISTEN seek track doubles as play/pause now (see "Play/pause
+  is the position circle" above); don't add backgrounds back to the
+  prev/next chevrons or the speed button either
 
 ## Deployment
 - Push to GitHub → Cloudflare Pages auto-deploys
