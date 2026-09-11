@@ -35,6 +35,31 @@ export default defineConfig({
         // download step needed.
         globPatterns: ['**/*.{html,js,css,webp,png,jpg,mp3,ttf}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB — covers all audio files
+        // Cloudflare Pages does not honor Range requests for static assets — it
+        // always returns the full file with a plain 200, never a 206 Partial
+        // Content / Accept-Ranges header, regardless of the Range header sent.
+        // Without Range support, HTMLMediaElement.seekable collapses to [0,0]
+        // and any seek to a not-yet-downloaded position (the seek track, the
+        // prev/next-verse buttons) silently fails and snaps back — reproducible
+        // even with the file fully buffered client-side, in every browser.
+        // workbox-range-requests fixes this at the service-worker layer: this
+        // route fetches the whole file once (small either way, ~1-2MB) and then
+        // synthesizes real 206 partial responses for any Range request straight
+        // from that cached copy, independent of what the origin server can do.
+        // Don't remove this thinking Accept-Ranges can be fixed via a `_headers`
+        // file — Cloudflare Pages' Range support is a platform capability, not
+        // something togglable through response headers.
+        runtimeCaching: [
+          {
+            urlPattern: /\/audio\/.*\.mp3$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'audio-range-cache',
+              rangeRequests: true,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

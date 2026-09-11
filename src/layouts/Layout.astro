@@ -178,6 +178,23 @@ const {
 
         applyTextSettings();
 
+        // Expose the header's real rendered height as a CSS var so the
+        // chapter modal (index.astro) can cap its own height to never grow
+        // up into the header's space. The header sits at z-[210], above the
+        // chapter modal's z-index, specifically so its own gear/share
+        // buttons stay reachable while a chapter is open — but that means
+        // if the modal's sheet is tall enough to reach the header's row, its
+        // own title/close button render *behind* the (opaque) header and
+        // become invisible/unreachable, not just visually crowded. Safe-area
+        // insets make the header's height vary a lot by device, so this is
+        // measured, not assumed.
+        const headerEl = document.querySelector('header');
+        function updateHeaderHeightVar() {
+          if (headerEl) document.documentElement.style.setProperty('--header-h', `${headerEl.getBoundingClientRect().height}px`);
+        }
+        updateHeaderHeightVar();
+        window.addEventListener('resize', updateHeaderHeightVar, { signal });
+
         // ─── Share popover ───
         const shareBtn = document.getElementById('share-btn');
         const sharePopover = document.getElementById('share-popover');

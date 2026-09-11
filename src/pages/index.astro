@@ -71,8 +71,8 @@ const chapterData = await Promise.all(
     <div id="modal-backdrop" class="absolute inset-0 bg-black/60"></div>
     <div
       id="modal-panel"
-      class="absolute bottom-0 left-0 right-0 rounded-t-2xl max-h-[92vh]
-             md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[448px] md:rounded-2xl md:max-h-[90vh]
+      class="absolute bottom-0 left-0 right-0 rounded-t-2xl max-h-[calc(100dvh_-_var(--header-h,90px)_-_8px)]
+             md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[448px] md:rounded-2xl md:max-h-[90dvh]
              bg-page flex flex-col transition-transform duration-300 translate-y-full"
     >
       <div class="flex-1 min-h-0 overflow-y-auto">
@@ -143,6 +143,27 @@ const chapterData = await Promise.all(
   // confirm the exact wording he'd want here).
   function listenLabel(lang: 'bo' | 'en'): string {
     return lang === 'bo' ? 'ཉན་པ' : 'LISTEN';
+  }
+
+  const CHEVRON_LEFT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>`;
+  const CHEVRON_RIGHT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>`;
+
+  // Previous/next-CHAPTER nav at the bottom of the reading content — distinct
+  // from the prev/next-VERSE transport buttons on the LISTEN bar. Just a
+  // number + chevron per John's spec, not "Chapter N", since the chapter
+  // label/title already say that at the top.
+  function chapterNavHtml(n: number, maxChapter: number): string {
+    const prev = n > 1
+      ? `<a href="/chapter/${n - 1}" data-goto-chapter="${n - 1}" style="display:flex;align-items:center;gap:.3rem;color:#1c1710;font-weight:700;font-size:1.1rem;text-decoration:none">${CHEVRON_LEFT}<span>${n - 1}</span></a>`
+      : '<span></span>';
+    const next = n < maxChapter
+      ? `<a href="/chapter/${n + 1}" data-goto-chapter="${n + 1}" style="display:flex;align-items:center;gap:.3rem;color:#1c1710;font-weight:700;font-size:1.1rem;text-decoration:none"><span>${n + 1}</span>${CHEVRON_RIGHT}</a>`
+      : '<span></span>';
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.75rem;padding:0 .25rem">
+        ${prev}
+        ${next}
+      </div>`;
   }
 
   const COPYRIGHT_HTML = `
@@ -358,6 +379,13 @@ const chapterData = await Promise.all(
     function openChapter(n: number) {
       const chapter = chapters.find((c) => c.chapterNumber === n);
       if (!chapter) return;
+
+      // Navigating chapter-to-chapter via the new bottom nav calls this
+      // again while a chapter is already open — stop the outgoing chapter's
+      // audio explicitly rather than relying on element-removal side effects.
+      const outgoingAudio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      outgoingAudio?.pause();
+
       openChapterEntry = chapter;
       const dialect = getDialect();
       const lang = getTextLang();
@@ -379,6 +407,8 @@ const chapterData = await Promise.all(
               </div>
             </div>
           </section>
+
+          ${chapterNavHtml(n, chapters.length)}
 
           ${COPYRIGHT_HTML}
         </div>
@@ -419,10 +449,10 @@ const chapterData = await Promise.all(
             <span id="modal-time-display" style="font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
             <div style="display:flex;align-items:center;gap:1.5rem">
               <button id="modal-prev-btn" type="button" aria-label="Previous verse" style="background:none;border:none;padding:0;cursor:pointer;color:#1c1710;display:flex;align-items:center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
               </button>
               <button id="modal-next-btn" type="button" aria-label="Next verse" style="background:none;border:none;padding:0;cursor:pointer;color:#1c1710;display:flex;align-items:center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
               </button>
             </div>
             <button id="modal-speed-btn" type="button" aria-label="Playback speed"
@@ -433,6 +463,16 @@ const chapterData = await Promise.all(
 
       initAudioPlayer(chapter.duration[dialect]);
       updatePrevNextEnabled();
+
+      // Chapter-to-chapter nav at the bottom of the reading content is
+      // regenerated on every openChapter() call, so its links need fresh
+      // listeners each time too (same reasoning as initAudioPlayer above).
+      content.querySelectorAll<HTMLAnchorElement>('a[data-goto-chapter]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          openChapter(Number(link.dataset.gotoChapter));
+        });
+      });
 
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';

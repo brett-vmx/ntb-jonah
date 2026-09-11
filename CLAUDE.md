@@ -193,6 +193,10 @@ The play button's click handler calls `e.stopPropagation()` so tapping it
 doesn't also fire the track's seek handler underneath it. Prev/next are
 plain chevrons (stroke SVG, no background/circle) and the speed button has
 no background either — both were pill/circle-shaped before this round.
+Chevron `stroke-width` is `3.5`, not the thinner `2.5` first used — at 20px
+with a thin stroke they read as a lighter gray next to the bold black play
+button and text even though the color value (`#1c1710`, ink) already
+matched exactly; it's a stroke-weight/legibility issue, not a color one.
 Row 3 (time / chevrons / speed) uses `justify-content: space-between` with
 exactly three children so the chevron pair sits visually centered between
 the time indicator and the speed control, per feedback, without needing
@@ -232,6 +236,27 @@ Safari and standalone, not other mobile browsers. Don't drop the fixed
 1.5rem minimum thinking env() alone is "more correct" — test on a
 non-notched device (or just trust this note) before changing it.
 
+### The chapter modal must never grow taller than "100dvh minus the header"
+The header sits at `z-[210]`, deliberately *above* the chapter modal's
+z-index, so its own gear/share buttons stay reachable while a chapter is
+open. That means whenever the modal's bottom sheet grows tall enough for
+its own top (chapter number, title, close button) to reach the header's
+row, that content renders **behind** the opaque header — not just visually
+crowded, genuinely invisible and unclickable, including the close button.
+This isn't a viewport-units bug (`dvh` vs `vh`) — it reproduces identically
+either way — it's a stacking-order + sizing interaction: the header wins
+the z-index fight, so the modal must simply be kept short enough to never
+reach it. `Layout.astro`'s `initHeader()` measures the header's real
+rendered height (it varies a lot by device via `env(safe-area-inset-top)`)
+and exposes it as `--header-h` on `:root`, updated on resize. The modal
+panel's mobile max-height is `calc(100dvh - var(--header-h,90px) - 8px)`
+(index.astro) instead of a flat `92dvh` — don't go back to a flat
+percentage; it's exactly what let the header hide the close button. Verify
+by opening a chapter and confirming the label/title/close button are
+visible immediately, with no scrolling — CAUGHT via real device testing
+(iOS Simulator, Safari), not reproducible in a desktop-sized browser
+viewport where the modal's height never gets close to the header at all.
+
 ### PWA service worker injection
 `@vite-pwa/astro` does NOT automatically inject the manifest link or SW
 registration script into Astro 5 HTML output. Both are manually added to
@@ -249,6 +274,41 @@ the PWA is enough to get full offline audio for all three dialects. A manual
 download button can be added later if still wanted (C2C's `handleDownload`
 pattern, using `window.open` in standalone iOS mode to avoid the
 undismissable share sheet from `<a download>`).
+
+### Cloudflare Pages doesn't support Range requests — Workbox papers over it
+**Real bug, found via testing, not a guess:** the prev/next-verse buttons and
+the LISTEN seek track both stopped working — silently snapping back to 0
+instead of jumping to the requested position — reproducibly in every
+browser. Root cause: Cloudflare Pages' static asset serving ignores the
+`Range` header entirely and always returns a plain `200` with the full file
+body, never a `206 Partial Content` / `Accept-Ranges: bytes` (confirmed with
+`curl -H "Range: bytes=..."` directly against `https://ntb-jonah.pages.dev`,
+compared against `astro preview`'s local server, which *does* support Range
+correctly — that gap is what made this only reproduce on the deployed site,
+not in local dev). Without Range support, `HTMLMediaElement.seekable`
+correctly reports `[0, 0]` — the browser has no way to know it can fetch an
+arbitrary future byte range — so any seek ahead of what's already been
+sequentially downloaded is rejected and reverts. This is a platform
+limitation of Cloudflare Pages, not fixable via a `_headers` file (Range
+support is a serving-layer capability, not a response header you can just
+declare).
+
+Fixed at the service-worker layer instead: `astro.config.mjs`'s `workbox`
+config has a `runtimeCaching` rule matching `/audio/.*\.mp3$/` with
+`handler: 'CacheFirst'` and `options.rangeRequests: true` — this wires up
+Workbox's `RangeRequestsPlugin`, which fetches the whole (small, ~1-2MB)
+file once into its own `audio-range-cache`, then synthesizes real 206
+partial responses for any Range request straight from that cached copy,
+completely independent of what the origin can do. Verified end-to-end after
+this fix: `audio.seekable` reports the full `[0, duration]` range and both
+the prev/next buttons and the seek track work correctly. This does mean a
+file is fetched in full on its first request (same as our existing
+full-audio precache already does) rather than progressively — a non-issue
+given these files' size. Don't remove this thinking `Accept-Ranges` can be
+added via response headers, and don't be fooled by local testing looking
+fine — `astro dev`/`astro preview` support Range natively, so this bug is
+invisible locally and only appears against the real Cloudflare Pages
+deployment.
 
 ### No framework islands
 Vanilla JS only. Do not add Preact, React, Vue, or any other framework.
@@ -291,7 +351,13 @@ src/assets/chapters/inline/   In-reading illustrations (webp)
 src/assets/branding/          Logo variants — ntb-logo-mark-white.png (transparent
                                background, current header logo) plus older circle/
                                inverse/full variants kept for reference
-public/audio/{adx,bod,khg}/   Dialect audio, chapter-N.mp3
+public/audio/{adx,bod,khg}/   Dialect audio, chapter-N.mp3 — resampled to 44100Hz
+                               from John's original 22050Hz files in source-assets/
+                               (ffmpeg -ar 44100 -b:a 64k, same durations, same
+                               ~size). This was investigated as a possible cause of
+                               the seek bug below but wasn't the actual fix — kept
+                               anyway since 44100Hz is the standard rate and there's
+                               no downside; don't reintroduce 22050Hz files.
 public/fonts/                 Tibetan Unicode fonts
 public/icons/                 PWA icon PNGs
 public/badges/                Official Apple/Google store badges (app-store-badge.svg,
@@ -369,8 +435,19 @@ below that never scrolls away, laid out as three rows:
    `justify-content: space-between` so the chevrons land visually between
    the time and the speed control.
 Dialect itself is picked from the header settings sheet, not inside the
-tile. Copyright/attribution note is the last thing inside the scrolling
-content.
+tile. Between the READ section and the copyright note is **chapter-to-
+chapter nav** (`chapterNavHtml()` in index.astro) — just a number + chevron
+per chapter (`‹ 1`, `3 ›`), not "Chapter N" (the label/title above already
+say that), prev on the left and next on the right via
+`justify-content: space-between`, omitted on either end where there's no
+such chapter (no prev on chapter 1, no next on the last chapter). Clicking
+one calls `openChapter()` again for that number — same function used for
+the initial open, re-entrant by design — rather than navigating away, so it
+stays inside the same modal/SPA pattern. `openChapter()` explicitly pauses
+the outgoing chapter's `<audio>` before regenerating the LISTEN bar's HTML
+(which would otherwise implicitly stop it anyway via element removal, but
+not necessarily instantly) so audio never bleeds across a chapter switch.
+Copyright/attribution note is the last thing inside the scrolling content.
 
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
