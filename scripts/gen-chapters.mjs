@@ -80,13 +80,13 @@ function fmtDuration(secs) {
 
 function parseSfm(raw) {
   const lines = raw.split('\n').map((l) => l.replace(/\r$/, ''));
-  const chapters = {}; // { [n]: { label, section, verses: { [v]: string[] } } }
+  const chapters = {}; // { [n]: { label, section, verses: { [v]: string[] }, paragraphStarts: Set<v> } }
   let chapterNum = null;
   let verseNum = null;
-  let mode = null; // 'label' | 'section' — accumulates text until next marker
+  let pendingParagraph = false; // saw \p or \m, not yet attached to the next verse
 
   const ensureChapter = (n) => {
-    if (!chapters[n]) chapters[n] = { label: '', section: '', verses: {} };
+    if (!chapters[n]) chapters[n] = { label: '', section: '', verses: {}, paragraphStarts: new Set() };
     return chapters[n];
   };
 
@@ -97,7 +97,8 @@ function parseSfm(raw) {
     if (line.startsWith('\\c ')) {
       chapterNum = parseInt(line.slice(3).trim(), 10);
       ensureChapter(chapterNum);
-      mode = null;
+      verseNum = null;
+      pendingParagraph = false;
       continue;
     }
     if (chapterNum === null) continue; // skip \id, \h, \mt, \imt, \is1, \ipi front matter
@@ -111,7 +112,8 @@ function parseSfm(raw) {
       continue;
     }
     if (line.startsWith('\\p') || line.startsWith('\\m')) {
-      continue; // paragraph break — verses render as their own blocks anyway
+      pendingParagraph = true; // attach to whichever verse comes next
+      continue;
     }
     if (line.startsWith('\\v ')) {
       const m = line.match(/^\\v (\d+) (.*)$/s);
@@ -119,6 +121,10 @@ function parseSfm(raw) {
       verseNum = parseInt(m[1], 10);
       const text = stripFootnotes(m[2]);
       chapters[chapterNum].verses[verseNum] = [text];
+      if (pendingParagraph) {
+        chapters[chapterNum].paragraphStarts.add(verseNum);
+        pendingParagraph = false;
+      }
       continue;
     }
     if (line.startsWith('\\q1')) {
@@ -223,6 +229,9 @@ function buildChapter(n, sfmChapter, bsbChapter) {
       number: v,
       bo: sfmChapter.verses[v],
       en: bsbChapter?.[v] ?? '',
+      // True at each SFM \p/\m marker — i.e. this verse starts a new paragraph.
+      // Used by the paragraph-layout reading mode; verse-by-verse mode ignores it.
+      paragraphStart: sfmChapter.paragraphStarts.has(v),
     });
     if (imageAfter.has(v)) {
       blocks.push({ type: 'image', file: imageAfter.get(v) });

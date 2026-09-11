@@ -2,37 +2,44 @@
 // Client-side reading-settings state (vanilla, no framework), following the
 // same localStorage + CustomEvent pattern as Tenpa's language-store.ts.
 //
-// Four independent settings:
-//   jonah-text-lang  'bo' | 'en'                          default 'bo'
-//   jonah-font       'ouchan5' | 'ouchan2' | 'sambhota'    default 'ouchan5'
-//   jonah-text-size  'sm' | 'md' | 'lg' | 'xl'             default 'md'
-//   jonah-dialect    'adx' | 'bod' | 'khg'                 default 'bod'
+// Five independent settings:
+//   jonah-text-lang    'bo' | 'en'                                default 'bo'
+//   jonah-font         'ouchan2' | 'choukmatik' | 'dutsa2'         default 'ouchan2'
+//   jonah-text-size    'sm' | 'md' | 'lg' | 'xl'                  default 'md'
+//   jonah-text-layout  'verse' | 'paragraph'                      default 'verse'
+//   jonah-dialect      'adx' | 'bod' | 'khg'                       default 'bod'
 //
-// Text lang / font / text size only affect the READ section of an open
-// chapter modal (dispatched as 'jonah:text-settings-changed'). Dialect only
-// affects the LISTEN tile's audio source (dispatched as
+// Text lang / font / text size / layout only affect the READ section of an
+// open chapter modal (dispatched as 'jonah:text-settings-changed'). Dialect
+// only affects the LISTEN tile's audio source (dispatched as
 // 'jonah:dialect-changed'). Kept separate so changing one never disturbs
 // in-progress audio playback.
 
 export type TextLang = 'bo' | 'en';
-export type TibetanFont = 'ouchan5' | 'ouchan2' | 'sambhota';
+export type TibetanFont = 'ouchan2' | 'choukmatik' | 'dutsa2';
 export type TextSize = 'sm' | 'md' | 'lg' | 'xl';
+export type TextLayout = 'verse' | 'paragraph';
 export type Dialect = 'adx' | 'bod' | 'khg';
 
 const TEXT_LANG_KEY = 'jonah-text-lang';
 const FONT_KEY = 'jonah-font';
 const TEXT_SIZE_KEY = 'jonah-text-size';
+const TEXT_LAYOUT_KEY = 'jonah-text-layout';
 const DIALECT_KEY = 'jonah-dialect';
 
 const TEXT_LANGS: readonly TextLang[] = ['bo', 'en'];
-const FONTS: readonly TibetanFont[] = ['ouchan5', 'ouchan2', 'sambhota'];
+const FONTS: readonly TibetanFont[] = ['ouchan2', 'choukmatik', 'dutsa2'];
 const SIZES: readonly TextSize[] = ['sm', 'md', 'lg', 'xl'];
+const LAYOUTS: readonly TextLayout[] = ['verse', 'paragraph'];
 const DIALECTS: readonly Dialect[] = ['adx', 'bod', 'khg'];
 
+// John's latest font request, in order: Monlam Uni OuChan2 (block/u-chen,
+// default), ChoukMatik and Dutsa2 (both u-med/"headless" cursive styles,
+// offered as optional alternates — replaces the earlier OuChan5/SambhotaDege set).
 export const FONT_STACKS: Record<TibetanFont, string> = {
-  ouchan5: '"Monlam Uni OuChan5", "Monlam Uni OuChan2", "SambhotaDege", sans-serif',
-  ouchan2: '"Monlam Uni OuChan2", "Monlam Uni OuChan5", "SambhotaDege", sans-serif',
-  sambhota: '"SambhotaDege", "Monlam Uni OuChan5", "Monlam Uni OuChan2", sans-serif',
+  ouchan2: '"Monlam Uni OuChan2", "Monlam Uni ChoukMatik", "Monlam Uni Dutsa2", sans-serif',
+  choukmatik: '"Monlam Uni ChoukMatik", "Monlam Uni OuChan2", "Monlam Uni Dutsa2", sans-serif',
+  dutsa2: '"Monlam Uni Dutsa2", "Monlam Uni OuChan2", "Monlam Uni ChoukMatik", sans-serif',
 };
 
 export const TEXT_SIZE_REM: Record<TextSize, string> = {
@@ -42,12 +49,13 @@ export const TEXT_SIZE_REM: Record<TextSize, string> = {
   xl: '1.6rem',
 };
 
-// Dialect names in both scripts, shared by the header's dialect sheet
-// (Layout.astro) and the modal's LISTEN tile (index.astro) so the two never
-// drift out of sync.
+// Dialect names in both scripts, shared by the header's Settings sheet and
+// the modal's LISTEN tile so the two never drift out of sync. "Central" per
+// John (not "Lhasa") — paired with བོད་སྐད ("Tibetan/Central speech"), which
+// also echoes the dialect's own file code, `bod`.
 export const DIALECT_LABELS: Record<Dialect, { en: string; bo: string }> = {
   adx: { en: 'Amdo', bo: 'ཨ་མདོ' },
-  bod: { en: 'Lhasa', bo: 'ལྷ་ས' },
+  bod: { en: 'Central', bo: 'བོད་སྐད' },
   khg: { en: 'Kham', bo: 'ཁམས' },
 };
 
@@ -57,8 +65,9 @@ function readEnum<T extends string>(key: string, allowed: readonly T[], fallback
 }
 
 export const getTextLang = (): TextLang => readEnum(TEXT_LANG_KEY, TEXT_LANGS, 'bo');
-export const getFont = (): TibetanFont => readEnum(FONT_KEY, FONTS, 'ouchan5');
+export const getFont = (): TibetanFont => readEnum(FONT_KEY, FONTS, 'ouchan2');
 export const getTextSize = (): TextSize => readEnum(TEXT_SIZE_KEY, SIZES, 'md');
+export const getTextLayout = (): TextLayout => readEnum(TEXT_LAYOUT_KEY, LAYOUTS, 'verse');
 export const getDialect = (): Dialect => readEnum(DIALECT_KEY, DIALECTS, 'bod');
 
 export function setTextLang(v: TextLang): void {
@@ -71,6 +80,10 @@ export function setFont(v: TibetanFont): void {
 }
 export function setTextSize(v: TextSize): void {
   localStorage.setItem(TEXT_SIZE_KEY, v);
+  window.dispatchEvent(new CustomEvent('jonah:text-settings-changed'));
+}
+export function setTextLayout(v: TextLayout): void {
+  localStorage.setItem(TEXT_LAYOUT_KEY, v);
   window.dispatchEvent(new CustomEvent('jonah:text-settings-changed'));
 }
 export function setDialect(v: Dialect): void {

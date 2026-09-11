@@ -6,6 +6,7 @@ const verseBlock = z.object({
   number: z.number(),
   bo: z.array(z.string()), // one entry per poetic line; prose verses have length 1
   en: z.string(),
+  paragraphStart: z.boolean(), // from the SFM's \p/\m markers — used by paragraph-layout mode
 });
 
 // Verse-start timestamps (seconds) for read-along highlighting, from John's

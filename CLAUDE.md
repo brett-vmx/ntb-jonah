@@ -2,9 +2,15 @@
 
 ## What this project is
 A mobile-first PWA for reading/listening to the Book of Jonah in three
-Tibetan dialects (Amdo, Kham, Central/Lhasa) plus English. Modeled directly
+Tibetan dialects (Amdo, Kham, Central) plus English. Modeled directly
 on the architecture of `c2c-app` (Creation to Christ) — same stack, same
 SPA-via-modal pattern, same PWA approach.
+
+There's also a separate, much bigger sibling app: **New Tibetan Bible**
+(the full Bible, same translation committee), on the App Store and Google
+Play. This project cross-promotes it from a homepage section (official
+store badges in `public/badges/`) — that's a link to a *different* app, not
+a substitute for this app's own identity.
 
 Client: New Tibetan Bible (new-tibetan-bible.com). Illustrations are
 Sweet Publishing (public domain). Text is © NTB translation committee,
@@ -52,6 +58,13 @@ and Central are three separate audio recordings of it, not three separate
 texts. The dialect switcher swaps `<audio>` src; it never changes the
 displayed Tibetan text.
 
+Dialect English labels: **"Central"**, not "Lhasa" — this was tried and
+reverted per John. Paired with **བོད་སྐད** ("Tibetan/Central speech") rather
+than ལྷ་ས (the place name "Lhasa"), which also echoes the dialect's own file
+code, `bod`. Both labels live in one place — `DIALECT_LABELS` in
+`settings-store.ts` — consumed by both the header's dialect row and the
+modal's LISTEN tile so they can't drift apart.
+
 ### Verse-timing / read-along highlight
 `source-assets/timing/{dialect}_32_JON_{n}.txt` files (John's forced-aligner
 export — tab-separated `start\tend\t[verse]`, start===end so it's really one
@@ -66,12 +79,39 @@ timing is `null`, so bod/khg just silently don't highlight until John sends
 those files. Re-run `npm run gen-chapters` after dropping in new timing
 files — don't hand-edit the `timing` field in the generated JSON.
 
+The same timing track also drives **prev/next verse** buttons on the LISTEN
+tile (`#modal-prev-btn`/`#modal-next-btn` in index.astro), modeled directly
+on Global Bible Tools' `AudioDialog.tsx` (they were John's named reference —
+cloned their repo to check): "previous" restarts the *current* verse if
+you're more than `PREV_THRESHOLD` (1.5s) into it, otherwise jumps back a
+verse — standard music-player feel, not a plain "go to timings[i-1]". Both
+buttons are `disabled` (not hidden) whenever the active dialect's timing is
+`null` — `updatePrevNextEnabled()`, called on open and on every dialect
+switch.
+
+### Verse-by-verse vs. paragraph layout
+The SFM's `\p`/`\m` markers are real paragraph breaks (not discarded
+anymore) — `gen-chapters.mjs` attaches `paragraphStart: boolean` to each
+verse block. Two renderers in index.astro consume the same `blocks` array:
+`blocksToHtmlVerse()` (today's one-block-per-verse, unchanged) and
+`blocksToHtmlParagraph()` (verses flow together as inline `<span data-verse>`
+elements, a new `<p>` starts at each `paragraphStart`, images still break
+out of the flow as their own block). Reused for English too — paragraph
+structure follows the underlying discourse, not the specific translation,
+so there's no separate English paragraph map. The read-along highlight
+targets `[data-verse]` regardless of mode, so it works unchanged in both —
+don't special-case highlighting per layout.
+
 ### Reading settings are global, not per-modal (mirrors tenpa.app)
-Text language (Tibetan/English), Tibetan font, text size, and audio dialect
-are app-wide settings, not controls inside each chapter modal — chosen from
-two header icons (`Type` → text/font/size bottom sheet, `Headphones` →
-dialect bottom sheet), persisted to `localStorage`, in `src/i18n/settings-store.ts`.
-Same localStorage + `CustomEvent` pattern as tenpa's `language-store.ts`:
+Text language (Tibetan/English), Tibetan font, text size, layout
+(verse/paragraph), and audio dialect are app-wide settings, not controls
+inside each chapter modal — all five chosen from **one** header icon
+(`SlidersHorizontal` → a single bottom sheet with every row), persisted to
+`localStorage`, in `src/i18n/settings-store.ts`. This used to be two
+separate icons/sheets (text settings + dialect settings) — merged into one
+to free up header width for a longer title John wanted to try (see "Header
+title stays short" below). Same localStorage + `CustomEvent` pattern as
+tenpa's `language-store.ts`:
 - `jonah:text-settings-changed` — fired on text-lang/font/size change. The
   open chapter modal (if any) listens and re-renders `#modal-blocks` only
   (`renderReadSection()` in index.astro) — the `<audio>` element is left
@@ -96,6 +136,31 @@ Astro's `<ViewTransitions />` intercepts and swaps client-side. Without the
 the first such round-trip because their listeners were bound to DOM nodes
 that no longer exist post-swap. Reproduce-and-verify this specific sequence
 (open a chapter → close it → click a header icon) after touching Layout.astro.
+
+### Header title stays short — "Jonah", not the full bilingual name
+John asked to try `བོད་འགྱུར་གསར་མ། ཡོ་ནཱ།` (Tibetan) / "New Tibetan Bible -
+Jonah" (English) as the header title. Tested at 375px (iPhone SE/mini width)
+with the header already down to 2 icons: the Tibetan string fits, the
+English one does not — and doesn't fit even shrunk to 13px (smaller than
+the app's own 20px body text). So the header keeps the static, non-reactive
+"Jonah" title, and the fuller branding — plus a cross-promo link to the
+full New Tibetan Bible app — lives in the homepage section below the
+chapter grid instead (see "What this project is" above). Don't try to
+cram the full title back into the header without re-checking that fit —
+it's a real measured constraint, not a guess.
+
+### Sticky LISTEN bar, not sticky-inline
+The LISTEN tile is its own flex child (`#modal-listen-bar`) between the
+scrollable `#modal-content` and the panel — not part of the scrolling
+content, so it stays visible ("sticky") while the reader scrolls through
+verses. This is a *smaller* change than Global Bible Tools' own player
+(their `AudioDialog` is a dismissible floating card toggled open/closed) —
+John's brief was explicitly to keep our existing gold tile's look and just
+pin it, not rebuild it as a GBT-style floating card. The single close X
+button (top-right, always visible now, not `hidden md:flex` split from a
+separate mobile "Close" pill) is what replaced the old mobile-only
+gradient-pill dismiss affordance — simpler, one control for every
+breakpoint, plus swipe-down-to-dismiss still works on mobile.
 
 ### Header safe-area padding needs a real minimum, not just env()
 The header's top padding is `max(1.5rem, env(safe-area-inset-top))`, not
@@ -142,7 +207,7 @@ Vanilla JS only. Do not add Preact, React, Vue, or any other framework.
 | Ink | `#1C1710` | Body text, dark UI elements (play button, header text) |
 | Page bg | `#F7F5EF` | Warm off-white |
 | Body font | 20px base | Tailwind default overridden |
-| Tibetan font | `Monlam Uni OuChan5` | See font notes below |
+| Tibetan font | `Monlam Uni OuChan2` | See font notes below |
 | Card radius | 10px | `rounded-card` |
 
 **Contrast constraint, verified with WCAG relative-luminance math:** plain
@@ -152,11 +217,14 @@ floor. Gold only works as a *fill* (with dark ink content on top, ~8:1) or as
 light background.
 
 ## Fonts
-`public/fonts/`: `MonlamUniOuChan5.ttf` (primary), `MonlamUniOuChan2.ttf`
-(more compact cut of the same family, fallback), `SambhotaDege.ttf` (a
-distinct, more traditional typeface — despite the "Sambhota" legacy-encoding
-name, this file carries a real Unicode Tibetan cmap and renders standard
-Unicode text correctly). All self-hosted via `@font-face` in
+`public/fonts/`: `MonlamUniOuChan2.ttf` (default — block/u-chen script),
+`MonlamUniChoukMatik.ttf` and `MonlamUniDutsa2.ttf` (both u-med/"headless"
+cursive calligraphy styles, offered as alternates — visually a different
+script style, not just a weight/spacing variant of OuChan2). This is
+John's second, replacement font request — the original set (OuChan5 as
+default, OuChan2 and SambhotaDege as alternates) is gone; those two files
+were deleted from `public/fonts/` so they don't get precached for nothing.
+All three current fonts are self-hosted via `@font-face` in
 `src/styles/global.css` — none of these are on Google Fonts.
 
 ## Asset locations
@@ -167,6 +235,9 @@ src/assets/branding/          Logo variants (circle, inverse, full)
 public/audio/{adx,bod,khg}/   Dialect audio, chapter-N.mp3
 public/fonts/                 Tibetan Unicode fonts
 public/icons/                 PWA icon PNGs
+public/badges/                Official Apple/Google store badges (app-store-badge.svg,
+                               google-play-badge.png) — do not reskin, Apple/Google both
+                               require using their own badge artwork as-is
 source-assets/                Original client files — see README.md
 ```
 
@@ -176,12 +247,16 @@ main content — same treatment as tenpa.app, so the 2-col chapter grid stays
 2 columns even on a wide desktop viewport instead of reflowing to 4. The
 chapter modal is capped at the same 448px on desktop for visual consistency.
 
-**Header** (`Layout.astro`): share icon + popover (Copy link / native Share
-sheet when available) on the left, "Jonah" title + circle logo centered,
-`Type` (text/font/size) and `Headphones` (dialect) icons on the right —
-structure and behavior mirror tenpa.app's share popover and language-picker
-bottom sheet, recolored to Jonah's gold/ink palette instead of tenpa's dark
-theme.
+**Header** (`Layout.astro`): circle logo on the left (white mountain/river/
+sun mark on a solid gold badge — the *inverse* of the logo's native
+gold-on-white coloring, because gold-on-white measures ~2:1 contrast, see
+below), static "Jonah" title absolutely centered, `SlidersHorizontal`
+(all reading + audio settings, one sheet) and `Share2` (popover: Copy link /
+native Share) icons on the right. Share used to be on the left with the
+logo centered next to the title — moved to the right icon cluster so the
+logo could stand alone on the left. Structure and behavior mirror
+tenpa.app's share popover and settings bottom sheet, recolored to Jonah's
+gold/ink palette instead of tenpa's dark theme.
 
 ## Page structure
 Essentially one page (`src/pages/index.astro`):
@@ -189,14 +264,19 @@ Essentially one page (`src/pages/index.astro`):
    numeral (per client reference: a food-photography meal-plan app with the
    same "numeral over photo" card treatment), Tibetan chapter label at the
    bottom
+2. Cross-promo section: "Get the full New Tibetan Bible app" + official
+   App Store / Google Play badges linking to that separate sibling app
 
-**Modal** (opens on chapter card click): cover image, chapter label +
-section title (from SFM `\cl`/`\s` markers), LISTEN tile (current dialect
-name + big 76px play button + progress bar, gold bg / dark ink content —
-dialect itself is picked from the header, not inside the tile), READ section
-with verses and inline images in position (full text always shown, no
-read-more truncation — these are short scripture chapters, not story
-transcripts), copyright/attribution note at the very bottom.
+**Modal** (opens on chapter card click): chapter label + section title
+(from SFM `\cl`/`\s` markers) and READ section (verse-by-verse or paragraph,
+per the reading-layout setting; full text always shown, no read-more
+truncation — these are short scripture chapters, not story transcripts)
+scroll inside `#modal-content`; a **sticky LISTEN bar** (`#modal-listen-bar`)
+below that never scrolls away — current dialect name, progress bar,
+prev-verse / play / next-verse transport controls, and a playback-speed
+cycling button (0.5×/0.75×/0.85×/1×/1.1×/1.2×/1.5×). Dialect itself is
+picked from the header settings sheet, not inside the tile. Copyright/
+attribution note is the last thing inside the scrolling content.
 
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
@@ -209,6 +289,13 @@ transcripts), copyright/attribution note at the very bottom.
 - Do not remove the manually-injected PWA tags from Layout.astro
 - Do not add per-modal language/font/dialect toggles back — these are global
   header settings now (`settings-store.ts`); the modal only reflects them
+- Do not split the header settings back into two icons (Type + Headphones) —
+  they were merged into one `SlidersHorizontal` sheet specifically to free
+  up header width; re-splitting them reopens the header-title space problem
+- Do not put the full "New Tibetan Bible - Jonah" / `བོད་འགྱུར་གསར་མ། ཡོ་ནཱ།`
+  title back in the header without re-verifying the 375px fit test above
+- Do not reskin or recreate the App Store/Google Play badges — use the
+  official artwork in `public/badges/` as-is
 - Do not add a new top-level `<script>` to Layout.astro without wrapping its
   init logic in `document.addEventListener('astro:page-load', ...)` with an
   `AbortController` guard — see "Header buttons need re-init" above

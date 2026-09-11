@@ -70,7 +70,8 @@
       "bo": [
         "དེ་ནས་ཡོ་ནཱ་ཡིས་ཉའི་ཁོག་པ་ནས་རང་གི་དཀོན་མཆོག་ཡ་ཝཱེ་ལ་འདི་ལྟར་གསོལ་བ་བཏབ་པ་སྟེ།"
       ],
-      "en": "From inside the fish, Jonah prayed to the LORD his God,"
+      "en": "From inside the fish, Jonah prayed to the LORD his God,",
+      "paragraphStart": true
     },
     {
       "type": "verse",
@@ -81,7 +82,8 @@
         "གཤིན་ཡུལ་ཁོག་ནས་ང་ཡིས་ཀུ་ཅོ་བཏོན།།",
         "ཁྱེད་ཀྱིས་ང་ཡི་སྐད་སྒྲ་གསན་པ་ལགས༎"
       ],
-      "en": "saying: “In my distress I called to the LORD, and He answered me. From the belly of Sheol I called for help, and You heard my voice."
+      "en": "saying: “In my distress I called to the LORD, and He answered me. From the belly of Sheol I called for help, and You heard my voice.",
+      "paragraphStart": false
     },
     {
       "type": "verse",
@@ -93,7 +95,8 @@
         "ཁྱེད་ཀྱི་རྦ་རླབས་དང་ནི་ཆུ་འཁྲུགས་པ༎",
         "ང་ཡི་སྟེང་དུ་བརྒྱུགས་ཤིང་ང་རང་བསྣུབས༎"
       ],
-      "en": "For You cast me into the deep, into the heart of the seas, and the current swirled about me; all Your breakers and waves swept over me."
+      "en": "For You cast me into the deep, into the heart of the seas, and the current swirled about me; all Your breakers and waves swept over me.",
+      "paragraphStart": false
     },
     {
       "type": "verse",
@@ -104,7 +107,8 @@
         "ཁྱེད་ཀྱི་མཆོད་ཁང་དམ་པའི་ཕྱོགས་སུ་ནི༎",
         "ང་ཡིས་སླར་ཡང་བལྟ་དགོས་ཞེས་པ་འོ།།"
       ],
-      "en": "At this, I said, ‘I have been banished from Your sight; yet I will look once more toward Your holy temple.’"
+      "en": "At this, I said, ‘I have been banished from Your sight; yet I will look once more toward Your holy temple.’",
+      "paragraphStart": false
     },
     {
       "type": "verse",
@@ -114,7 +118,8 @@
         "གཏིང་ཟབ་རྒྱ་མཚོས་ཁོ་བོ་བསྐོར་ཅིང་སྐོར༎",
         "མཚོ་རྩྭ་ང་ཡི་མགོ་ལ་དཀྲིས་པར་གྱུར།།"
       ],
-      "en": "The waters engulfed me to take my life; the watery depths closed around me; the seaweed wrapped around my head."
+      "en": "The waters engulfed me to take my life; the watery depths closed around me; the seaweed wrapped around my head.",
+      "paragraphStart": false
     },
     {
       "type": "verse",
@@ -127,7 +132,8 @@
         "ཡིན་ཡང་ང་ཡི་དཀོན་མཆོག་ཡ་ཝཱེ་ལགས༎",
         "ཁྱེད་ཀྱིས་ང་ཡི་སྲོག་ནི་དུར་ལས་དྲངས༎"
       ],
-      "en": "To the roots of the mountains I descended; the earth beneath me barred me in forever! But You raised my life from the pit, O LORD my God!"
+      "en": "To the roots of the mountains I descended; the earth beneath me barred me in forever! But You raised my life from the pit, O LORD my God!",
+      "paragraphStart": false
     },
     {
       "type": "image",
@@ -142,7 +148,8 @@
         "ཁྱེད་ཀྱི་མཆོད་ཁང་དམ་པར་བཞུགས་ཡོད་པའི།།",
         "ཉིད་ཀྱི་དྲུང་དུ་སླེབས་པར་གྱུར་པ་ཡིན།།"
       ],
-      "en": "As my life was fading away, I remembered the LORD. My prayer went up to You, to Your holy temple."
+      "en": "As my life was fading away, I remembered the LORD. My prayer went up to You, to Your holy temple.",
+      "paragraphStart": false
     },
     {
       "type": "verse",
@@ -151,7 +158,8 @@
         "འཁྲུལ་སྣང་ཙམ་གྱི་ལྷ་སྐུར་བརྟེན་པ་རྣམས༎",
         "བསླུ་མེད་བྱམས་བརྩེ་འཐོབ་པའི་རེ་བ་སྤོང་༎"
       ],
-      "en": "Those who cling to worthless idols forsake His loving devotion."
+      "en": "Those who cling to worthless idols forsake His loving devotion.",
+      "paragraphStart": false
     },
     {
       "type": "verse",
@@ -162,7 +170,8 @@
         "ང་ཡིས་དམ་བཅའ་བཞིན་དུ་བྱེད་པར་བྱ།།",
         "ཐར་པ་ཡ་ཝཱེ་ཉིད་ནས་འབྱུང་ལགས་སོ།། ཞེས་པའོ༎"
       ],
-      "en": "But I, with the voice of thanksgiving, will sacrifice to You. I will fulfill what I have vowed. Salvation is from the LORD!”"
+      "en": "But I, with the voice of thanksgiving, will sacrifice to You. I will fulfill what I have vowed. Salvation is from the LORD!”",
+      "paragraphStart": false
     },
     {
       "type": "verse",
@@ -170,7 +179,8 @@
       "bo": [
         "དེ་ནས་དཀོན་མཆོག་ཡ་ཝཱེས་ཉ་ལ་བཀའ་གནང་བ་དང་། ཉ་ཡིས་ཀྱང་ཡོ་ནཱ་ཕྱིར་སྐམ་སར་བསྐྱུགས་པ་ཡིན་ནོ།།"
       ],
-      "en": "And the LORD commanded the fish, and it vomited Jonah onto dry land."
+      "en": "And the LORD commanded the fish, and it vomited Jonah onto dry land.",
+      "paragraphStart": true
     }
   ]
 }

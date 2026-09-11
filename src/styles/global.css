@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ */
-/* Self-hosted Tibetan fonts (Unicode). OuChan5 is the primary reading */
-/* face — wider glyph spacing, easier at small sizes on a phone than   */
-/* the more compact OuChan2. SambhotaDege offered as a display option. */
+/* Self-hosted Tibetan fonts (Unicode). OuChan2 is the primary reading */
+/* face (block/u-chen). ChoukMatik and Dutsa2 are u-med ("headless")   */
+/* cursive styles, offered as optional alternates.                    */
 /* ------------------------------------------------------------------ */
-@font-face {
-  font-family: "Monlam Uni OuChan5";
-  src: url("/fonts/MonlamUniOuChan5.ttf") format("truetype");
-  font-display: swap;
-}
 @font-face {
   font-family: "Monlam Uni OuChan2";
   src: url("/fonts/MonlamUniOuChan2.ttf") format("truetype");
   font-display: swap;
 }
 @font-face {
-  font-family: "SambhotaDege";
-  src: url("/fonts/SambhotaDege.ttf") format("truetype");
+  font-family: "Monlam Uni ChoukMatik";
+  src: url("/fonts/MonlamUniChoukMatik.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Monlam Uni Dutsa2";
+  src: url("/fonts/MonlamUniDutsa2.ttf") format("truetype");
   font-display: swap;
 }
 
@@ -40,7 +40,7 @@
   --text-base: 1.25rem;         /* 20px */
 
   /* Tibetan reading faces */
-  --font-tibetan: "Monlam Uni OuChan5", "Monlam Uni OuChan2", "SambhotaDege", sans-serif;
+  --font-tibetan: "Monlam Uni OuChan2", "Monlam Uni ChoukMatik", "Monlam Uni Dutsa2", sans-serif;
 
   /* Rounding */
   --radius-card: 0.625rem;      /* 10px — cards sit in the 8–12px band */

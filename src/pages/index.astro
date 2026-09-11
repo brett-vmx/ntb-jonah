@@ -43,6 +43,22 @@ const chapterData = await Promise.all(
         ))
       }
     </div>
+
+    <!-- Cross-promo: the full New Tibetan Bible app (separate app, same translation committee) -->
+    <section class="mt-10 pt-6 border-t border-ink/10 text-center">
+      <p class="text-sm font-bold text-ink/80 mb-1">Get the full New Tibetan Bible app</p>
+      <p class="text-xs text-ink/50 mb-4 max-w-[280px] mx-auto">
+        The complete Bible in Central, Amdo, and Kham Tibetan — read, listen, and study.
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <a href="https://apps.apple.com/my/app/new-tibetan-bible/id1515160881" target="_blank" rel="noopener noreferrer" aria-label="Download New Tibetan Bible on the App Store">
+          <img src="/badges/app-store-badge.svg" alt="Download on the App Store" style="height:42px" />
+        </a>
+        <a href="https://play.google.com/store/apps/details?id=com.tibetanapp" target="_blank" rel="noopener noreferrer" aria-label="Get New Tibetan Bible on Google Play">
+          <img src="/badges/google-play-badge.png" alt="Get it on Google Play" style="height:42px" />
+        </a>
+      </div>
+    </section>
   </div>
 
   <!-- ===================== CHAPTER MODAL ===================== -->
@@ -54,22 +70,17 @@ const chapterData = await Promise.all(
              md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[448px] md:rounded-2xl md:max-h-[90vh]
              bg-page flex flex-col transition-transform duration-300 translate-y-full"
     >
-      <div class="flex-1 overflow-y-auto" style="padding-bottom:80px">
+      <div class="flex-1 min-h-0 overflow-y-auto">
         <div id="modal-content"></div>
       </div>
-      <button id="modal-close-desktop" type="button" aria-label="Close chapter"
-        class="hidden md:flex"
-        style="position:absolute;top:1rem;right:1rem;z-index:10;width:2.25rem;height:2.25rem;align-items:center;justify-content:center;border-radius:9999px;background:#CFB63C;border:none;cursor:pointer;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.2)">
+      <!-- Sticky LISTEN bar: stays put while modal-content above scrolls (per John's "sticky player" ask) -->
+      <div id="modal-listen-bar" class="shrink-0"></div>
+      <button id="modal-close" type="button" aria-label="Close chapter"
+        style="position:absolute;top:1rem;right:1rem;z-index:10;width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:9999px;background:#CFB63C;border:none;cursor:pointer;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.2)">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
-      <div class="flex md:hidden" style="position:absolute;bottom:0;left:0;right:0;justify-content:center;padding:24px 0 20px;background:linear-gradient(to bottom,transparent,#f7f5ef 55%);pointer-events:none">
-        <button id="modal-close" type="button"
-          style="background:#1C1710;border:none;border-radius:999px;padding:10px 32px;font-size:13px;font-weight:600;color:white;cursor:pointer;letter-spacing:.03em;pointer-events:auto">
-          Close
-        </button>
-      </div>
     </div>
   </div>
 </Layout>
@@ -105,6 +116,11 @@ const chapterData = await Promise.all(
     padding-right: 0.6rem;
     transition: background-color 0.2s ease;
   }
+
+  #modal-prev-btn:disabled, #modal-next-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
 </style>
 
 <script define:vars={{ chapterData }}>
@@ -112,10 +128,10 @@ const chapterData = await Promise.all(
 </script>
 
 <script>
-  import { getTextLang, getFont, getTextSize, getDialect, DIALECT_LABELS } from '../i18n/settings-store';
+  import { getTextLang, getFont, getTextSize, getTextLayout, getDialect, DIALECT_LABELS } from '../i18n/settings-store';
 
   interface ImageBlock { type: 'image'; src: string }
-  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string }
+  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; paragraphStart: boolean }
   type Block = ImageBlock | VerseBlock;
   type TimingTrack = { verse: number; time: number }[] | null;
   interface ChapterEntry {
@@ -130,8 +146,8 @@ const chapterData = await Promise.all(
     blocks: Block[];
   }
 
-  // "[Tibetan script]/English", e.g. ལྷ་ས/Lhasa — only the Tibetan portion
-  // gets the Tibetan font so the Latin half doesn't render in Monlam/Sambhota.
+  // "[Tibetan script]/English", e.g. བོད་སྐད/Central — only the Tibetan portion
+  // gets the Tibetan font so the Latin half doesn't render in a Monlam face.
   function dialectDisplay(dialect: 'adx' | 'bod' | 'khg'): string {
     const { en, bo } = DIALECT_LABELS[dialect];
     return `<span class="tibetan">${bo}</span>/${en}`;
@@ -144,38 +160,88 @@ const chapterData = await Promise.all(
       Illustrations courtesy of Sweet Publishing (public domain).
     </p>`;
 
-  function blocksToHtml(blocks: Block[], lang: 'bo' | 'en'): string {
+  function verseInnerHtml(b: VerseBlock, lang: 'bo' | 'en'): string {
+    if (lang === 'bo') {
+      return b.bo.length > 1 ? b.bo.map((line) => `<div>${line}</div>`).join('') : b.bo[0];
+    }
+    return b.en;
+  }
+
+  // Verse-by-verse: each verse is its own block, full-size leading number.
+  function blocksToHtmlVerse(blocks: Block[], lang: 'bo' | 'en'): string {
     return blocks
       .map((b) => {
         if (b.type === 'image') {
           return `<img src="${b.src}" alt="" loading="lazy" style="width:100%;border-radius:10px;margin:1.25rem 0" />`;
         }
-        if (lang === 'bo') {
-          const boLines = b.bo.length > 1
-            ? b.bo.map((line) => `<div>${line}</div>`).join('')
-            : b.bo[0];
-          return `
-            <div class="verse-block tibetan" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:2">
-              <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${boLines}
-            </div>`;
-        }
+        const tibetanClass = lang === 'bo' ? ' tibetan' : '';
+        const lineHeight = lang === 'bo' ? 2 : 1.75;
         return `
-          <div class="verse-block" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:1.75">
-            <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${b.en}
+          <div class="verse-block${tibetanClass}" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">
+            <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${verseInnerHtml(b, lang)}
           </div>`;
       })
       .join('');
   }
 
+  // Paragraph: verses flow together as inline spans (small superscript verse
+  // numbers), grouped by the SFM's own \p/\m paragraph breaks. Images still
+  // break out of the flow as their own block between paragraphs. Poetry's
+  // internal line breaks (chapter 2) are kept as <br> inside a verse's span —
+  // that's the verse's own structure, not a paragraph boundary.
+  function blocksToHtmlParagraph(blocks: Block[], lang: 'bo' | 'en'): string {
+    const tibetanClass = lang === 'bo' ? ' tibetan' : '';
+    const lineHeight = lang === 'bo' ? 2 : 1.75;
+    let html = '';
+    let para = '';
+
+    const flush = () => {
+      if (!para) return;
+      html += `<p class="verse-block${tibetanClass}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">${para}</p>`;
+      para = '';
+    };
+
+    for (const b of blocks) {
+      if (b.type === 'image') {
+        flush();
+        html += `<img src="${b.src}" alt="" loading="lazy" style="width:100%;border-radius:10px;margin:1.25rem 0" />`;
+        continue;
+      }
+      if (b.paragraphStart) flush();
+      const text = lang === 'bo' && b.bo.length > 1 ? b.bo.join('<br>') : verseInnerHtml(b, lang);
+      para += `<span data-verse="${b.number}"><sup style="color:#a38a1e;font-weight:700">${b.number}</sup> ${text}</span> `;
+    }
+    flush();
+    return html;
+  }
+
+  function blocksToHtml(blocks: Block[], lang: 'bo' | 'en', layout: 'verse' | 'paragraph'): string {
+    return layout === 'paragraph' ? blocksToHtmlParagraph(blocks, lang) : blocksToHtmlVerse(blocks, lang);
+  }
+
+  // Transport-control seek behavior, matching Global Bible Tools' AudioPlayer:
+  // "previous" restarts the current verse if you're more than PREV_THRESHOLD
+  // seconds into it, otherwise jumps back a verse — standard music-player feel.
+  const PREV_THRESHOLD = 1.5;
+
+  function findVerseIndex(timings: { verse: number; time: number }[], t: number): number {
+    let idx = -1;
+    for (let i = 0; i < timings.length; i++) {
+      if (timings[i].time <= t) idx = i;
+      else break;
+    }
+    return idx;
+  }
+
   function initModal() {
-    const modal           = document.getElementById('chapter-modal');
-    const backdrop        = document.getElementById('modal-backdrop');
-    const panel           = document.getElementById('modal-panel');
-    const closeBtn        = document.getElementById('modal-close');
-    const desktopCloseBtn = document.getElementById('modal-close-desktop');
-    const content         = document.getElementById('modal-content');
-    const scrollDiv       = panel?.querySelector<HTMLElement>('.overflow-y-auto') ?? null;
-    if (!modal || !backdrop || !panel || !closeBtn || !content) return;
+    const modal      = document.getElementById('chapter-modal');
+    const backdrop   = document.getElementById('modal-backdrop');
+    const panel      = document.getElementById('modal-panel');
+    const closeBtn   = document.getElementById('modal-close');
+    const content    = document.getElementById('modal-content');
+    const listenBar  = document.getElementById('modal-listen-bar');
+    const scrollDiv  = panel?.querySelector<HTMLElement>('.overflow-y-auto') ?? null;
+    if (!modal || !backdrop || !panel || !closeBtn || !content || !listenBar) return;
 
     const chapters: ChapterEntry[] = (window as unknown as { __CHAPTERS__: ChapterEntry[] }).__CHAPTERS__ ?? [];
     let modalOpen   = false;
@@ -191,8 +257,9 @@ const chapterData = await Promise.all(
     function renderReadSection() {
       if (!openChapterEntry) return;
       const lang = getTextLang();
+      const layout = getTextLayout();
       const blocksEl = document.getElementById('modal-blocks');
-      if (blocksEl) blocksEl.innerHTML = blocksToHtml(openChapterEntry.blocks, lang);
+      if (blocksEl) blocksEl.innerHTML = blocksToHtml(openChapterEntry.blocks, lang, layout);
 
       const labelEl = document.getElementById('modal-label');
       const titleEl = document.getElementById('modal-title');
@@ -208,13 +275,14 @@ const chapterData = await Promise.all(
       applyVerseHighlight(); // re-render wiped #modal-blocks, so the highlight needs reapplying
     }
 
-    // Read-along highlight: lights up the verse block matching the audio's
-    // current playback position, using the active dialect's verse-start
-    // timestamps (null for dialects without timing data yet — see
-    // settings-store.ts / gen-chapters.mjs). Called on every audio
+    // Read-along highlight: lights up the verse span/block matching the
+    // audio's current playback position, using the active dialect's
+    // verse-start timestamps (null for dialects without timing data yet —
+    // see settings-store.ts / gen-chapters.mjs). Called on every audio
     // 'timeupdate' tick, plus whenever the READ section re-renders or the
     // dialect (and therefore the timing track) changes, so the highlight
-    // never lags behind a settings change.
+    // never lags behind a settings change. Works the same in both verse and
+    // paragraph layout since both wrap each verse in a [data-verse] element.
     function applyVerseHighlight() {
       const blocksEl = document.getElementById('modal-blocks');
       const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
@@ -227,12 +295,8 @@ const chapterData = await Promise.all(
         return;
       }
 
-      const t = audio.currentTime;
-      let activeVerse: number | null = null;
-      for (const entry of timings) {
-        if (entry.time <= t) activeVerse = entry.verse;
-        else break; // timings are chronological, so the first later entry ends the search
-      }
+      const idx = findVerseIndex(timings, audio.currentTime);
+      const activeVerse = idx >= 0 ? timings[idx].verse : null;
 
       if (prevActive && Number(prevActive.getAttribute('data-verse')) === activeVerse) return;
       prevActive?.classList.remove('verse-active');
@@ -243,6 +307,14 @@ const chapterData = await Promise.all(
         el.classList.add('verse-active');
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+    }
+
+    function updatePrevNextEnabled() {
+      const prevBtn = document.getElementById('modal-prev-btn') as HTMLButtonElement | null;
+      const nextBtn = document.getElementById('modal-next-btn') as HTMLButtonElement | null;
+      const hasTiming = !!openChapterEntry?.timing[getDialect()];
+      if (prevBtn) prevBtn.disabled = !hasTiming;
+      if (nextBtn) nextBtn.disabled = !hasTiming;
     }
 
     function updateAudioForDialect() {
@@ -268,6 +340,7 @@ const chapterData = await Promise.all(
       if (playIcon) playIcon.style.display = '';
       if (pauseIcon) pauseIcon.style.display = 'none';
 
+      updatePrevNextEnabled();
       applyVerseHighlight(); // dialect change swaps the timing track too
     }
 
@@ -280,6 +353,7 @@ const chapterData = await Promise.all(
       openChapterEntry = chapter;
       const dialect = getDialect();
       const lang = getTextLang();
+      const layout = getTextLayout();
       const label = lang === 'bo' ? chapter.labelBo : chapter.labelEn;
       const sectionTitle = lang === 'bo' ? chapter.sectionTitleBo : chapter.sectionTitleEn;
       const tibetanClass = lang === 'bo' ? ' tibetan' : '';
@@ -289,36 +363,11 @@ const chapterData = await Promise.all(
           <p id="modal-label" class="${tibetanClass.trim()}" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem;padding-right:2.5rem">${label}</p>
           <h2 id="modal-title" class="${tibetanClass.trim()}" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5;padding-right:2.5rem">${sectionTitle}</h2>
 
-          <!-- LISTEN tile -->
-          <div style="background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 1px 3px rgba(0,0,0,.15)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-              <span style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">Listen</span>
-              <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${dialectDisplay(dialect)}</span>
-            </div>
-            <audio id="modal-audio" preload="metadata" src="${chapter.audio[dialect]}" style="display:none"></audio>
-            <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem">
-              <button id="modal-play-btn" type="button" aria-label="Play"
-                style="width:76px;height:76px;flex-shrink:0;border-radius:9999px;background:#1c1710;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)">
-                <svg id="modal-play-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                <svg id="modal-pause-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" aria-hidden="true" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              </button>
-              <div style="flex:1;min-width:0">
-                <input id="modal-progress" type="range" min="0" max="100" value="0" step="0.1"
-                  style="width:100%;height:6px;-webkit-appearance:none;appearance:none;border-radius:9999px;outline:none;cursor:pointer;--progress:0%;background:linear-gradient(to right,#1c1710 var(--progress),rgba(28,23,16,.25) var(--progress))" />
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.4rem">
-                  <span id="modal-time-display" style="font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
-                  <button id="modal-speed-btn" type="button" aria-label="Playback speed"
-                    style="font-size:.8rem;font-weight:700;color:#1c1710;background:rgba(28,23,16,.12);border:none;border-radius:9999px;padding:.2rem .7rem;cursor:pointer">1×</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- READ -->
-          <section style="margin-top:1.75rem;margin-bottom:1rem">
+          <section>
             <div style="background:#fff;border-radius:10px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1)">
               <div id="modal-blocks">
-                ${blocksToHtml(chapter.blocks, getTextLang())}
+                ${blocksToHtml(chapter.blocks, lang, layout)}
               </div>
             </div>
           </section>
@@ -327,11 +376,44 @@ const chapterData = await Promise.all(
         </div>
       `;
 
+      listenBar.innerHTML = `
+        <div style="margin:0 1.25rem 1rem;background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 2px 8px rgba(0,0,0,.2)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+            <span style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">Listen</span>
+            <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${dialectDisplay(dialect)}</span>
+          </div>
+          <audio id="modal-audio" preload="metadata" src="${chapter.audio[dialect]}" style="display:none"></audio>
+
+          <input id="modal-progress" type="range" min="0" max="100" value="0" step="0.1"
+            style="width:100%;height:6px;-webkit-appearance:none;appearance:none;border-radius:9999px;outline:none;cursor:pointer;--progress:0%;background:linear-gradient(to right,#1c1710 var(--progress),rgba(28,23,16,.25) var(--progress))" />
+          <span id="modal-time-display" style="display:block;margin-top:.35rem;font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
+
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:.85rem;margin-top:.6rem">
+            <button id="modal-prev-btn" type="button" aria-label="Previous verse"
+              style="width:40px;height:40px;flex-shrink:0;border-radius:9999px;background:rgba(28,23,16,.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#1c1710" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+            <button id="modal-play-btn" type="button" aria-label="Play"
+              style="width:72px;height:72px;flex-shrink:0;border-radius:9999px;background:#1c1710;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)">
+              <svg id="modal-play-icon" xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="white" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg id="modal-pause-icon" xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="white" aria-hidden="true" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <button id="modal-next-btn" type="button" aria-label="Next verse"
+              style="width:40px;height:40px;flex-shrink:0;border-radius:9999px;background:rgba(28,23,16,.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#1c1710" aria-hidden="true"><path d="M16 6h2v12h-2zM6 6v12l8.5-6z"/></svg>
+            </button>
+            <button id="modal-speed-btn" type="button" aria-label="Playback speed"
+              style="position:absolute;right:0;font-size:.8rem;font-weight:700;color:#1c1710;background:rgba(28,23,16,.12);border:none;border-radius:9999px;padding:.25rem .6rem;cursor:pointer">1×</button>
+          </div>
+        </div>
+      `;
+
       initAudioPlayer(chapter.duration[dialect]);
+      updatePrevNextEnabled();
 
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
-      panel.scrollTop = 0;
+      if (scrollDiv) scrollDiv.scrollTop = 0;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           panel.classList.remove('translate-y-full');
@@ -346,17 +428,19 @@ const chapterData = await Promise.all(
       }
     }
 
-    const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+    const SPEEDS = [0.5, 0.75, 0.85, 1, 1.1, 1.2, 1.5];
 
     function initAudioPlayer(initialDuration: string) {
       const audio      = document.getElementById('modal-audio')       as HTMLAudioElement | null;
       const playBtn    = document.getElementById('modal-play-btn')    as HTMLButtonElement | null;
       const playIcon   = document.getElementById('modal-play-icon')   as SVGElement | null;
       const pauseIcon  = document.getElementById('modal-pause-icon')  as SVGElement | null;
+      const prevBtn    = document.getElementById('modal-prev-btn')    as HTMLButtonElement | null;
+      const nextBtn    = document.getElementById('modal-next-btn')    as HTMLButtonElement | null;
       const progress   = document.getElementById('modal-progress')    as HTMLInputElement | null;
       const timeDisplay = document.getElementById('modal-time-display') as HTMLElement | null;
       const speedBtn   = document.getElementById('modal-speed-btn')   as HTMLButtonElement | null;
-      if (!audio || !playBtn || !playIcon || !pauseIcon || !progress || !timeDisplay || !speedBtn) return;
+      if (!audio || !playBtn || !playIcon || !pauseIcon || !prevBtn || !nextBtn || !progress || !timeDisplay || !speedBtn) return;
 
       let totalLabel = initialDuration;
       let speedIndex = SPEEDS.indexOf(1);
@@ -382,6 +466,24 @@ const chapterData = await Promise.all(
       playBtn.addEventListener('click', () => {
         if (audio.paused) { audio.play(); setPlaying(true); }
         else              { audio.pause(); setPlaying(false); }
+      });
+
+      prevBtn.addEventListener('click', () => {
+        const timings = openChapterEntry?.timing[getDialect()];
+        if (!timings) return;
+        const idx = findVerseIndex(timings, audio.currentTime);
+        if (idx < 0) { audio.currentTime = 0; return; }
+        const intoVerse = audio.currentTime - timings[idx].time;
+        audio.currentTime = (intoVerse > PREV_THRESHOLD || idx === 0) ? timings[idx].time : timings[idx - 1].time;
+        applyVerseHighlight();
+      });
+      nextBtn.addEventListener('click', () => {
+        const timings = openChapterEntry?.timing[getDialect()];
+        if (!timings) return;
+        const idx = findVerseIndex(timings, audio.currentTime);
+        const nextIdx = Math.min(idx + 1, timings.length - 1);
+        audio.currentTime = timings[nextIdx].time;
+        applyVerseHighlight();
       });
 
       audio.addEventListener('timeupdate', () => {
@@ -431,6 +533,7 @@ const chapterData = await Promise.all(
         modal!.classList.add('hidden');
         document.body.style.overflow = '';
         content!.innerHTML = '';
+        listenBar!.innerHTML = '';
       };
       panel!.addEventListener('transitionend', finish, { once: true });
       setTimeout(finish, 350);
@@ -447,7 +550,6 @@ const chapterData = await Promise.all(
     });
 
     closeBtn.addEventListener('click', () => closeModal(false));
-    if (desktopCloseBtn) desktopCloseBtn.addEventListener('click', () => closeModal(false));
     backdrop.addEventListener('click', () => closeModal(false));
 
     let touchStartY = 0;

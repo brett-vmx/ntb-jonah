@@ -1,7 +1,7 @@
 # Jonah
 
 A mobile-first PWA for reading and listening to the Book of Jonah in three
-Tibetan dialects — Amdo, Kham, and Central (Lhasa) — alongside the English
+Tibetan dialects — Amdo, Kham, and Central — alongside the English
 text (Berean Standard Bible). Built for New Tibetan Bible (new-tibetan-bible.com).
 
 Works fully offline once installed: all text and audio (for all three
@@ -49,13 +49,11 @@ public/
 
 Three Tibetan fonts are bundled (`public/fonts/`, declared in `src/styles/global.css`):
 
-- **Monlam Uni OuChan5** — primary reading face. Same design as OuChan2 but
-  wider glyph spacing; easier to read at small sizes on a phone.
-- **Monlam Uni OuChan2** — the more compact cut of the same family. Fallback.
-- **SambhotaDege** — a distinct, more traditional/calligraphic typeface.
-  Despite the "Sambhota" name (an older, pre-Unicode Tibetan encoding
-  system), this particular file carries a real Unicode Tibetan cmap and
-  renders standard Unicode text correctly.
+- **Monlam Uni OuChan2** — default reading face, block/u-chen script.
+- **Monlam Uni ChoukMatik** and **Monlam Uni Dutsa2** — u-med ("headless")
+  cursive calligraphy styles, offered as alternates in the text settings
+  sheet. Visually a different script style from OuChan2, not just a
+  weight/spacing variant.
 
 ## Image placement
 
