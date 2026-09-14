@@ -6,12 +6,15 @@ const verseBlock = z.object({
   number: z.number(),
   bo: z.array(z.string()), // one entry per poetic line; prose verses have length 1
   en: z.string(),
+  cmn: z.string(), // Chinese (CUV) — no poetry line breaks in this source, plain string like en
   paragraphStart: z.boolean(), // from the SFM's \p/\m markers — used by paragraph-layout mode
 });
 
-// Verse-start timestamps (seconds) for read-along highlighting, from John's
-// forced-aligner export. Only Amdo exists so far — bod/khg are null until
-// those timing files arrive; the reading UI just skips highlighting then.
+// Verse-start timestamps (seconds) for read-along highlighting. Amdo/Central/
+// Kham are from John's forced-aligner export; English/Chinese were generated
+// locally (Whisper transcription + text alignment — see CLAUDE.md). Null
+// means that audio track's timing file hasn't arrived/been generated yet;
+// the reading UI just skips highlighting then.
 const timingTrack = z
   .array(z.object({ verse: z.number(), time: z.number() }))
   .nullable();
@@ -26,22 +29,30 @@ const chapters = defineCollection({
       sectionTitleBo: z.string(),
       labelEn: z.string(), // e.g. "Chapter 1" — shown when text language is English
       sectionTitleEn: z.string(),
+      labelCmn: z.string(), // e.g. "第一章" — shown when text language is Chinese
+      sectionTitleCmn: z.string(),
       cover: image(),
       verseCount: z.number(),
       audio: z.object({
         adx: z.string(), // Amdo
         bod: z.string(), // Central / Lhasa
         khg: z.string(), // Kham
+        eng: z.string(), // English (BSB)
+        cmn: z.string(), // Chinese (CUV, ElevenLabs)
       }),
       duration: z.object({
         adx: z.string(),
         bod: z.string(),
         khg: z.string(),
+        eng: z.string(),
+        cmn: z.string(),
       }),
       timing: z.object({
         adx: timingTrack,
         bod: timingTrack,
         khg: timingTrack,
+        eng: timingTrack,
+        cmn: timingTrack,
       }),
       blocks: z.array(
         z.discriminatedUnion('type', [

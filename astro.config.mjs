@@ -45,7 +45,10 @@ export default defineConfig({
         // Putting mp3 back here re-introduces a competing precache route
         // for those same URLs, which wins over the Range-aware route and
         // silently breaks prev/next-verse and the seek track again.
-        globPatterns: ['**/*.{html,js,css,webp,png,jpg,ttf}'],
+        // woff2 added alongside ttf for the Chinese font (public/fonts/
+        // NotoSansSC-*.woff2) — same "offline-ready after install" reasoning
+        // as the Tibetan ttf files already here.
+        globPatterns: ['**/*.{html,js,css,webp,png,jpg,ttf,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),

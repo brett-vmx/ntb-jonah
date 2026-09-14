@@ -3,23 +3,35 @@
 // same localStorage + CustomEvent pattern as Tenpa's language-store.ts.
 //
 // Five independent settings:
-//   jonah-text-lang    'bo' | 'en'                                default 'bo'
+//   jonah-text-lang    'bo' | 'en' | 'cmn'                         default 'bo'
 //   jonah-font         'ouchan2' | 'choukmatik' | 'dutsa2'         default 'ouchan2'
 //   jonah-text-size    'sm' | 'md' | 'lg' | 'xl'                  default 'md'
 //   jonah-text-layout  'verse' | 'paragraph'                      default 'verse'
-//   jonah-dialect      'adx' | 'bod' | 'khg'                       default 'bod'
+//   jonah-dialect      'adx' | 'bod' | 'khg' | 'eng' | 'cmn'        default 'bod'
 //
 // Text lang / font / text size / layout only affect the READ section of an
 // open chapter modal (dispatched as 'jonah:text-settings-changed'). Dialect
 // only affects the LISTEN tile's audio source (dispatched as
 // 'jonah:dialect-changed'). Kept separate so changing one never disturbs
-// in-progress audio playback.
+// in-progress audio playback — and independent on purpose: reading Chinese
+// while listening to the Amdo dialect is a valid combination, not something
+// the app forces to match.
+//
+// "Dialect" now spans two different kinds of thing sharing one setting: the
+// three Tibetan *dialects* of the one Tibetan text (adx/bod/khg) and two
+// full audio *tracks* in their own languages (eng, cmn) — added once Brett
+// supplied BSB (English) and ElevenLabs-generated CUV (Chinese) audio. Kept
+// as a single flat Dialect type/setting rather than splitting it, since
+// every other place in the code (the LISTEN-bar popover, audio src lookup,
+// timing lookup) already just needs "which of N audio options" with no
+// reason to distinguish where in that list the boundary between "dialect"
+// and "language" falls.
 
-export type TextLang = 'bo' | 'en';
+export type TextLang = 'bo' | 'en' | 'cmn';
 export type TibetanFont = 'ouchan2' | 'choukmatik' | 'dutsa2';
 export type TextSize = 'sm' | 'md' | 'lg' | 'xl';
 export type TextLayout = 'verse' | 'paragraph';
-export type Dialect = 'adx' | 'bod' | 'khg';
+export type Dialect = 'adx' | 'bod' | 'khg' | 'eng' | 'cmn';
 
 const TEXT_LANG_KEY = 'jonah-text-lang';
 const FONT_KEY = 'jonah-font';
@@ -27,11 +39,11 @@ const TEXT_SIZE_KEY = 'jonah-text-size';
 const TEXT_LAYOUT_KEY = 'jonah-text-layout';
 const DIALECT_KEY = 'jonah-dialect';
 
-const TEXT_LANGS: readonly TextLang[] = ['bo', 'en'];
+const TEXT_LANGS: readonly TextLang[] = ['bo', 'en', 'cmn'];
 const FONTS: readonly TibetanFont[] = ['ouchan2', 'choukmatik', 'dutsa2'];
 const SIZES: readonly TextSize[] = ['sm', 'md', 'lg', 'xl'];
 const LAYOUTS: readonly TextLayout[] = ['verse', 'paragraph'];
-const DIALECTS: readonly Dialect[] = ['adx', 'bod', 'khg'];
+const DIALECTS: readonly Dialect[] = ['adx', 'bod', 'khg', 'eng', 'cmn'];
 
 // John's latest font request, in order: Monlam Uni OuChan2 (block/u-chen,
 // default), ChoukMatik and Dutsa2 (both u-med/"headless" cursive styles,
@@ -49,16 +61,21 @@ export const TEXT_SIZE_REM: Record<TextSize, string> = {
   xl: '1.6rem',
 };
 
-// Dialect names in both scripts, shared by the modal's LISTEN-bar dialect
-// popover (dialect picking moved there from the header's settings sheet —
-// see index.astro/Layout.astro). "Central" per John (not "Lhasa"). Bo labels
-// are John's second-round wording, each with a trailing shad (།) per his
-// explicit request — these replace the earlier ཨ་མདོ/བོད་སྐད/ཁམས entirely,
-// not just add punctuation to them.
+// Dialect/audio-track names in both scripts, shared by the modal's LISTEN-bar
+// popover and (for the 3 Tibetan dialects only) the header settings sheet's
+// conditional dialect row — see "Audio dialect picker" in CLAUDE.md. "Central"
+// per John (not "Lhasa"). Bo labels for adx/bod/khg are John's second-round
+// wording, each with a trailing shad (།) per his explicit request. eng/cmn's
+// bo labels (English/Chinese *language* names, not dialect names) are
+// Claude's provisional translation, following the same "X-skad" pattern as
+// the three dialects for consistency — flag for John to confirm exact
+// wording, same caveat as the LISTEN label's translation.
 export const DIALECT_LABELS: Record<Dialect, { en: string; bo: string }> = {
   adx: { en: 'Amdo', bo: 'ཨམ་སྐད།' },
   bod: { en: 'Central', bo: 'དབུས་སྐད།' },
   khg: { en: 'Kham', bo: 'ཁམས་སྐད།' },
+  eng: { en: 'English', bo: 'དབྱིན་སྐད།' },
+  cmn: { en: 'Chinese', bo: 'རྒྱ་སྐད།' },
 };
 
 function readEnum<T extends string>(key: string, allowed: readonly T[], fallback: T): T {

@@ -5,17 +5,23 @@
   "sectionTitleBo": "ཡོ་ནཱ་ཞེས་བྱ་བ་དཀོན་མཆོག་ཡ་ཝཱེ་ལ་གཡོལ་བ།",
   "labelEn": "Chapter 1",
   "sectionTitleEn": "Jonah Flees from the LORD",
+  "labelCmn": "第一章",
+  "sectionTitleCmn": "约拿违背耶和华",
   "cover": "../../assets/chapters/covers/chapter-1.webp",
   "verseCount": 17,
   "audio": {
     "adx": "/audio/adx/chapter-1.mp3",
     "bod": "/audio/bod/chapter-1.mp3",
-    "khg": "/audio/khg/chapter-1.mp3"
+    "khg": "/audio/khg/chapter-1.mp3",
+    "eng": "/audio/eng/chapter-1.mp3",
+    "cmn": "/audio/cmn/chapter-1.mp3"
   },
   "duration": {
     "adx": "4:31",
     "bod": "2:58",
-    "khg": "3:03"
+    "khg": "3:03",
+    "eng": "2:35",
+    "cmn": "2:45"
   },
   "timing": {
     "adx": [
@@ -227,6 +233,146 @@
         "verse": 17,
         "time": 172.538
       }
+    ],
+    "eng": [
+      {
+        "verse": 1,
+        "time": 3.62
+      },
+      {
+        "verse": 2,
+        "time": 8.1
+      },
+      {
+        "verse": 3,
+        "time": 15.08
+      },
+      {
+        "verse": 4,
+        "time": 29.04
+      },
+      {
+        "verse": 5,
+        "time": 36.94
+      },
+      {
+        "verse": 6,
+        "time": 49.74
+      },
+      {
+        "verse": 7,
+        "time": 59.02
+      },
+      {
+        "verse": 8,
+        "time": 69.88
+      },
+      {
+        "verse": 9,
+        "time": 80.5
+      },
+      {
+        "verse": 10,
+        "time": 87
+      },
+      {
+        "verse": 11,
+        "time": 96.62
+      },
+      {
+        "verse": 12,
+        "time": 103.54
+      },
+      {
+        "verse": 13,
+        "time": 113.34
+      },
+      {
+        "verse": 14,
+        "time": 121.74
+      },
+      {
+        "verse": 15,
+        "time": 133.82
+      },
+      {
+        "verse": 16,
+        "time": 139.4
+      },
+      {
+        "verse": 17,
+        "time": 145.54
+      }
+    ],
+    "cmn": [
+      {
+        "verse": 1,
+        "time": 0
+      },
+      {
+        "verse": 2,
+        "time": 4.3
+      },
+      {
+        "verse": 3,
+        "time": 12.44
+      },
+      {
+        "verse": 4,
+        "time": 27.36
+      },
+      {
+        "verse": 5,
+        "time": 34.68
+      },
+      {
+        "verse": 6,
+        "time": 47.52
+      },
+      {
+        "verse": 7,
+        "time": 59.88
+      },
+      {
+        "verse": 8,
+        "time": 71.7
+      },
+      {
+        "verse": 9,
+        "time": 83.96
+      },
+      {
+        "verse": 10,
+        "time": 92.76
+      },
+      {
+        "verse": 11,
+        "time": 102.7
+      },
+      {
+        "verse": 12,
+        "time": 111.88
+      },
+      {
+        "verse": 13,
+        "time": 121.48
+      },
+      {
+        "verse": 14,
+        "time": 129.46
+      },
+      {
+        "verse": 15,
+        "time": 146.32
+      },
+      {
+        "verse": 16,
+        "time": 152.74
+      },
+      {
+        "verse": 17,
+        "time": 159.18
+      }
     ]
   },
   "blocks": [
@@ -237,6 +383,7 @@
         "དེ་ཡང་དཀོན་མཆོག་ཡ་ཝཱེའི་བཀའ་ནི་ཨ་མི་ཐཱ་ཨི་བྱ་བའི་བུ་ཡོ་ནཱ་ལ་བྱུང་སྟེ་འདི་སྐད་དུ།"
       ],
       "en": "Now the word of the LORD came to Jonah son of Amittai, saying,",
+      "cmn": "耶和华的话临到亚米太的儿子约拿，说：",
       "paragraphStart": true
     },
     {
@@ -246,6 +393,7 @@
         "ཁྱོད་རང་ཡར་ལངས་ནས་གྲོང་ཁྱེར་ཆེན་པོ་ནིན་ཝེ་ལ་ཐ་ཚིག་བསྒྲག་པར་སོང་ཞིག ཅིའི་ཕྱིར་ཞེ་ན། ཁོ་ཚོའི་བྱ་བ་ངན་པ་ནི་ཡར་བདག་གི་མདུན་དུ་སླེབས་པས་སོ་ཞེས་གསུངས་སོ༎"
       ],
       "en": "“Get up! Go to the great city of Nineveh and preach against it, because its wickedness has come up before Me.”",
+      "cmn": "「你起来往尼尼微大城去，向其中的居民呼喊，因为他们的恶达到我面前。」",
       "paragraphStart": false
     },
     {
@@ -259,6 +407,7 @@
         "འོན་ཀྱང་ཡོ་ནཱ་ནི་དཀོན་མཆོག་ཡ་ཝཱེའི་དྲུང་ནས་ཐཱར་ཞིས་གྲོང་ཁྱེར་ལ་འབྲོ་བའི་ཆེད་དུ། མར་ཡོ་ཕཱ་གྲོང་ཁྱེར་དུ་ཕྱིན་པ་དང་། ཐཱར་ཞིས་སུ་འགྲོ་བའི་གྲུ་གཟིངས་ཤིག་རྙེད་ནས་གླ་སྤྲད་ཅིང་། དེའི་ནང་མར་བསྡད་པ་དང་གྲུར་ཞུགས་པ་རྣམས་དང་ལྷན་དུ་དཀོན་མཆོག་ཡ་ཝཱེའི་དྲུང་ནས་ཐཱར་ཞིས་ལ་སོང་ངོ་།།"
       ],
       "en": "Jonah, however, got up to flee to Tarshish, away from the presence of the LORD. He went down to Joppa and found a ship bound for Tarshish. So he paid the fare and went aboard to sail for Tarshish, away from the presence of the LORD.",
+      "cmn": "约拿却起来，逃往他施去躲避耶和华；下到约帕，遇见一只船，要往他施去。他就给了船价，上了船，要与船上的人同往他施去躲避耶和华。",
       "paragraphStart": false
     },
     {
@@ -268,6 +417,7 @@
         "ཡིན་ནའང་། དཀོན་མཆོག་ཡ་ཝཱེས་རྒྱ་མཚོ་ལ་དྲག་རླུང་ཆེན་པོ་ཞིག་གཡུགས་སུ་བཅུག་པ་དང་། མཚོ་སྟེང་དུ་ཆར་རླུང་དྲག་པོ་བྱུང་ཞིང་མཚོ་གྲུ་འཐོར་ལ་ཁད་བྱས།"
       ],
       "en": "Then the LORD hurled a great wind upon the sea, and such a violent storm arose that the ship was in danger of breaking apart.",
+      "cmn": "然而耶和华使海中起大风，海就狂风大作，甚至船几乎破坏。",
       "paragraphStart": true
     },
     {
@@ -277,6 +427,7 @@
         "གྲུ་པ་རྣམས་ཤིན་ཏུ་འཇིགས་ཏེ་སྐད་ཆེན་པོ་བརྒྱབ་ནས་རང་རང་གི་ལྷ་ལ་འོ་དོད་བོས། ཁོ་ཚོས་གྲུ་ཇེ་ཡང་དུ་གཏོང་ཆེད་གྲུ་ནང་གི་ཚོང་རྫས་ཡོད་ཚད་མཚོའི་ནང་དུ་གཡུགས། འོན་ཀྱང་། དེ་སྔར་ཡོ་ནཱ་མར་གྲུའི་ཕུག་ཏུ་སོང་སྟེ་ཉལ་ནས་གཉིད་སྟུག་པོ་ཁུགས་པས།"
       ],
       "en": "The sailors were afraid, and each cried out to his own god. And they threw the ship’s cargo into the sea to lighten the load. But Jonah had gone down to the lowest part of the vessel, where he lay down and fell into a deep sleep.",
+      "cmn": "水手便惧怕，各人哀求自己的神。他们将船上的货物抛在海中，为要使船轻些。约拿已下到底舱，躺卧沉睡。",
       "paragraphStart": false
     },
     {
@@ -286,6 +437,7 @@
         "གྲུ་དཔོན་ཁོའི་གམ་དུ་སླེབས་ནས། ཁྱོད་རང་གཉིད་ནས་སྡོད་པ་ཅི་ཡིན་ནམ། ཡར་ལོངས་ལ་རང་གི་ལྷ་ལ་ཞུ་བ་ཕུལ་ཅིག ལྷ་དེས་འུ་ཅག་ཐུགས་སུ་དྲན་ན། རང་ཅག་འཆི་བར་མི་འགྱུར་རོ་ཞེས་སྨྲས་པ་དང་།"
       ],
       "en": "The captain approached him and said, “How can you sleep? Get up and call upon your God. Perhaps this God will consider us, so that we may not perish.”",
+      "cmn": "船主到他那里对他说：「你这沉睡的人哪，为何这样呢？起来，求告你的神，或者神顾念我们，使我们不致灭亡。」",
       "paragraphStart": false
     },
     {
@@ -299,6 +451,7 @@
         "གྲུ་པ་རེ་རེ་བཞིན་གཅིག་གིས་གཅིག་ལ་ཤོག་དང་། དོན་ངན་འདི་སུའི་རྐྱེན་གྱིས་བྱུང་བར་རྒྱན་འཕངས་ཏེ་བརྟག་པར་བྱ་ཟེར་ནས། དེ་ལྟར་བསྒྲུབས་པ་ན་ཡོ་ནཱ་ལ་བབས་པ་རེད།"
       ],
       "en": "“Come!” said the sailors to one another. “Let us cast lots to find out who is responsible for this calamity that is upon us.” So they cast lots, and the lot fell on Jonah.",
+      "cmn": "船上的人彼此说：「来吧，我们掣签，看看这灾临到我们是因谁的缘故。」于是他们掣签，掣出约拿来。",
       "paragraphStart": false
     },
     {
@@ -308,6 +461,7 @@
         "དེ་ནས་དེ་དག་གིས་ཡོ་ནཱ་ལ། དོན་ངན་འདི་རང་ཅག་ལ་བྱུང་བ་ནི་སུའི་རྐྱེན་ཡིན་པ་སྨྲ་བར་མཛོད། ཁྱོད་ཀྱི་བྱ་བ་ཅི་ཡིན། ས་ཆ་གང་ནས་ཡོང་། ཕ་ཡུལ་གང་གི་ཡིན། མི་རིགས་གང་ཡིན་ཞེས་དྲིས་པ་ན།"
       ],
       "en": "“Tell us now,” they demanded, “who is to blame for this calamity that is upon us? What is your occupation, and where have you come from? What is your country, and who are your people?”",
+      "cmn": "众人对他说：「请你告诉我们，这灾临到我们是因谁的缘故？你以何事为业？你从哪里来？你是哪一国？属哪一族的人？」",
       "paragraphStart": false
     },
     {
@@ -317,6 +471,7 @@
         "ཁོས་དེ་དག་ལ། ང་རང་ཨིབ་རི་པ་ཡིན་ཏེ། རྒྱ་མཚོ་དང་སྐམ་ས་མཛད་མཁན་གྱི་ནམ་མཁའི་དཀོན་མཆོག་ཡ་ཝཱེ་ལ་ང་རང་གུས་ཤིང་འཇིགས་པ་ཡིན་ཞེས་སྨྲས་སོ།།"
       ],
       "en": "“I am a Hebrew,” replied Jonah. “I worship the LORD, the God of the heavens, who made the sea and the dry land.”",
+      "cmn": "他说：「我是希伯来人。我敬畏耶和华—那创造沧海旱地之天上的神。」",
       "paragraphStart": false
     },
     {
@@ -326,6 +481,7 @@
         "དེ་ནས་གྲུ་པ་རྣམས་རབ་ཏུ་འཇིགས་ནས་ཡོ་ནཱ་ལ། ཁྱོད་ཀྱིས་བྱས་པའི་དོན་འདི་ཅི་ཞིག་ཡིན་ནམ་ཞེས་སྨྲས་སོ།། ཅིའི་ཕྱིར་ཞེ་ན། ཁོས་དེ་རྣམས་ལ་སྨྲས་པའི་རྐྱེན་གྱིས་དེ་དག་གིས་ཁོ་རང་དཀོན་མཆོག་ཡ་ཝཱེའི་དྲུང་ནས་བྲོས་ཡོང་བ་ཤེས་པས་སོ།།"
       ],
       "en": "Then the men were even more afraid and said to him, “What have you done?” The men knew that he was fleeing from the presence of the LORD, because he had told them.",
+      "cmn": "他们就大大惧怕，对他说：「你做的是什么事呢？」他们已经知道他躲避耶和华，因为他告诉了他们。",
       "paragraphStart": true
     },
     {
@@ -335,6 +491,7 @@
         "སྐབས་དེར་མཚོ་རླབས་ཆེ་རུ་འགྲོ་བཞིན་ཡོད་པ་དང་། དེ་རྣམས་ན་རེ། མཚོ་རླབས་ཞི་བའི་ཕྱིར་ཁྱོད་ལ་ཅི་ཞིག་བྱེད་དགོས་སམ་ཞེས་དྲིས་པ་ན།"
       ],
       "en": "Now the sea was growing worse and worse, so they said to Jonah, “What must we do to you to calm this sea for us?”",
+      "cmn": "他们问他说：「我们当向你怎样行，使海浪平静呢？」这话是因海浪越发翻腾。",
       "paragraphStart": false
     },
     {
@@ -344,6 +501,7 @@
         "ཁོས་དེ་རྣམས་ལ། ཁྱོད་རྣམས་ཀྱིས་ང་རང་ཁྱེར་ནས་མཚོའི་ནང་དུ་གཡུགས་ཤིག་དང་། མཚོ་ཞི་བར་འགྱུར་ལ་བདག་གི་རྐྱེན་གྱིས་དྲག་རླུང་འདི་ཁྱོད་ཅག་ལ་བབས་པའང་ངས་ཤེས་སོ་ཞེས་སྨྲས་ནའང་།"
       ],
       "en": "“Pick me up,” he answered, “and cast me into the sea, so it may quiet down for you. For I know that I am to blame for this violent storm that has come upon you.”",
+      "cmn": "他对他们说：「你们将我抬起来，抛在海中，海就平静了；我知道你们遭这大风是因我的缘故。」",
       "paragraphStart": false
     },
     {
@@ -353,6 +511,7 @@
         "མདུན་ཕྱོགས་སུ་མཚོ་རླབས་ཤིན་ཏུ་དྲག་པོ་འཕྱུར་བཞིན་ཡོད་པས། ཁོ་རྣམས་ཀྱིས་གྲུ་སྐྱ་ཇི་ལྟར་དཀྲུགས་ཀྱང་སྐམ་སར་སླེབས་མ་ནུས།"
       ],
       "en": "Nevertheless, the men rowed hard to get back to dry land, but they could not, for the sea was raging against them more and more.",
+      "cmn": "然而那些人竭力荡桨，要把船拢岸，却是不能，因为海浪越发向他们翻腾。",
       "paragraphStart": false
     },
     {
@@ -362,6 +521,7 @@
         "དེ་དག་གིས་དཀོན་མཆོག་ཡ་ཝཱེ་ལ་འདི་ལྟར་ཞུས་ཏེ། ཀྱེ་དཀོན་མཆོག་ཡ་ཝཱེ་ལགས། ངེད་ཅག་ནི་མི་འདིའི་སྲོག་གི་རྐྱེན་གྱིས་སྲོག་དང་འབྲལ་བར་མ་གྱུར་ཅིག ཉེས་མེད་ཀྱི་ཁྲག་བཞུར་བའི་སྡིག་པ་ངེད་ཅག་གི་མགོ་ལ་དབབ་ཏུ་མི་འཇུག་རོགས། དཀོན་མཆོག་ཡ་ཝཱེ་ལགས། ཁྱེད་ཉིད་ཇི་ལྟར་མཉེས་ན་དེ་ལྟར་མཛད་པ་ལགས་སོ་ཞེས་པའོ།།"
       ],
       "en": "So they cried out to the LORD: “Please, O LORD, do not let us perish on account of this man’s life! Do not charge us with innocent blood! For You, O LORD, have done as You pleased.”",
+      "cmn": "他们便求告耶和华说：「耶和华啊，我们恳求你，不要因这人的性命使我们死亡，不要使流无辜血的罪归与我们；因为你—耶和华是随自己的意旨行事。」",
       "paragraphStart": false
     },
     {
@@ -375,6 +535,7 @@
         "དེ་ནས་ཁོ་རྣམས་ཀྱིས་ཡོ་ནཱ་བཟུང་ནས་མཚོའི་ནང་དུ་འཕངས་པ་དང་། རྒྱ་མཚོའི་རྦ་རླབས་ཀྱང་འཕྱུར་མཚམས་བཞག་གོ།"
       ],
       "en": "Then they picked up Jonah and cast him into the sea, and the raging sea grew calm.",
+      "cmn": "他们遂将约拿抬起，抛在海中，海的狂浪就平息了。",
       "paragraphStart": false
     },
     {
@@ -384,6 +545,7 @@
         "ཁོ་རྣམས་དཀོན་མཆོག་ཡ་ཝཱེ་ལ་ཤིན་ཏུ་འཇིགས་ནས། ཁོང་ལ་མཆོད་པ་ཕུལ་ཞིང་དམ་བཅས་སོ།།"
       ],
       "en": "Then the men feared the LORD greatly, and they offered a sacrifice to the LORD and made vows to Him.",
+      "cmn": "那些人便大大敬畏耶和华，向耶和华献祭，并且许愿。",
       "paragraphStart": false
     },
     {
@@ -393,6 +555,7 @@
         "དེ་ནས་དཀོན་མཆོག་ཡ་ཝཱེས་ཉ་ཆེན་ཞིག་ལ་ཡོ་ནཱ་མིད་དུ་བཅུག་ཅིང་། ཡོ་ནཱ་ཉིན་ཞག་གསུམ་ལ་ཉ་ཆེན་གྱི་གྲོད་ཁོག་ནང་དུ་ལུས་སོ།།"
       ],
       "en": "Now the LORD had appointed a great fish to swallow Jonah, and Jonah spent three days and three nights in the belly of the fish.",
+      "cmn": "耶和华安排一条大鱼吞了约拿，他在鱼腹中三日三夜。",
       "paragraphStart": false
     }
   ]

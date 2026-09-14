@@ -25,6 +25,8 @@ const chapterData = await Promise.all(
       sectionTitleBo: c.data.sectionTitleBo,
       labelEn: c.data.labelEn,
       sectionTitleEn: c.data.sectionTitleEn,
+      labelCmn: c.data.labelCmn,
+      sectionTitleCmn: c.data.sectionTitleCmn,
       audio: c.data.audio,
       duration: c.data.duration,
       timing: c.data.timing,
@@ -129,34 +131,53 @@ const chapterData = await Promise.all(
 
 <script>
   import { getTextLang, getFont, getTextSize, getTextLayout, getDialect, setDialect, DIALECT_LABELS, getPlaybackSpeed, setPlaybackSpeed } from '../i18n/settings-store';
+  import type { TextLang, Dialect } from '../i18n/settings-store';
 
   interface ImageBlock { type: 'image'; src: string }
-  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; paragraphStart: boolean }
+  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; cmn: string; paragraphStart: boolean }
   type Block = ImageBlock | VerseBlock;
   type TimingTrack = { verse: number; time: number }[] | null;
+  type AudioMap<T> = { adx: T; bod: T; khg: T; eng: T; cmn: T };
   interface ChapterEntry {
     chapterNumber: number;
     labelBo: string;
     sectionTitleBo: string;
     labelEn: string;
     sectionTitleEn: string;
-    audio: { adx: string; bod: string; khg: string };
-    duration: { adx: string; bod: string; khg: string };
-    timing: { adx: TimingTrack; bod: TimingTrack; khg: TimingTrack };
+    labelCmn: string;
+    sectionTitleCmn: string;
+    audio: AudioMap<string>;
+    duration: AudioMap<string>;
+    timing: AudioMap<TimingTrack>;
     blocks: Block[];
   }
 
-  // Only the current reading language's script, not both — matches the
-  // header's dialect row (see Layout.astro's dialect-label-bo/-en toggle).
-  function dialectDisplay(dialect: 'adx' | 'bod' | 'khg', lang: 'bo' | 'en'): string {
+  // Only the current reading language's script, not both. For the two
+  // non-dialect audio tracks (eng/cmn) there's only ever an English label to
+  // fall back to when reading Chinese — DIALECT_LABELS has no cmn-script
+  // column, since translating five audio-option names into three scripts
+  // felt like real overreach for something this secondary; English reads
+  // fine as a fallback there.
+  function dialectDisplay(dialect: Dialect, lang: TextLang): string {
     const { en, bo } = DIALECT_LABELS[dialect];
     return lang === 'bo' ? `<span class="tibetan">${bo}</span>` : en;
   }
 
   // The LISTEN bar's own label, translated (provisional — flag for John to
-  // confirm the exact wording he'd want here).
-  function listenLabel(lang: 'bo' | 'en'): string {
-    return lang === 'bo' ? 'ཉན་པ' : 'LISTEN';
+  // confirm the exact wording he'd want here, cmn included).
+  function listenLabel(lang: TextLang): string {
+    if (lang === 'bo') return 'ཉན་པ';
+    if (lang === 'cmn') return '收听';
+    return 'LISTEN';
+  }
+
+  // Reading-language script class, used everywhere a block of text needs
+  // its font switched: 'tibetan'/'chinese' pull in the self-hosted webfonts
+  // (global.css), English needs no class (default sans stack).
+  function scriptClass(lang: TextLang): string {
+    if (lang === 'bo') return 'tibetan';
+    if (lang === 'cmn') return 'chinese';
+    return '';
   }
 
   const CHEVRON_LEFT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>`;
@@ -187,24 +208,24 @@ const chapterData = await Promise.all(
       Illustrations courtesy of Sweet Publishing (public domain).
     </p>`;
 
-  function verseInnerHtml(b: VerseBlock, lang: 'bo' | 'en'): string {
+  function verseInnerHtml(b: VerseBlock, lang: TextLang): string {
     if (lang === 'bo') {
       return b.bo.length > 1 ? b.bo.map((line) => `<div>${line}</div>`).join('') : b.bo[0];
     }
-    return b.en;
+    return lang === 'cmn' ? b.cmn : b.en;
   }
 
   // Verse-by-verse: each verse is its own block, full-size leading number.
-  function blocksToHtmlVerse(blocks: Block[], lang: 'bo' | 'en'): string {
+  function blocksToHtmlVerse(blocks: Block[], lang: TextLang): string {
     return blocks
       .map((b) => {
         if (b.type === 'image') {
           return `<img src="${b.src}" alt="" loading="lazy" style="width:100%;border-radius:10px;margin:1.25rem 0" />`;
         }
-        const tibetanClass = lang === 'bo' ? ' tibetan' : '';
-        const lineHeight = lang === 'bo' ? 2 : 1.75;
+        const cls = scriptClass(lang);
+        const lineHeight = lang === 'bo' ? 2 : lang === 'cmn' ? 1.9 : 1.75;
         return `
-          <div class="verse-block${tibetanClass}" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">
+          <div class="verse-block${cls ? ' ' + cls : ''}" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">
             <span class="verse-num" style="margin-right:.25rem">${b.number}</span>${verseInnerHtml(b, lang)}
           </div>`;
       })
@@ -218,16 +239,17 @@ const chapterData = await Promise.all(
   // space, not <br>) — same as the English, which never carried per-line
   // breaks to begin with. Verse-by-verse mode still shows each poetic line
   // on its own line (see verseInnerHtml); that distinction is only a
-  // paragraph-flow concern.
-  function blocksToHtmlParagraph(blocks: Block[], lang: 'bo' | 'en'): string {
-    const tibetanClass = lang === 'bo' ? ' tibetan' : '';
-    const lineHeight = lang === 'bo' ? 2 : 1.75;
+  // paragraph-flow concern. Chinese has no poetry line breaks in its source
+  // either, so it takes the same plain-string path as English.
+  function blocksToHtmlParagraph(blocks: Block[], lang: TextLang): string {
+    const cls = scriptClass(lang);
+    const lineHeight = lang === 'bo' ? 2 : lang === 'cmn' ? 1.9 : 1.75;
     let html = '';
     let para = '';
 
     const flush = () => {
       if (!para) return;
-      html += `<p class="verse-block${tibetanClass}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">${para}</p>`;
+      html += `<p class="verse-block${cls ? ' ' + cls : ''}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">${para}</p>`;
       para = '';
     };
 
@@ -238,14 +260,14 @@ const chapterData = await Promise.all(
         continue;
       }
       if (b.paragraphStart) flush();
-      const text = lang === 'bo' ? b.bo.join(' ') : b.en;
+      const text = lang === 'bo' ? b.bo.join(' ') : lang === 'cmn' ? b.cmn : b.en;
       para += `<span data-verse="${b.number}"><span class="verse-num">${b.number}</span> ${text}</span> `;
     }
     flush();
     return html;
   }
 
-  function blocksToHtml(blocks: Block[], lang: 'bo' | 'en', layout: 'verse' | 'paragraph'): string {
+  function blocksToHtml(blocks: Block[], lang: TextLang, layout: 'verse' | 'paragraph'): string {
     return layout === 'paragraph' ? blocksToHtmlParagraph(blocks, lang) : blocksToHtmlVerse(blocks, lang);
   }
 
@@ -293,13 +315,17 @@ const chapterData = await Promise.all(
 
       const labelEl = document.getElementById('modal-label');
       const titleEl = document.getElementById('modal-title');
+      const label = lang === 'bo' ? openChapterEntry.labelBo : lang === 'cmn' ? openChapterEntry.labelCmn : openChapterEntry.labelEn;
+      const sectionTitle = lang === 'bo' ? openChapterEntry.sectionTitleBo : lang === 'cmn' ? openChapterEntry.sectionTitleCmn : openChapterEntry.sectionTitleEn;
       if (labelEl) {
-        labelEl.textContent = lang === 'bo' ? openChapterEntry.labelBo : openChapterEntry.labelEn;
+        labelEl.textContent = label;
         labelEl.classList.toggle('tibetan', lang === 'bo');
+        labelEl.classList.toggle('chinese', lang === 'cmn');
       }
       if (titleEl) {
-        titleEl.textContent = lang === 'bo' ? openChapterEntry.sectionTitleBo : openChapterEntry.sectionTitleEn;
+        titleEl.textContent = sectionTitle;
         titleEl.classList.toggle('tibetan', lang === 'bo');
+        titleEl.classList.toggle('chinese', lang === 'cmn');
       }
 
       // Dialect label shows only the current reading language's script, so
@@ -312,6 +338,7 @@ const chapterData = await Promise.all(
       if (listenLabelEl) {
         listenLabelEl.textContent = listenLabel(lang);
         listenLabelEl.classList.toggle('tibetan', lang === 'bo');
+        listenLabelEl.classList.toggle('chinese', lang === 'cmn');
       }
 
       applyVerseHighlight(); // re-render wiped #modal-blocks, so the highlight needs reapplying
@@ -393,12 +420,12 @@ const chapterData = await Promise.all(
     // reads as active) — called after every (re)render of the popover's DOM
     // (chapter open) and whenever language or dialect changes, since neither
     // regenerates the popover markup itself.
-    function populateDialectPopover(lang: 'bo' | 'en') {
+    function populateDialectPopover(lang: TextLang) {
       const popover = document.getElementById('modal-dialect-popover');
       if (!popover) return;
       const current = getDialect();
       popover.querySelectorAll<HTMLButtonElement>('.modal-dialect-option').forEach((btn) => {
-        const d = btn.dataset.pickDialect as 'adx' | 'bod' | 'khg';
+        const d = btn.dataset.pickDialect as Dialect;
         btn.innerHTML = dialectDisplay(d, lang);
         const active = d === current;
         btn.style.background = active ? 'rgba(207,182,60,.25)' : 'none';
@@ -437,14 +464,14 @@ const chapterData = await Promise.all(
       const dialect = getDialect();
       const lang = getTextLang();
       const layout = getTextLayout();
-      const label = lang === 'bo' ? chapter.labelBo : chapter.labelEn;
-      const sectionTitle = lang === 'bo' ? chapter.sectionTitleBo : chapter.sectionTitleEn;
-      const tibetanClass = lang === 'bo' ? ' tibetan' : '';
+      const label = lang === 'bo' ? chapter.labelBo : lang === 'cmn' ? chapter.labelCmn : chapter.labelEn;
+      const sectionTitle = lang === 'bo' ? chapter.sectionTitleBo : lang === 'cmn' ? chapter.sectionTitleCmn : chapter.sectionTitleEn;
+      const scriptCls = scriptClass(lang);
 
       content.innerHTML = `
         <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
-          <p id="modal-label" class="${tibetanClass.trim()}" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem;padding-right:2.5rem">${label}</p>
-          <h2 id="modal-title" class="${tibetanClass.trim()}" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5;padding-right:2.5rem">${sectionTitle}</h2>
+          <p id="modal-label" class="${scriptCls}" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem;padding-right:2.5rem">${label}</p>
+          <h2 id="modal-title" class="${scriptCls}" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5;padding-right:2.5rem">${sectionTitle}</h2>
 
           <!-- READ -->
           <section>
@@ -469,7 +496,7 @@ const chapterData = await Promise.all(
                that used to live in the header's settings sheet, which now
                only holds text/reading settings). -->
           <div style="display:flex;justify-content:space-between;align-items:center;position:relative">
-            <span id="modal-listen-label" class="${lang === 'bo' ? 'tibetan' : ''}" style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">${listenLabel(lang)}</span>
+            <span id="modal-listen-label" class="${scriptCls}" style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">${listenLabel(lang)}</span>
             <div style="position:relative">
               <button id="modal-dialect-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Switch dialect"
                 style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:.2rem;font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">
@@ -484,6 +511,8 @@ const chapterData = await Promise.all(
                 <button type="button" data-pick-dialect="adx" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
                 <button type="button" data-pick-dialect="bod" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
                 <button type="button" data-pick-dialect="khg" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+                <button type="button" data-pick-dialect="eng" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+                <button type="button" data-pick-dialect="cmn" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
               </div>
             </div>
           </div>
@@ -590,7 +619,7 @@ const chapterData = await Promise.all(
       });
       popover.querySelectorAll<HTMLButtonElement>('.modal-dialect-option').forEach((optBtn) => {
         optBtn.addEventListener('click', () => {
-          setDialect(optBtn.dataset.pickDialect as 'adx' | 'bod' | 'khg');
+          setDialect(optBtn.dataset.pickDialect as Dialect);
           popover.classList.add('hidden');
           btn.setAttribute('aria-expanded', 'false');
         });

@@ -52,12 +52,15 @@ const audioStrategy = new CacheFirst({
 
 registerRoute(({ request }) => request.destination === 'audio', audioStrategy);
 
-// Pre-fetch all 12 dialect audio files into that same cache at install
-// time, through the same strategy object, so full offline audio is still
-// available immediately after install — same user-facing behavior as the
-// old full-precache approach, just routed through a cache that actually
-// supports Range.
-const AUDIO_URLS = ['adx', 'bod', 'khg'].flatMap((dialect) =>
+// Pre-fetch all 20 audio files (3 Tibetan dialects + English + Chinese, ×4
+// chapters) into that same cache at install time, through the same strategy
+// object, so full offline audio is still available immediately after
+// install — same user-facing behavior as the old full-precache approach,
+// just routed through a cache that actually supports Range. eng/cmn added
+// once Brett supplied BSB (English) and ElevenLabs-generated CUV (Chinese)
+// audio — still small enough in total (~20MB) not to need a separate
+// download step.
+const AUDIO_URLS = ['adx', 'bod', 'khg', 'eng', 'cmn'].flatMap((dialect) =>
   [1, 2, 3, 4].map((n) => `/audio/${dialect}/chapter-${n}.mp3`),
 );
 warmStrategyCache({ urls: AUDIO_URLS, strategy: audioStrategy });

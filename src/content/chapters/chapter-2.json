@@ -5,17 +5,23 @@
   "sectionTitleBo": "ཡོ་ནཱས་དཀོན་མཆོག་ཡ་ཝཱེ་ལ་དགོངས་དག་ཞུས་པ།",
   "labelEn": "Chapter 2",
   "sectionTitleEn": "Jonah's Prayer",
+  "labelCmn": "第二章",
+  "sectionTitleCmn": "约拿的祷告",
   "cover": "../../assets/chapters/covers/chapter-2.webp",
   "verseCount": 10,
   "audio": {
     "adx": "/audio/adx/chapter-2.mp3",
     "bod": "/audio/bod/chapter-2.mp3",
-    "khg": "/audio/khg/chapter-2.mp3"
+    "khg": "/audio/khg/chapter-2.mp3",
+    "eng": "/audio/eng/chapter-2.mp3",
+    "cmn": "/audio/cmn/chapter-2.mp3"
   },
   "duration": {
     "adx": "2:17",
     "bod": "1:33",
-    "khg": "1:31"
+    "khg": "1:31",
+    "eng": "1:12",
+    "cmn": "1:18"
   },
   "timing": {
     "adx": [
@@ -143,6 +149,90 @@
         "verse": 10,
         "time": 82.73
       }
+    ],
+    "eng": [
+      {
+        "verse": 1,
+        "time": 3.62
+      },
+      {
+        "verse": 2,
+        "time": 7.94
+      },
+      {
+        "verse": 3,
+        "time": 16.02
+      },
+      {
+        "verse": 4,
+        "time": 24.28
+      },
+      {
+        "verse": 5,
+        "time": 31.02
+      },
+      {
+        "verse": 6,
+        "time": 38.56
+      },
+      {
+        "verse": 7,
+        "time": 47.98
+      },
+      {
+        "verse": 8,
+        "time": 54.28
+      },
+      {
+        "verse": 9,
+        "time": 57.92
+      },
+      {
+        "verse": 10,
+        "time": 66.44
+      }
+    ],
+    "cmn": [
+      {
+        "verse": 1,
+        "time": 0.2
+      },
+      {
+        "verse": 2,
+        "time": 3.36
+      },
+      {
+        "verse": 3,
+        "time": 14.04
+      },
+      {
+        "verse": 4,
+        "time": 22.96
+      },
+      {
+        "verse": 5,
+        "time": 29.6
+      },
+      {
+        "verse": 6,
+        "time": 37.06
+      },
+      {
+        "verse": 7,
+        "time": 48.48
+      },
+      {
+        "verse": 8,
+        "time": 57.94
+      },
+      {
+        "verse": 9,
+        "time": 62.84
+      },
+      {
+        "verse": 10,
+        "time": 73.28
+      }
     ]
   },
   "blocks": [
@@ -153,6 +243,7 @@
         "དེ་ནས་ཡོ་ནཱ་ཡིས་ཉའི་ཁོག་པ་ནས་རང་གི་དཀོན་མཆོག་ཡ་ཝཱེ་ལ་འདི་ལྟར་གསོལ་བ་བཏབ་པ་སྟེ།"
       ],
       "en": "From inside the fish, Jonah prayed to the LORD his God,",
+      "cmn": "约拿在鱼腹中祷告耶和华—他的神，",
       "paragraphStart": true
     },
     {
@@ -165,6 +256,7 @@
         "ཁྱེད་ཀྱིས་ང་ཡི་སྐད་སྒྲ་གསན་པ་ལགས༎"
       ],
       "en": "saying: “In my distress I called to the LORD, and He answered me. From the belly of Sheol I called for help, and You heard my voice.",
+      "cmn": "说：我遭遇患难求告耶和华，你就应允我；从阴间的深处呼求，你就俯听我的声音。",
       "paragraphStart": false
     },
     {
@@ -178,6 +270,7 @@
         "ང་ཡི་སྟེང་དུ་བརྒྱུགས་ཤིང་ང་རང་བསྣུབས༎"
       ],
       "en": "For You cast me into the deep, into the heart of the seas, and the current swirled about me; all Your breakers and waves swept over me.",
+      "cmn": "你将我投下深渊，就是海的深处；大水环绕我，你的波浪洪涛都漫过我身。",
       "paragraphStart": false
     },
     {
@@ -190,6 +283,7 @@
         "ང་ཡིས་སླར་ཡང་བལྟ་དགོས་ཞེས་པ་འོ།།"
       ],
       "en": "At this, I said, ‘I have been banished from Your sight; yet I will look once more toward Your holy temple.’",
+      "cmn": "我说：我从你眼前虽被驱逐，我仍要仰望你的圣殿。",
       "paragraphStart": false
     },
     {
@@ -201,6 +295,7 @@
         "མཚོ་རྩྭ་ང་ཡི་མགོ་ལ་དཀྲིས་པར་གྱུར།།"
       ],
       "en": "The waters engulfed me to take my life; the watery depths closed around me; the seaweed wrapped around my head.",
+      "cmn": "诸水环绕我，几乎淹没我；深渊围住我；海草缠绕我的头。",
       "paragraphStart": false
     },
     {
@@ -215,6 +310,7 @@
         "ཁྱེད་ཀྱིས་ང་ཡི་སྲོག་ནི་དུར་ལས་དྲངས༎"
       ],
       "en": "To the roots of the mountains I descended; the earth beneath me barred me in forever! But You raised my life from the pit, O LORD my God!",
+      "cmn": "我下到山根，地的门将我永远关住。耶和华—我的神啊，你却将我的性命从坑中救出来。",
       "paragraphStart": false
     },
     {
@@ -231,6 +327,7 @@
         "ཉིད་ཀྱི་དྲུང་དུ་སླེབས་པར་གྱུར་པ་ཡིན།།"
       ],
       "en": "As my life was fading away, I remembered the LORD. My prayer went up to You, to Your holy temple.",
+      "cmn": "我心在我里面发昏的时候，我就想念耶和华。我的祷告进入你的圣殿，达到你的面前。",
       "paragraphStart": false
     },
     {
@@ -241,6 +338,7 @@
         "བསླུ་མེད་བྱམས་བརྩེ་འཐོབ་པའི་རེ་བ་སྤོང་༎"
       ],
       "en": "Those who cling to worthless idols forsake His loving devotion.",
+      "cmn": "那信奉虚无之神的人，离弃怜爱他们的主；",
       "paragraphStart": false
     },
     {
@@ -253,6 +351,7 @@
         "ཐར་པ་ཡ་ཝཱེ་ཉིད་ནས་འབྱུང་ལགས་སོ།། ཞེས་པའོ༎"
       ],
       "en": "But I, with the voice of thanksgiving, will sacrifice to You. I will fulfill what I have vowed. Salvation is from the LORD!”",
+      "cmn": "但我必用感谢的声音献祭与你。我所许的愿，我必偿还。救恩出于耶和华。",
       "paragraphStart": false
     },
     {
@@ -262,6 +361,7 @@
         "དེ་ནས་དཀོན་མཆོག་ཡ་ཝཱེས་ཉ་ལ་བཀའ་གནང་བ་དང་། ཉ་ཡིས་ཀྱང་ཡོ་ནཱ་ཕྱིར་སྐམ་སར་བསྐྱུགས་པ་ཡིན་ནོ།།"
       ],
       "en": "And the LORD commanded the fish, and it vomited Jonah onto dry land.",
+      "cmn": "耶和华吩咐鱼，鱼就把约拿吐在旱地上。",
       "paragraphStart": true
     }
   ]

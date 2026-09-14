@@ -22,6 +22,30 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Self-hosted Chinese font (Noto Sans SC), for the Chinese reading    */
+/* language added alongside Tibetan/English. Self-hosted rather than   */
+/* linked from Google Fonts deliberately — fonts.googleapis.com/       */
+/* fonts.gstatic.com are blocked by mainland China's firewall, which   */
+/* would break this exact feature for a meaningful share of the        */
+/* audience. Subsetted with fonttools to only the ~520 characters      */
+/* (hanzi + punctuation + ASCII) actually used in Jonah's CUV text —    */
+/* full Noto Sans SC is 15-20MB; these subsets are under 90KB each.    */
+/* Re-subset (scripts/gen-chapters.mjs's source USFM is the character  */
+/* inventory) if the Chinese source text ever changes materially.     */
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("/fonts/NotoSansSC-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("/fonts/NotoSansSC-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* ------------------------------------------------------------------ */
 /* Design tokens — Tailwind v4 @theme.                                 */
 /* Each token is also exposed as a CSS var, e.g. var(--color-gold).    */
 /* ------------------------------------------------------------------ */
@@ -41,6 +65,9 @@
 
   /* Tibetan reading faces */
   --font-tibetan: "Monlam Uni OuChan2", "Monlam Uni ChoukMatik", "Monlam Uni Dutsa2", sans-serif;
+
+  /* Chinese reading face — one font, no alternates (unlike Tibetan's three) */
+  --font-chinese: "Noto Sans SC", sans-serif;
 
   /* Rounding */
   --radius-card: 0.625rem;      /* 10px — cards sit in the 8–12px band */
@@ -72,6 +99,10 @@
 
   .tibetan {
     font-family: var(--font-tibetan-active, var(--font-tibetan));
+  }
+
+  .chinese {
+    font-family: var(--font-chinese);
   }
 }
 

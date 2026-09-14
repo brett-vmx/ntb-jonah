@@ -14,6 +14,10 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.dirname(fileURLToPath(import.meta.url)) + '/..';
 const SFM_PATH = path.join(ROOT, 'source-assets/32JONNTB.SFM');
 const RTF_PATH = path.join(ROOT, 'source-assets/Jonah_BSB.rtf');
+// Chinese Union Version (1989, Simplified) — Brett's second reading-language
+// addition alongside English. Same USFM-style \c/\v/\p markers as the
+// Tibetan SFM, plus \pn...\pn* proper-name tags to strip.
+const CMN_USFM_PATH = path.join(ROOT, 'source-assets/33-JONcmn-cu89s.usfm');
 const TIMING_DIR = path.join(ROOT, 'source-assets/timing');
 const OUT_DIR = path.join(ROOT, 'src/content/chapters');
 
@@ -59,13 +63,22 @@ const ENGLISH_TITLES = {
   4: { label: 'Chapter 4', section: "Jonah's Anger at the LORD's Compassion" },
 };
 
+// Chinese chapter label — the CUV source has no \cl-equivalent "Chapter N"
+// line (unlike the Tibetan SFM), so this is a small editorial addition, same
+// spirit as ENGLISH_TITLES's label. sectionTitleCmn comes straight from the
+// CUV source's own \s1 lines instead (see parseCmnUsfm) — no translation
+// needed there.
+const CHINESE_LABELS = { 1: '第一章', 2: '第二章', 3: '第三章', 4: '第四章' };
+
 // Dialect audio durations in seconds, read with ffprobe from the source MP3s
 // (adx/bod/khg = Amdo/Central-Lhasa/Kham per John's note: bod=Central, adx=Amdo, khg=Kham).
+// eng/cmn added when Brett supplied BSB (English) and ElevenLabs-generated
+// CUV (Chinese) audio — see "Chinese and English integration" in CLAUDE.md.
 const DURATIONS = {
-  1: { adx: 271.4, bod: 177.9, khg: 182.7 },
-  2: { adx: 136.7, bod: 92.6, khg: 90.5 },
-  3: { adx: 148.4, bod: 98.8, khg: 99.6 },
-  4: { adx: 168.9, bod: 115.4, khg: 112.7 },
+  1: { adx: 271.4, bod: 177.9, khg: 182.7, eng: 154.5, cmn: 164.8 },
+  2: { adx: 136.7, bod: 92.6, khg: 90.5, eng: 72.0, cmn: 77.8 },
+  3: { adx: 148.4, bod: 98.8, khg: 99.6, eng: 85.6, cmn: 82.2 },
+  4: { adx: 168.9, bod: 115.4, khg: 112.7, eng: 99.7, cmn: 110.2 },
 };
 
 function fmtDuration(secs) {
@@ -168,6 +181,73 @@ function parseBsb(raw) {
 }
 
 // ---------------------------------------------------------------------------
+// 2b. Parse the Chinese CUV USFM (Brett's second reading-language addition).
+//    Same \c/\v/\p/\s1 marker shape as the Tibetan SFM, plus inline
+//    \pn...\pn* proper-name tags (stripped, keeping the name text). No
+//    poetry line breaks (\q1) in this source, so cmn is a plain string per
+//    verse — unlike bo's array-of-lines.
+// ---------------------------------------------------------------------------
+
+function parseCmnUsfm(raw) {
+  const chapters = {}; // { [n]: { section, verses: { [v]: string } } }
+  let chapterNum = null;
+  let verseNum = null;
+  let buf = [];
+
+  const flush = () => {
+    if (chapterNum !== null && verseNum !== null && buf.length) {
+      chapters[chapterNum].verses[verseNum] = buf.join('').trim();
+    }
+    buf = [];
+  };
+
+  for (const rawLine of raw.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    let m = line.match(/^\\c\s+(\d+)/);
+    if (m) {
+      flush();
+      chapterNum = parseInt(m[1], 10);
+      chapters[chapterNum] = { section: '', verses: {} };
+      verseNum = null;
+      continue;
+    }
+    if (chapterNum === null) continue; // skip \id/\h/\toc/\mt front matter
+
+    m = line.match(/^\\s1\s+(.*)$/);
+    if (m) {
+      chapters[chapterNum].section = m[1].trim();
+      continue;
+    }
+    m = line.match(/^\\v\s+(\d+)\s*(.*)$/);
+    if (m) {
+      flush();
+      verseNum = parseInt(m[1], 10);
+      buf = [m[2]];
+      continue;
+    }
+    if (line.startsWith('\\p') || line.startsWith('\\m')) continue;
+    if (verseNum !== null) buf.push(line);
+  }
+  flush();
+
+  // Strip \pn/\pn* proper-name markers (keep the name text) and any other
+  // stray backslash markers, then collapse whitespace (meaningless in
+  // Chinese, unlike English/Tibetan word-spacing).
+  for (const c of Object.values(chapters)) {
+    for (const v of Object.keys(c.verses)) {
+      c.verses[v] = c.verses[v]
+        .replace(/\\pn\*/g, '')
+        .replace(/\\pn/g, '')
+        .replace(/\\[a-zA-Z0-9]+\*?/g, '')
+        .replace(/\s+/g, '');
+    }
+  }
+  return chapters;
+}
+
+// ---------------------------------------------------------------------------
 // 3. Parse per-dialect verse-timing files (word/verse-aligned export from
 //    John's forced-aligner). Each line is "start\tend\t[verseNumber]" —
 //    start === end (a single timestamp, not a range), and the verse number
@@ -219,7 +299,7 @@ function parseTiming(dialect, n) {
 // 4. Merge into per-chapter block lists and write JSON
 // ---------------------------------------------------------------------------
 
-function buildChapter(n, sfmChapter, bsbChapter) {
+function buildChapter(n, sfmChapter, bsbChapter, cmnChapter) {
   const verseNums = Object.keys(sfmChapter.verses)
     .map(Number)
     .sort((a, b) => a - b);
@@ -234,6 +314,7 @@ function buildChapter(n, sfmChapter, bsbChapter) {
       number: v,
       bo: sfmChapter.verses[v],
       en: bsbChapter?.[v] ?? '',
+      cmn: cmnChapter?.verses[v] ?? '',
       // True at each SFM \p/\m marker — i.e. this verse starts a new paragraph.
       // Used by the paragraph-layout reading mode; verse-by-verse mode ignores it.
       paragraphStart: sfmChapter.paragraphStarts.has(v),
@@ -250,22 +331,30 @@ function buildChapter(n, sfmChapter, bsbChapter) {
     sectionTitleBo: sfmChapter.section,
     labelEn: ENGLISH_TITLES[n].label,
     sectionTitleEn: ENGLISH_TITLES[n].section,
+    labelCmn: CHINESE_LABELS[n],
+    sectionTitleCmn: cmnChapter?.section ?? '',
     cover: COVER_IMAGES[n],
     verseCount: verseNums.length,
     audio: {
       adx: `/audio/adx/chapter-${n}.mp3`,
       bod: `/audio/bod/chapter-${n}.mp3`,
       khg: `/audio/khg/chapter-${n}.mp3`,
+      eng: `/audio/eng/chapter-${n}.mp3`,
+      cmn: `/audio/cmn/chapter-${n}.mp3`,
     },
     duration: {
       adx: fmtDuration(DURATIONS[n].adx),
       bod: fmtDuration(DURATIONS[n].bod),
       khg: fmtDuration(DURATIONS[n].khg),
+      eng: fmtDuration(DURATIONS[n].eng),
+      cmn: fmtDuration(DURATIONS[n].cmn),
     },
     timing: {
       adx: parseTiming('adx', n),
       bod: parseTiming('bod', n),
       khg: parseTiming('khg', n),
+      eng: parseTiming('eng', n),
+      cmn: parseTiming('cmn', n),
     },
     blocks,
   };
@@ -274,14 +363,16 @@ function buildChapter(n, sfmChapter, bsbChapter) {
 function main() {
   const sfmRaw = fs.readFileSync(SFM_PATH, 'utf8');
   const rtfRaw = fs.readFileSync(RTF_PATH, 'latin1');
+  const cmnRaw = fs.readFileSync(CMN_USFM_PATH, 'utf8');
 
   const sfmChapters = parseSfm(sfmRaw);
   const bsbChapters = parseBsb(rtfRaw);
+  const cmnChapters = parseCmnUsfm(cmnRaw);
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   for (const n of Object.keys(sfmChapters).map(Number).sort((a, b) => a - b)) {
-    const chapter = buildChapter(n, sfmChapters[n], bsbChapters[n]);
+    const chapter = buildChapter(n, sfmChapters[n], bsbChapters[n], cmnChapters[n]);
     const outPath = path.join(OUT_DIR, `chapter-${n}.json`);
     fs.writeFileSync(outPath, JSON.stringify(chapter, null, 2) + '\n');
     const timingDialects = Object.entries(chapter.timing)

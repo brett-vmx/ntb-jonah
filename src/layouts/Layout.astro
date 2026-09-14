@@ -4,7 +4,8 @@ import { ViewTransitions } from 'astro:transitions';
 import logoWordmark from '../assets/branding/ntb-navbar-wordmark-gold.png';
 import aboutCover from '../assets/branding/jonah-cover-about.png';
 import { Image } from 'astro:assets';
-import { Share2, Info, Type } from '@lucide/astro';
+import { Share2, Info, Settings } from '@lucide/astro';
+import { DIALECT_LABELS } from '../i18n/settings-store';
 
 interface Props {
   title?: string;
@@ -95,15 +96,15 @@ const {
         >{title === 'Jonah' ? 'ཡོ་ནཱ།' : title}</span>
 
         <div class="flex items-center gap-2 shrink-0">
-          <!-- Reading settings (language, font, size, layout — audio dialect
-               moved to the LISTEN bar's own popover, see index.astro). This
-               is the `Type` icon (thin "Aa"-style glyph) John liked from
-               the earlier two-icon (Type + Headphones) header — brought
-               back once the sheet became text-only again, replacing a
-               plain bold "T" tried first. -->
+          <!-- Reading + audio settings. Back to a `Settings` gear (was
+               briefly the `Type` icon while this sheet was text-only) —
+               adding Chinese/English brought the Tibetan-dialect picker
+               back into this sheet (conditionally, see below), so it's
+               reading AND audio settings again, same as the gear's
+               original job. -->
           <div class="relative w-8 shrink-0">
-            <button id="settings-btn" type="button" aria-label="Reading settings" class="flex items-center justify-center text-ink">
-              <Type size={22} />
+            <button id="settings-btn" type="button" aria-label="Reading and audio settings" class="flex items-center justify-center text-ink">
+              <Settings size={22} />
             </button>
           </div>
 
@@ -155,6 +156,22 @@ const {
           <div class="flex gap-3 mb-5">
             <button type="button" data-pick-textlang="bo" class="textlang-btn tibetan flex-1 rounded-xl py-3 text-base font-semibold">བོད་ཡིག</button>
             <button type="button" data-pick-textlang="en" class="textlang-btn flex-1 rounded-xl py-3 text-base font-semibold">English</button>
+            <button type="button" data-pick-textlang="cmn" class="textlang-btn chinese flex-1 rounded-xl py-3 text-base font-semibold">中文</button>
+          </div>
+
+          <!-- Audio dialect — only when reading Tibetan (Brett: "if Tibetan
+               is selected have the dialect picker right below it"). English/
+               Chinese readers pick their audio track from the LISTEN bar's
+               own 5-option popover instead (index.astro) — this row is
+               specifically for narrowing among the 3 Tibetan dialects, not
+               a general audio-track picker. -->
+          <div id="dialect-row-wrap">
+            <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Dialect</p>
+            <div class="flex gap-3 mb-5">
+              <button type="button" data-pick-dialect="adx" class="dialect-btn tibetan flex-1 rounded-xl py-3 text-base font-semibold">{DIALECT_LABELS.adx.bo}</button>
+              <button type="button" data-pick-dialect="bod" class="dialect-btn tibetan flex-1 rounded-xl py-3 text-base font-semibold">{DIALECT_LABELS.bod.bo}</button>
+              <button type="button" data-pick-dialect="khg" class="dialect-btn tibetan flex-1 rounded-xl py-3 text-base font-semibold">{DIALECT_LABELS.khg.bo}</button>
+            </div>
           </div>
 
           <div id="font-row-wrap">
@@ -218,8 +235,10 @@ const {
         getFont, setFont,
         getTextSize, setTextSize,
         getTextLayout, setTextLayout,
+        getDialect, setDialect,
         applyTextSettings,
       } from '../i18n/settings-store';
+      import type { Dialect } from '../i18n/settings-store';
 
       // Re-initializes on every ViewTransitions swap (astro:page-load fires on
       // first load too, not just subsequent navigations). Without this guard,
@@ -250,8 +269,14 @@ const {
         function updateHeaderTitle() {
           if (headerTitleEl?.dataset.reactiveTitle !== 'true') return;
           const lang = getTextLang();
-          headerTitleEl.textContent = lang === 'bo' ? 'ཡོ་ནཱ།' : 'Jonah';
+          headerTitleEl.textContent = lang === 'bo' ? 'ཡོ་ནཱ།' : lang === 'cmn' ? '约拿' : 'Jonah';
           headerTitleEl.classList.toggle('tibetan', lang === 'bo');
+          headerTitleEl.classList.toggle('chinese', lang === 'cmn');
+          // Logo: image only in Tibetan mode, plain "New Tibetan Bible" text
+          // otherwise (English or Chinese) — no Chinese wordmark asset or
+          // confirmed Chinese org-name translation exists yet, so Chinese
+          // mode falls back to the same English text logo as English mode
+          // rather than guessing at brand wording.
           headerLogoImg?.classList.toggle('hidden', lang !== 'bo');
           headerLogoText?.classList.toggle('hidden', lang === 'bo');
         }
@@ -322,13 +347,16 @@ const {
         const settingsSheetPanel = document.getElementById('settings-sheet-panel');
         const settingsBtn = document.getElementById('settings-btn');
         const fontRowWrap = document.getElementById('font-row-wrap');
+        const dialectRowWrap = document.getElementById('dialect-row-wrap');
         const textLangBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-textlang]'));
+        const dialectBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-dialect]'));
         const fontBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-font]'));
         const sizeBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-size]'));
         const layoutBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-layout]'));
 
         function refreshSettingsSheet() {
           const lang = getTextLang();
+          const dialect = getDialect();
           const font = getFont();
           const size = getTextSize();
           const layout = getTextLayout();
@@ -338,7 +366,15 @@ const {
             b.classList.toggle('bg-gold', active);
             b.classList.toggle('bg-page', !active);
           });
+          // Dialect row (adx/bod/khg only) and the Tibetan-font row are both
+          // Tibetan-only concerns — same visibility gate.
+          if (dialectRowWrap) dialectRowWrap.style.display = lang === 'bo' ? '' : 'none';
           if (fontRowWrap) fontRowWrap.style.display = lang === 'bo' ? '' : 'none';
+          dialectBtns.forEach((b) => {
+            const active = b.dataset.pickDialect === dialect;
+            b.classList.toggle('bg-gold', active);
+            b.classList.toggle('bg-page', !active);
+          });
           fontBtns.forEach((b) => {
             const active = b.dataset.pickFont === font;
             b.classList.toggle('bg-gold', active);
@@ -370,7 +406,11 @@ const {
         }, { signal });
 
         textLangBtns.forEach((b) => b.addEventListener('click', () => {
-          setTextLang(b.dataset.pickTextlang as 'bo' | 'en');
+          setTextLang(b.dataset.pickTextlang as 'bo' | 'en' | 'cmn');
+          refreshSettingsSheet();
+        }, { signal }));
+        dialectBtns.forEach((b) => b.addEventListener('click', () => {
+          setDialect(b.dataset.pickDialect as Dialect);
           refreshSettingsSheet();
         }, { signal }));
         fontBtns.forEach((b) => b.addEventListener('click', () => {

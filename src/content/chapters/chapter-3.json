@@ -5,17 +5,23 @@
   "sectionTitleBo": "ཡོ་ནཱ་ཁོ་རང་ནིན་ཝེ་གྲོང་ཁྱེར་དུ་ཕྱིན་པ།",
   "labelEn": "Chapter 3",
   "sectionTitleEn": "Jonah Goes to Nineveh",
+  "labelCmn": "第三章",
+  "sectionTitleCmn": "约拿顺服耶和华",
   "cover": "../../assets/chapters/covers/chapter-3.webp",
   "verseCount": 10,
   "audio": {
     "adx": "/audio/adx/chapter-3.mp3",
     "bod": "/audio/bod/chapter-3.mp3",
-    "khg": "/audio/khg/chapter-3.mp3"
+    "khg": "/audio/khg/chapter-3.mp3",
+    "eng": "/audio/eng/chapter-3.mp3",
+    "cmn": "/audio/cmn/chapter-3.mp3"
   },
   "duration": {
     "adx": "2:28",
     "bod": "1:39",
-    "khg": "1:40"
+    "khg": "1:40",
+    "eng": "1:26",
+    "cmn": "1:22"
   },
   "timing": {
     "adx": [
@@ -143,6 +149,90 @@
         "verse": 10,
         "time": 88.588
       }
+    ],
+    "eng": [
+      {
+        "verse": 1,
+        "time": 3.34
+      },
+      {
+        "verse": 2,
+        "time": 7.52
+      },
+      {
+        "verse": 3,
+        "time": 13.02
+      },
+      {
+        "verse": 4,
+        "time": 22.8
+      },
+      {
+        "verse": 5,
+        "time": 30.5
+      },
+      {
+        "verse": 6,
+        "time": 37.5
+      },
+      {
+        "verse": 7,
+        "time": 46.62
+      },
+      {
+        "verse": 8,
+        "time": 58.3
+      },
+      {
+        "verse": 9,
+        "time": 69.28
+      },
+      {
+        "verse": 10,
+        "time": 76.24
+      }
+    ],
+    "cmn": [
+      {
+        "verse": 1,
+        "time": 0
+      },
+      {
+        "verse": 2,
+        "time": 3.78
+      },
+      {
+        "verse": 3,
+        "time": 12.32
+      },
+      {
+        "verse": 4,
+        "time": 19.34
+      },
+      {
+        "verse": 5,
+        "time": 28.7
+      },
+      {
+        "verse": 6,
+        "time": 42.46
+      },
+      {
+        "verse": 7,
+        "time": 44.98
+      },
+      {
+        "verse": 8,
+        "time": 55.88
+      },
+      {
+        "verse": 9,
+        "time": 67.52
+      },
+      {
+        "verse": 10,
+        "time": 74.36
+      }
     ]
   },
   "blocks": [
@@ -153,6 +243,7 @@
         "དེ་ནས་དཀོན་མཆོག་ཡ་ཝཱེའི་བཀའ་ནི་སླར་ཡང་ཡོ་ནཱ་ལ་བྱུང་ནས་འདི་སྐད་དུ།"
       ],
       "en": "Then the word of the LORD came to Jonah a second time:",
+      "cmn": "耶和华的话二次临到约拿说：",
       "paragraphStart": true
     },
     {
@@ -162,6 +253,7 @@
         "ཡར་ལོངས་ལ་གྲོང་ཁྱེར་ཆེན་པོ་ནིན་ཝེ་རུ་སོང་ནས། ངས་ཁྱོད་ལ་བསྒོས་པའི་ཐ་ཚིག་སྒྲོགས་ཤིག་ཅེས་གསུངས་པས།"
       ],
       "en": "“Get up! Go to the great city of Nineveh and proclaim to it the message that I give you.”",
+      "cmn": "「你起来！往尼尼微大城去，向其中的居民宣告我所吩咐你的话。」",
       "paragraphStart": false
     },
     {
@@ -171,6 +263,7 @@
         "ཡོ་ནཱ་ཡར་ལངས་ནས་དཀོན་མཆོག་ཡ་ཝཱེའི་བཀའ་བཞིན་དུ་ནིན་ཝེ་རུ་ཕྱིན་པ་རེད། གྲོང་ཁྱེར་དེ་ནི་དཀོན་མཆོག་གི་ཐུགས་སུ་གལ་ཆེན་ཞིག་ཡིན་ཞིང་། ཉིན་གསུམ་གྱི་ལམ་ཐག་ཡོད་དོ།།"
       ],
       "en": "This time Jonah got up and went to Nineveh, in accordance with the word of the LORD. Now Nineveh was an exceedingly great city, requiring a three-day journey.",
+      "cmn": "约拿便照耶和华的话起来，往尼尼微去。这尼尼微是极大的城，有三日的路程。",
       "paragraphStart": false
     },
     {
@@ -180,6 +273,7 @@
         "དེ་ནས་ཁོ་རང་གྲོང་ཁྱེར་དེའི་ནང་དུ་སོང་པ་དང་། ཉིན་གཅིག་གི་རིང་ལ་སོང་ནས་སྐད་གསང་མཐོན་པོས་བཀའ་གྱེར་བ་སྟེ། ཉིན་བཞི་བཅུའི་རྗེས་སུ་ནིན་ཝེ་རྩ་མེད་མཛད་ངེས་ཡིན་ཞེས་བསྒྲགས་སོ།།"
       ],
       "en": "On the first day of his journey, Jonah set out into the city and proclaimed, “Forty more days and Nineveh will be overturned!”",
+      "cmn": "约拿进城走了一日，宣告说：「再等四十日，尼尼微必倾覆了！」",
       "paragraphStart": false
     },
     {
@@ -189,6 +283,7 @@
         "དེ་ནས་ནིན་ཝེ་པ་རྣམས་དཀོན་མཆོག་ལ་དད་པར་གྱུར་པ་དང་། སྨྱུང་གནས་བསྲུང་རྒྱུའི་དོན་ཕྱོགས་ཀུན་ལ་བསྒྲགས་ཤིང་། གོང་འོག་ཚང་མས་རྩིད་རས་ཀྱི་གོས་གྱོན་ནོ།།"
       ],
       "en": "And the Ninevites believed God. They proclaimed a fast and dressed in sackcloth, from the greatest of them to the least.",
+      "cmn": "尼尼微人信服神，便宣告禁食，从最大的到至小的都穿麻衣-3:5或译：披上麻布。",
       "paragraphStart": true
     },
     {
@@ -198,6 +293,7 @@
         "ཡང་ནིན་ཝེའི་རྒྱལ་པོས་འཕྲིན་འདི་ཐོས་པས། ཁྲི་ལས་བབས། ན་བཟའ་ཕུད། རྩིད་རས་ཀྱི་གོས་གྱོན་པ་དང་ཐལ་བའི་ནང་དུ་བསྡད་དེ།"
       ],
       "en": "When word reached the king of Nineveh, he got up from his throne, took off his royal robe, covered himself with sackcloth, and sat in ashes.",
+      "cmn": "这信息传到尼尼微王的耳中，他就下了宝座，脱下朝服，披上麻布，坐在灰中。",
       "paragraphStart": false
     },
     {
@@ -207,6 +303,7 @@
         "ཆབ་ཤོག་བཏང་ནས་ནིན་ཝེའི་ས་ཕྱོགས་ཡོངས་སུ་འདི་ལྟར་དུ། རྒྱལ་པོ་དང་བློན་པོ་རྣམས་ཀྱིས་གྲོས་ཐག་བཅད་པ་བཞིན་འདི་ལྟར་སྨྲས་པ་སྟེ། མིའམ། སྒོ་ཕྱུགས་སམ། བ་ཁྱུའམ། ར་ལུག་གི་ཁྱུ་གང་གིས་ཁ་ལ་ཅི་ཡང་མྱང་དུ་མ་འཇུག དེ་རྣམས་ལ་ཅི་ཡང་སྤྱོད་དུ་མ་འཇུག ཆུ་ཡང་འཐུང་དུ་མ་འཇུག"
       ],
       "en": "Then he issued a proclamation in Nineveh: “By the decree of the king and his nobles: Let no man or beast, herd or flock, taste anything at all. They must not eat or drink.",
+      "cmn": "他又使人遍告尼尼微通城，说：「王和大臣有令，人不可尝什么，牲畜、牛羊不可吃草，也不可喝水。",
       "paragraphStart": false
     },
     {
@@ -220,6 +317,7 @@
         "དེར་མ་ཟད་མི་དང་སྒོ་ཕྱུགས་གཉིས་ཀ་རྩིད་རས་ཀྱི་གོས་ཀྱིས་བཀླུབས་པ་དང་། དཀོན་མཆོག་ལ་ནན་གྱིས་ཞུ་བ་ཕུལ་ཏེ། རང་རང་གི་སྤྱོད་ལམ་ངན་པ་དང་། རང་རང་གི་ལག་པའི་གདུག་རྩུབ་སྤོངས་ཤིག"
       ],
       "en": "Furthermore, let both man and beast be covered with sackcloth, and have everyone call out earnestly to God. Let each one turn from his evil ways and from the violence in his hands.",
+      "cmn": "人与牲畜都当披上麻布；人要切切求告神。各人回头离开所行的恶道，丢弃手中的强暴。",
       "paragraphStart": false
     },
     {
@@ -229,6 +327,7 @@
         "སུ་ཞིག་གིས་ཤེས་སམ། དཀོན་མཆོག་གིས་བློ་ཁ་བསྒྱུར་ནས་ཐུགས་ཁྲོ་ཚ་པོ་ཞི་བར་མཛད་ཅིང་། རང་ཅག་རྣམས་སྲོག་ཐར་དུ་གཏོང་ཡང་སྲིད་ཅེས་བསྒྲགས་གཏམ་སྤེལ་ཏོ།།"
       ],
       "en": "Who knows? God may turn and relent; He may turn from His fierce anger, so that we will not perish.”",
+      "cmn": "或者神转意后悔，不发烈怒，使我们不致灭亡，也未可知。」",
       "paragraphStart": false
     },
     {
@@ -238,6 +337,7 @@
         "དེ་ནས་ཁོ་རྣམས་ཀྱིས་སྤྱོད་ལམ་ངན་པ་སྤངས་པ་དཀོན་མཆོག་གིས་གཟིགས་ཤིང་། ཁོང་གིས་བློ་ཁ་བསྒྱུར་ནས་སྔོན་ལ་གསུངས་པའི་ཆག་སྒོ་ཁོ་རྣམས་ལ་མཛད་ངེས་པ་དེ་ཅི་ཡང་མ་མཛད་དོ།།"
       ],
       "en": "When God saw their actions—that they had turned from their evil ways—He relented from the disaster He had threatened to bring upon them.",
+      "cmn": "于是神察看他们的行为，见他们离开恶道，他就后悔，不把所说的灾祸降与他们了。",
       "paragraphStart": true
     }
   ]
