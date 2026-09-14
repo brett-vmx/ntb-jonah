@@ -12,10 +12,18 @@
 // Text lang / font / text size / layout only affect the READ section of an
 // open chapter modal (dispatched as 'jonah:text-settings-changed'). Dialect
 // only affects the LISTEN tile's audio source (dispatched as
-// 'jonah:dialect-changed'). Kept separate so changing one never disturbs
-// in-progress audio playback — and independent on purpose: reading Chinese
-// while listening to the Amdo dialect is a valid combination, not something
-// the app forces to match.
+// 'jonah:dialect-changed'). Kept as separate settings/events so changing one
+// never disturbs in-progress audio playback.
+//
+// One-directional coupling (Brett's request): picking English or Chinese as
+// the reading language also switches the audio track to match — most
+// readers who switch to English text want English audio, not to keep
+// whatever Tibetan dialect happened to be selected. See setTextLang()'s
+// "keep the audio track aligned" block. This does NOT run in reverse —
+// manually picking a dialect from the LISTEN-bar's 5-option popover never
+// changes the reading language, so "read English, listen to Amdo" is still
+// a reachable combination if someone deliberately picks it that way
+// afterward; the coupling only fires on the text-language change itself.
 //
 // "Dialect" now spans two different kinds of thing sharing one setting: the
 // three Tibetan *dialects* of the one Tibetan text (adx/bod/khg) and two
@@ -44,6 +52,7 @@ const FONTS: readonly TibetanFont[] = ['ouchan2', 'choukmatik', 'dutsa2'];
 const SIZES: readonly TextSize[] = ['sm', 'md', 'lg', 'xl'];
 const LAYOUTS: readonly TextLayout[] = ['verse', 'paragraph'];
 const DIALECTS: readonly Dialect[] = ['adx', 'bod', 'khg', 'eng', 'cmn'];
+const TIBETAN_DIALECTS: readonly Dialect[] = ['adx', 'bod', 'khg'];
 
 // John's latest font request, in order: Monlam Uni OuChan2 (block/u-chen,
 // default), ChoukMatik and Dutsa2 (both u-med/"headless" cursive styles,
@@ -92,6 +101,17 @@ export const getDialect = (): Dialect => readEnum(DIALECT_KEY, DIALECTS, 'bod');
 export function setTextLang(v: TextLang): void {
   localStorage.setItem(TEXT_LANG_KEY, v);
   window.dispatchEvent(new CustomEvent('jonah:text-settings-changed'));
+
+  // Keep the audio track aligned with the chosen reading language. English/
+  // Chinese map 1:1 to their own audio track. Tibetan only forces a change
+  // when the current dialect isn't already one of the three Tibetan ones
+  // (arriving from English/Chinese) — it never overrides a deliberate
+  // Amdo/Central/Kham choice by snapping to a fixed default. setDialect()
+  // fires its own 'jonah:dialect-changed' event, so the open chapter's
+  // audio (if any) updates the same way a manual dialect pick would.
+  if (v === 'en' && getDialect() !== 'eng') setDialect('eng');
+  else if (v === 'cmn' && getDialect() !== 'cmn') setDialect('cmn');
+  else if (v === 'bo' && !TIBETAN_DIALECTS.includes(getDialect())) setDialect('bod');
 }
 export function setFont(v: TibetanFont): void {
   localStorage.setItem(FONT_KEY, v);
