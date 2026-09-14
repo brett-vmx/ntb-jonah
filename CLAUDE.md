@@ -533,17 +533,25 @@ different reason: `fonts.googleapis.com`/`fonts.gstatic.com` are blocked by
 mainland China's Great Firewall, which would break Chinese rendering for a
 meaningful share of this app's actual audience — self-hosting isn't
 optional polish here. Only one weight pair, no alternates (unlike Tibetan's
-three fonts) — Chinese didn't get a font-choice row in settings. Subsetted
-with `fonttools` down to the ~520 characters (hanzi + CJK punctuation +
-ASCII) actually used in the CUV source text — full Noto Sans SC is
-15-20MB; these subsets are under 90KB each. The subsetting pipeline (fetch
-the variable font from the google/fonts GitHub repo, instantiate wght=400/
-700 static instances, `pyftsubset` each to the character set extracted from
-`33-JONcmn-cu89s.usfm`) isn't checked into the repo — re-derive it
-similarly if the Chinese source text ever changes enough to need new
-characters (a missing glyph falls back to the browser's system CJK font,
-so it fails soft, not with a broken box, but re-subsetting keeps it fully
-self-hosted). Don't link Google Fonts directly for this or any future
+three fonts) — Chinese didn't get a font-choice row in settings.
+
+Subsetted with `fonttools` down to the ~546 characters (hanzi + CJK
+punctuation + ASCII) actually used across **both** the CUV source text and
+the Chinese About-page copy (see "About page" below) — full Noto Sans SC is
+15-20MB; these subsets are under 92KB each. Both text sources have to be
+re-scanned together for the character set — the About page's vocabulary
+("版权所有", "应用程序", "分享", etc.) barely overlaps with Jonah's
+narrative vocabulary, so subsetting from the USFM alone silently dropped 24
+glyphs the About page needed; caught by testing the About page in Chinese
+after adding it, not by the build (a missing glyph fails soft — the
+browser falls back to its system CJK font per-character — so it doesn't
+error, just looks visually inconsistent with the rest of the self-hosted
+font). The subsetting pipeline (fetch the variable font from the
+google/fonts GitHub repo, instantiate wght=400/700 static instances,
+`pyftsubset` each to the combined character set from `33-JONcmn-cu89s.usfm`
+plus the About page's own Chinese strings) isn't checked into the repo —
+re-derive it from **both** sources if either one changes enough to need
+new characters. Don't link Google Fonts directly for this or any future
 non-Latin script — same firewall problem.
 
 ## Asset locations
@@ -768,11 +776,13 @@ About content: title, version, copyright, a free-distribution note, a
 cross-promo line to new-tibetan-bible.com, and a contact email. Same
 dim-backdrop/outside-click-close pattern as the settings sheet, plus an
 explicit close button (matches the chapter modal's own close-button
-treatment) since this content is longer and scrolls. Content is bilingual
-and re-renders on `jonah:text-settings-changed` same as the chapter
-modal's READ section — the English copy is Claude's provisional
-translation of John's Tibetan text and needs his review, same caveat as
-the LISTEN label's translation. Cover art is `jonah-cover-about.png`
+treatment) since this content is longer and scrolls. Content covers all
+three reading languages (bo/en/cmn) and re-renders on
+`jonah:text-settings-changed` same as the chapter modal's READ section —
+the English and Chinese copy are both Claude's provisional translations of
+John's Tibetan text and need his review, same caveat as the LISTEN label's
+translation. Chinese needed its own character-subset fix after being added
+— see "Fonts" above. Cover art is `jonah-cover-about.png`
 (`source-assets/images/Jonah_cover.png`) — a placeholder per Brett's
 explicit go-ahead ("so John can see it, then we can replace it") — it
 still has John's chapter-title/wordmark text baked into the raster (it's a

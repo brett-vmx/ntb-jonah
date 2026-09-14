@@ -269,7 +269,7 @@ const {
         function updateHeaderTitle() {
           if (headerTitleEl?.dataset.reactiveTitle !== 'true') return;
           const lang = getTextLang();
-          headerTitleEl.textContent = lang === 'bo' ? 'ཡོ་ནཱ།' : lang === 'cmn' ? '约拿' : 'Jonah';
+          headerTitleEl.textContent = lang === 'bo' ? 'ཡོ་ནཱ།' : lang === 'cmn' ? '约拿书' : 'Jonah';
           headerTitleEl.classList.toggle('tibetan', lang === 'bo');
           headerTitleEl.classList.toggle('chinese', lang === 'cmn');
           // Logo: image only in Tibetan mode, plain "New Tibetan Bible" text
@@ -435,14 +435,15 @@ const {
         const aboutClose = document.getElementById('about-close');
         const aboutContent = document.getElementById('about-content');
 
-        // English copy is a provisional translation of John's Tibetan text
-        // (flag for his review, same as the LISTEN-label translation above)
-        // — re-rendered on every language change, not just on open, same as
-        // the chapter modal's own READ section.
+        // English and Chinese copy are provisional translations of John's
+        // Tibetan text (flag for his review, same as the LISTEN-label
+        // translation above) — re-rendered on every language change, not
+        // just on open, same as the chapter modal's own READ section.
         function renderAboutContent() {
           if (!aboutContent) return;
           const lang = getTextLang();
-          aboutContent.innerHTML = lang === 'bo' ? `
+          if (lang === 'bo') {
+            aboutContent.innerHTML = `
             <h2 class="tibetan" style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">རྒྱུན་ཤེས།</h2>
             <div class="tibetan" style="text-align:center;font-size:1.05rem;line-height:2;color:#1c1710">
               <p>བེད་སྤྱོད་པར་གཞི། 1.0</p>
@@ -451,7 +452,20 @@ const {
               <p style="margin-top:1rem">དམ་པའི་གསུང་རབ་སྐོར་གྱི་མཉེན་ཆས་གཞན་རྣམས་དང་བོད་འགྱུར་གསར་མ་པར་གཞི་དངོས་སུ་འབྱོར་འདོད་ན། <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a> ལ་གཟིགས་རོགས།</p>
               <p style="margin-top:1rem">གལ་ཏེཁྱེད་ཀྱི་བློ་ངོར་དོགས་འདྲིའམ་བསམ་ཚུལ་ཞིག་ཡོད་ན་ང་ཚོར་འབྲེལ་གཏུག་གནང་བར་ཞུ།<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
             </div>
-          ` : `
+          `;
+          } else if (lang === 'cmn') {
+            aboutContent.innerHTML = `
+            <h2 class="chinese" style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">关于</h2>
+            <div class="chinese" style="text-align:center;font-size:1.05rem;line-height:1.9;color:#1c1710">
+              <p>版本 1.0</p>
+              <p>版权所有 © 2026 new-tibetan-bible.com</p>
+              <p style="margin-top:1rem">本应用程序可自由分享给他人。</p>
+              <p style="margin-top:1rem">如需其他圣经相关软件，以及《新藏文圣经》应用程序本身，请访问 <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a>。</p>
+              <p style="margin-top:1rem">有任何问题或建议？请通过以下邮箱与我们联系：<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
+            </div>
+          `;
+          } else {
+            aboutContent.innerHTML = `
             <h2 style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">About</h2>
             <div style="text-align:center;font-size:1rem;line-height:1.8;color:#1c1710">
               <p>Version 1.0</p>
@@ -461,6 +475,7 @@ const {
               <p style="margin-top:1rem">Questions or feedback?<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
             </div>
           `;
+          }
         }
         renderAboutContent();
         window.addEventListener('jonah:text-settings-changed', renderAboutContent, { signal });
