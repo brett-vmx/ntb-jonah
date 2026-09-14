@@ -1,9 +1,10 @@
 ---
 import '../styles/global.css';
 import { ViewTransitions } from 'astro:transitions';
-import logoCircle from '../assets/branding/ntb-logo-mark-white.png';
+import logoWordmark from '../assets/branding/ntb-navbar-wordmark-gold.png';
+import aboutCover from '../assets/branding/jonah-cover-about.png';
 import { Image } from 'astro:assets';
-import { Share2, Settings } from '@lucide/astro';
+import { Share2, Info, Type } from '@lucide/astro';
 
 interface Props {
   title?: string;
@@ -69,19 +70,47 @@ const {
       >
         <!-- No fixed header height here on purpose — a fixed h-[56px] plus a
              large safe-area padding-top squeezed the flex row's own content
-             box shorter than the 40px logo, so the logo spilled out past the
+             box shorter than the logo, so the logo spilled out past the
              header's bottom edge. Letting the row size from its own content
              (padding-top + tallest child + padding-bottom) means the header
-             simply grows taller on deep-notch devices instead of clipping. -->
-        <Image src={logoCircle} alt="" width={40} height={40} class="h-10 w-10 shrink-0 rounded-full" style="border:1.5px solid rgba(255,255,255,.7)" />
+             simply grows taller on deep-notch devices instead of clipping.
+             Logo is now John's Tibetan-wordmark lockup (gold pill, embossed
+             black text) — it's a self-contained graphic with its own
+             background/shape, unlike the old transparent icon mark, so no
+             CSS rounded-full/border treatment on top of it any more. -->
+        <!-- Logo swaps for plain "New Tibetan Bible" text in English mode
+             (John: the Tibetan wordmark image doesn't read as English) —
+             see updateHeaderTitle() below. Only reactive on pages using the
+             default title (the main app chrome); the static /chapter/[n]
+             fallback page passes its own custom title and isn't part of
+             the language-toggle experience, so it keeps the Tibetan logo
+             and its own title untouched regardless of reading language. -->
+        <Image id="header-logo-img" src={logoWordmark} alt="New Tibetan Bible" width={168} height={51} class="h-8 w-auto shrink-0" />
+        <span id="header-logo-text" class="hidden text-xs font-bold whitespace-nowrap shrink-0" style="letter-spacing:-.01em">New Tibetan Bible</span>
 
-        <span class="absolute left-1/2 -translate-x-1/2 text-lg font-bold whitespace-nowrap">{title}</span>
+        <span
+          id="header-title"
+          data-reactive-title={title === 'Jonah' ? 'true' : 'false'}
+          class={title === 'Jonah' ? 'tibetan absolute left-1/2 -translate-x-1/2 text-lg font-bold whitespace-nowrap' : 'absolute left-1/2 -translate-x-1/2 text-lg font-bold whitespace-nowrap'}
+        >{title === 'Jonah' ? 'ཡོ་ནཱ།' : title}</span>
 
         <div class="flex items-center gap-2 shrink-0">
-          <!-- Reading + audio settings (language, font, size, layout, dialect — all in one sheet) -->
+          <!-- Reading settings (language, font, size, layout — audio dialect
+               moved to the LISTEN bar's own popover, see index.astro). This
+               is the `Type` icon (thin "Aa"-style glyph) John liked from
+               the earlier two-icon (Type + Headphones) header — brought
+               back once the sheet became text-only again, replacing a
+               plain bold "T" tried first. -->
           <div class="relative w-8 shrink-0">
-            <button id="settings-btn" type="button" aria-label="Reading and audio settings" class="flex items-center justify-center text-ink">
-              <Settings size={22} />
+            <button id="settings-btn" type="button" aria-label="Reading settings" class="flex items-center justify-center text-ink">
+              <Type size={22} />
+            </button>
+          </div>
+
+          <!-- About button + sheet -->
+          <div class="relative w-8 shrink-0">
+            <button id="about-btn" type="button" aria-label="About" class="flex items-center justify-center text-ink">
+              <Info size={22} />
             </button>
           </div>
 
@@ -146,26 +175,34 @@ const {
           </div>
 
           <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Layout</p>
-          <div class="flex gap-3 mb-5">
+          <div class="flex gap-3">
             <button type="button" data-pick-layout="verse" aria-label="Verse-by-verse" class="layout-btn flex-1 rounded-xl py-3 text-xl font-semibold">1 2 3</button>
             <button type="button" data-pick-layout="paragraph" aria-label="Paragraph" class="layout-btn flex-1 rounded-xl py-3 text-xl font-semibold">¶</button>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Audio dialect</p>
-          <div class="flex gap-3">
-            <button type="button" data-pick-dialect="adx" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
-              <span class="dialect-label-bo tibetan text-base font-semibold leading-none">ཨ་མདོ</span>
-              <span class="dialect-label-en text-xl font-semibold leading-none">Amdo</span>
-            </button>
-            <button type="button" data-pick-dialect="bod" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
-              <span class="dialect-label-bo tibetan text-base font-semibold leading-none">བོད་སྐད</span>
-              <span class="dialect-label-en text-xl font-semibold leading-none">Central</span>
-            </button>
-            <button type="button" data-pick-dialect="khg" class="dialect-btn flex-1 rounded-xl py-3 flex flex-col items-center gap-0.5">
-              <span class="dialect-label-bo tibetan text-base font-semibold leading-none">ཁམས</span>
-              <span class="dialect-label-en text-xl font-semibold leading-none">Kham</span>
-            </button>
-          </div>
+    <!-- ─── About sheet ─── John's requested "info" page (request #12).
+         Same dim-backdrop/outside-click-close pattern as the settings sheet,
+         plus an explicit close button since its content is longer/scrollable
+         (matches the chapter modal's own close-button treatment). Cover art
+         is the placeholder Jonah_cover.png John sent (request #13) — it has
+         his chapter-title/wordmark text baked into the raster, so it's a
+         stand-in until a text-free version arrives; swap aboutCover's import
+         for that file when it does, nothing else needs to change. -->
+    <div id="about-sheet" class="fixed inset-0 z-[300] hidden pointer-events-none">
+      <div id="about-sheet-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none"></div>
+      <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none md:inset-0 md:items-center">
+        <div id="about-sheet-panel" class="relative w-full max-w-[448px] bg-white rounded-t-2xl md:rounded-2xl max-h-[85vh] overflow-y-auto pointer-events-auto">
+          <button id="about-close" type="button" aria-label="Close about"
+            style="position:absolute;top:.75rem;right:.75rem;z-index:10;width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:9999px;background:#CFB63C;border:none;cursor:pointer;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.2)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <Image src={aboutCover} alt="" width={448} height={627} style="width:100%;height:auto;display:block" />
+          <div id="about-content" style="padding:0 1.5rem 2rem"></div>
         </div>
       </div>
     </div>
@@ -181,7 +218,6 @@ const {
         getFont, setFont,
         getTextSize, setTextSize,
         getTextLayout, setTextLayout,
-        getDialect, setDialect,
         applyTextSettings,
       } from '../i18n/settings-store';
 
@@ -201,6 +237,26 @@ const {
         const { signal } = abort;
 
         applyTextSettings();
+
+        // Header title/logo react to reading language (John: title should
+        // say "Jonah" in Tibetan when reading Tibetan, and the logo should
+        // become plain "New Tibetan Bible" text in English — the Tibetan
+        // wordmark image doesn't read as English). Skipped on pages that
+        // pass a custom title (the static /chapter/[n] fallback) — see the
+        // data-reactive-title comment above.
+        const headerTitleEl = document.getElementById('header-title');
+        const headerLogoImg = document.getElementById('header-logo-img');
+        const headerLogoText = document.getElementById('header-logo-text');
+        function updateHeaderTitle() {
+          if (headerTitleEl?.dataset.reactiveTitle !== 'true') return;
+          const lang = getTextLang();
+          headerTitleEl.textContent = lang === 'bo' ? 'ཡོ་ནཱ།' : 'Jonah';
+          headerTitleEl.classList.toggle('tibetan', lang === 'bo');
+          headerLogoImg?.classList.toggle('hidden', lang !== 'bo');
+          headerLogoText?.classList.toggle('hidden', lang === 'bo');
+        }
+        updateHeaderTitle();
+        window.addEventListener('jonah:text-settings-changed', updateHeaderTitle, { signal });
 
         // Expose the header's real rendered height as a CSS var so the
         // chapter modal (index.astro) can cap its own height to never grow
@@ -270,16 +326,12 @@ const {
         const fontBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-font]'));
         const sizeBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-size]'));
         const layoutBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-layout]'));
-        const dialectBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pick-dialect]'));
-        const dialectLabelBoEls = Array.from(document.querySelectorAll<HTMLElement>('.dialect-label-bo'));
-        const dialectLabelEnEls = Array.from(document.querySelectorAll<HTMLElement>('.dialect-label-en'));
 
         function refreshSettingsSheet() {
           const lang = getTextLang();
           const font = getFont();
           const size = getTextSize();
           const layout = getTextLayout();
-          const dialect = getDialect();
 
           textLangBtns.forEach((b) => {
             const active = b.dataset.pickTextlang === lang;
@@ -302,15 +354,6 @@ const {
             b.classList.toggle('bg-gold', active);
             b.classList.toggle('bg-page', !active);
           });
-          dialectBtns.forEach((b) => {
-            const active = b.dataset.pickDialect === dialect;
-            b.classList.toggle('bg-gold', active);
-            b.classList.toggle('bg-page', !active);
-          });
-          // Dialect buttons show only the current reading language's script,
-          // not both stacked.
-          dialectLabelBoEls.forEach((el) => el.classList.toggle('hidden', lang !== 'bo'));
-          dialectLabelEnEls.forEach((el) => el.classList.toggle('hidden', lang !== 'en'));
         }
 
         settingsBtn?.addEventListener('click', () => {
@@ -344,10 +387,59 @@ const {
           setTextLayout(b.dataset.pickLayout as 'verse' | 'paragraph');
           refreshSettingsSheet();
         }, { signal }));
-        dialectBtns.forEach((b) => b.addEventListener('click', () => {
-          setDialect(b.dataset.pickDialect as 'adx' | 'bod' | 'khg');
-          refreshSettingsSheet();
-        }, { signal }));
+
+        // ─── About sheet ───
+        const aboutBtn = document.getElementById('about-btn');
+        const aboutSheet = document.getElementById('about-sheet');
+        const aboutSheetPanel = document.getElementById('about-sheet-panel');
+        const aboutClose = document.getElementById('about-close');
+        const aboutContent = document.getElementById('about-content');
+
+        // English copy is a provisional translation of John's Tibetan text
+        // (flag for his review, same as the LISTEN-label translation above)
+        // — re-rendered on every language change, not just on open, same as
+        // the chapter modal's own READ section.
+        function renderAboutContent() {
+          if (!aboutContent) return;
+          const lang = getTextLang();
+          aboutContent.innerHTML = lang === 'bo' ? `
+            <h2 class="tibetan" style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">རྒྱུན་ཤེས།</h2>
+            <div class="tibetan" style="text-align:center;font-size:1.05rem;line-height:2;color:#1c1710">
+              <p>བེད་སྤྱོད་པར་གཞི། 1.0</p>
+              <p>པར་དབང་། (c) 2026 new-tibetan-bible.com</p>
+              <p style="margin-top:1rem">མཉེན་ཆས་འདི་གཞན་ལ་སྤྲོད་རྒྱུ་ཡིན།</p>
+              <p style="margin-top:1rem">དམ་པའི་གསུང་རབ་སྐོར་གྱི་མཉེན་ཆས་གཞན་རྣམས་དང་བོད་འགྱུར་གསར་མ་པར་གཞི་དངོས་སུ་འབྱོར་འདོད་ན། <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a> ལ་གཟིགས་རོགས།</p>
+              <p style="margin-top:1rem">གལ་ཏེཁྱེད་ཀྱི་བློ་ངོར་དོགས་འདྲིའམ་བསམ་ཚུལ་ཞིག་ཡོད་ན་ང་ཚོར་འབྲེལ་གཏུག་གནང་བར་ཞུ།<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
+            </div>
+          ` : `
+            <h2 style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">About</h2>
+            <div style="text-align:center;font-size:1rem;line-height:1.8;color:#1c1710">
+              <p>Version 1.0</p>
+              <p>Copyright © 2026 new-tibetan-bible.com</p>
+              <p style="margin-top:1rem">This app may be freely shared with others.</p>
+              <p style="margin-top:1rem">For other Scripture-related software, and the New Tibetan Bible app itself, visit <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a>.</p>
+              <p style="margin-top:1rem">Questions or feedback?<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
+            </div>
+          `;
+        }
+        renderAboutContent();
+        window.addEventListener('jonah:text-settings-changed', renderAboutContent, { signal });
+
+        aboutBtn?.addEventListener('click', () => {
+          aboutSheet?.classList.remove('hidden');
+        }, { signal });
+        aboutClose?.addEventListener('click', () => {
+          aboutSheet?.classList.add('hidden');
+        }, { signal });
+        // Same outside-click-to-close pattern as the settings sheet, plus
+        // the explicit close button above (About's content is longer/scrolls,
+        // so an obvious close affordance matters more here).
+        document.addEventListener('click', (e) => {
+          if (!aboutSheet || aboutSheet.classList.contains('hidden')) return;
+          const target = e.target as Node;
+          if (aboutSheetPanel?.contains(target) || aboutBtn?.contains(target)) return;
+          aboutSheet.classList.add('hidden');
+        }, { signal });
       }
 
       document.addEventListener('astro:page-load', initHeader);

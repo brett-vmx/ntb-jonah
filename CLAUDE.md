@@ -59,17 +59,18 @@ texts. The dialect switcher swaps `<audio>` src; it never changes the
 displayed Tibetan text.
 
 Dialect English labels: **"Central"**, not "Lhasa" — this was tried and
-reverted per John. Paired with **བོད་སྐད** ("Tibetan/Central speech") rather
-than ལྷ་ས (the place name "Lhasa"), which also echoes the dialect's own file
-code, `bod`. Both labels live in one place — `DIALECT_LABELS` in
-`settings-store.ts` — consumed by both the header's dialect row and the
-modal's LISTEN tile so they can't drift apart. Only the **current reading
-language's** script is shown, not both stacked (tried both-scripts-at-once
-first, then simplified per feedback) — the header row toggles
-`.dialect-label-bo`/`.dialect-label-en` visibility, and the modal's
-`dialectDisplay(dialect, lang)` takes the same `lang` argument. Both need
-refreshing on a language change, not just a dialect change — see
-`renderReadSection()` in index.astro.
+reverted per John. Bo labels are John's second-round wording — ཨམ་སྐད།/
+དབུས་སྐད།/ཁམས་སྐད། — each with a trailing shad (།) per his explicit request;
+these replaced an earlier set (ཨ་མདོ/བོད་སྐད/ཁམས) entirely, not just added
+punctuation to it. Both labels live in one place — `DIALECT_LABELS` in
+`settings-store.ts` — consumed by the modal's LISTEN-bar dialect popover
+(see "Audio dialect picker lives in the LISTEN bar" below) so header and
+modal can't drift apart even though dialect picking no longer happens in
+the header at all. Only the **current reading language's** script is shown,
+not both stacked (tried both-scripts-at-once first, then simplified per
+feedback) — the modal's `dialectDisplay(dialect, lang)` takes a `lang`
+argument and needs refreshing on a language change, not just a dialect
+change — see `renderReadSection()` in index.astro.
 
 ### Verse-timing / read-along highlight
 `source-assets/timing/*.txt` files (John's forced-aligner export) are
@@ -138,15 +139,15 @@ formatting bug (hard breaks interrupting a flowing paragraph) per feedback —
 don't reintroduce per-line `<br>`s in `blocksToHtmlParagraph()`.
 
 ### Reading settings are global, not per-modal (mirrors tenpa.app)
-Text language (Tibetan/English), Tibetan font, text size, layout
-(verse/paragraph), and audio dialect are app-wide settings, not controls
-inside each chapter modal — all five chosen from **one** header icon
-(`Settings` — a plain gear, chosen over `SlidersHorizontal` per feedback —
-opening a single bottom sheet with every row), persisted to `localStorage`,
-in `src/i18n/settings-store.ts`. This used to be two separate icons/sheets
-(text settings + dialect settings) — merged into one to free up header
-width for a longer title John wanted to try (see "Header title stays short"
-below). Same localStorage + `CustomEvent` pattern as tenpa's
+Text language (Tibetan/English), Tibetan font, text size, and layout
+(verse/paragraph) are app-wide settings, not controls inside each chapter
+modal — all four chosen from **one** header icon (a plain "T" — see "Header
+icon is a T, not a gear" below — opening a single bottom sheet with every
+row), persisted to `localStorage`, in `src/i18n/settings-store.ts`. Audio
+dialect used to be a fifth row in this same sheet but moved to its own
+popover in the LISTEN bar per John's request — see "Audio dialect picker
+lives in the LISTEN bar" below — so this sheet is text/reading settings
+only now. Same localStorage + `CustomEvent` pattern as tenpa's
 `language-store.ts`:
 - `jonah:text-settings-changed` — fired on text-lang/font/size change. The
   open chapter modal (if any) listens and re-renders `#modal-blocks` only
@@ -273,15 +274,45 @@ Chevron `stroke-width` is `3.5`, not the thinner `2.5` first used — at 20px
 with a thin stroke they read as a lighter gray next to the bold black play
 button and text even though the color value (`#1c1710`, ink) already
 matched exactly; it's a stroke-weight/legibility issue, not a color one.
-Row 3 (time / chevrons / speed) uses `justify-content: space-between` with
-exactly three children so the chevron pair sits visually centered between
-the time indicator and the speed control, per feedback, without needing
-absolute positioning. The speed button has a **fixed** `width` (2.75rem)
-instead of sizing to its own text — its label changes length across the
-seven speed values ("1×" vs. "0.75×"), and under `space-between` a
-changing flanking-item width shifts the middle item's (the chevrons')
-computed gap, so without a fixed width the chevrons visibly jumped
-position every time the speed changed.
+Row 3 (time / chevrons / loop+speed) uses `justify-content: space-between`
+with exactly three children so the chevron pair sits visually centered
+between the time indicator and the loop+speed group, per feedback, without
+needing absolute positioning. The speed button has a **fixed** `width`
+(2.75rem) instead of sizing to its own text — its label changes length
+across the nine speed values ("1×" vs. "0.5×"/"1.3×"), and under
+`space-between` a changing flanking-item width shifts the middle item's
+(the chevrons') computed gap, so without a fixed width the chevrons
+visibly jumped position every time the speed changed.
+
+### Loop control (John's request #10, modeled on Global Bible Tools)
+`#modal-loop-btn` sits immediately left of the speed button — both wrapped
+in one flex group so they still act as row 3's single third child under
+`space-between` (see above), which is why adding a 4th control didn't
+require reworking that layout. Cycles off → repeat verse → repeat chapter
+→ off on tap (`setLoopMode()` in `initAudioPlayer()`), shown as one icon
+button with two SVGs swapped like the play/pause icon (`Repeat`/`Repeat1`
+inline paths, since index.astro's audio-player script builds plain HTML
+strings and can't use the Astro `@lucide/astro` components Layout.astro
+uses) — "off" and "repeat chapter" both use the plain `Repeat` icon,
+distinguished only by opacity (`.35` vs `1`, same convention as disabled
+prev/next buttons), and "repeat verse" swaps to `Repeat1` at full opacity.
+Not persisted across chapters/sessions like playback speed — it resets to
+"off" on every chapter open, since looping is a momentary listening choice
+rather than a lasting preference.
+- **Repeat chapter**: the simple case — the existing `audio.addEventListener('ended', ...)`
+  handler restarts (`currentTime = 0; audio.play()`) instead of resetting
+  to a paused/stopped state, when `loopMode === 'chapter'`.
+- **Repeat verse**: needs a per-tick check since there's no separate "verse
+  end" event — `loopVerseIdx` locks to whichever verse was active when loop
+  mode turned on (via `findVerseIndex`), and the `timeupdate` handler jumps
+  back to that verse's start time the moment playback advances into the
+  *next* verse (`idx > loopVerseIdx`). The prev/next-verse buttons re-lock
+  `loopVerseIdx` to whatever verse they land on, so manually skipping verses
+  while "repeat verse" is active starts looping the new verse instead of
+  fighting to snap back to the old one. Only meaningful with timing data —
+  with `timings` null, `loopVerseIdx` stays `null` and the loop is a silent
+  no-op (same "no timing = no-op" pattern as `applyVerseHighlight()`), not
+  worth a separate disabled state given every dialect currently has timing.
 
 The row 2 wrapper around the seek track is inset `padding: 19px 17px`
 (vertical 19px = the 14px needed to clear the 34px circle's overhang past
@@ -464,9 +495,13 @@ All three current fonts are self-hosted via `@font-face` in
 ```
 src/assets/chapters/covers/   Homepage chapter-card images (webp, square-cropped)
 src/assets/chapters/inline/   In-reading illustrations (webp)
-src/assets/branding/          Logo variants — ntb-logo-mark-white.png (transparent
-                               background, current header logo) plus older circle/
-                               inverse/full variants kept for reference
+src/assets/branding/          Logo variants — ntb-navbar-wordmark-gold.png (current
+                               header logo, John's second-round Tibetan-wordmark-on-
+                               gold-pill design) and jonah-cover-about.png (About
+                               page cover art — a placeholder, see below) plus older
+                               circle/inverse/full/mark-white variants kept for
+                               reference (ntb-logo-mark-white.png was the header
+                               logo before this round).
 public/audio/{adx,bod,khg}/   Dialect audio, chapter-N.mp3 — resampled to 44100Hz
                                from John's original 22050Hz files in source-assets/
                                (ffmpeg -ar 44100 -b:a 64k, same durations, same
@@ -476,12 +511,12 @@ public/audio/{adx,bod,khg}/   Dialect audio, chapter-N.mp3 — resampled to 4410
                                no downside; don't reintroduce 22050Hz files.
 public/fonts/                 Tibetan Unicode fonts
 public/icons/                 PWA icon PNGs (icon-192, icon-512, apple-touch-icon) —
-                               solid gold background (#CFB63C) with the white mark,
-                               generated by flattening src/assets/branding/
-                               ntb-logo-circle-inverse.png onto gold and resizing.
-                               This is the home-screen-install icon; deliberately
-                               different from the header's transparent-background
-                               mark (ntb-logo-mark-white.png) — don't merge the two.
+                               John's second-round "black embossed" square wordmark
+                               on solid gold, copied directly from source-assets/
+                               images/3-preferred-logos/ntb-logo-black-embossed-
+                               noborder-{180,192,512}.png (replacing the earlier
+                               gold-circle-with-white-mark version). This is a trial
+                               per Brett — John hasn't confirmed the final icon yet.
 public/badges/                Official Apple/Google store badges (app-store-badge.svg,
                                google-play-badge.png) — do not reskin, Apple/Google both
                                require using their own badge artwork as-is. Google's PNG
@@ -498,21 +533,88 @@ main content — same treatment as tenpa.app, so the 2-col chapter grid stays
 2 columns even on a wide desktop viewport instead of reflowing to 4. The
 chapter modal is capped at the same 448px on desktop for visual consistency.
 
-**Header** (`Layout.astro`): logo on the left — the white mountain/river/sun
-mark with a **transparent** background (`ntb-logo-mark-white.png`, keyed out
-from the gold-filled circle badge version via the blue channel, since gold
-and white differ most on blue: `t = (b-60)/(255-60)`), `rounded-full` with a
-thin semi-transparent white border drawn in CSS to read as a circle badge
-without an actual gold fill — a fully gold-filled badge read as too heavy at
-header size, and the badge's own built-in padding (art doesn't touch the
-1024×1024 canvas edges) already centers the mark nicely inside a CSS circle.
-Static "Jonah" title absolutely centered, `Settings` (gear icon — all
-reading + audio settings, one sheet) and `Share2` (popover: Copy link /
-native Share) icons on the right. Share used to be on the left with the
-logo centered next to the title — moved to the right icon cluster so the
-logo could stand alone on the left. Structure and behavior mirror
-tenpa.app's share popover and settings bottom sheet, recolored to Jonah's
-gold/ink palette instead of tenpa's dark theme.
+**Header** (`Layout.astro`): logo on the left is now John's second-round
+navbar wordmark — `ntb-navbar-wordmark-gold.png` (a self-contained gold
+pill with embossed black Tibetan text, "New Tibetan Bible"), copied from
+`source-assets/images/3-preferred-logos/ntb-navbar-logo-embossed-noborder-
+512h.png` — replacing the earlier `ntb-logo-mark-white.png` transparent
+icon mark. It's already a complete graphic with its own background/shape,
+so there's no CSS `rounded-full`/border treatment on top of it any more
+(that was specifically for the old transparent mark). Displayed at a fixed
+`h-8` (32px) with width auto-scaling from the source's own ~3.3:1 aspect
+ratio — verified this still fits at 375px next to "Jonah" and all three
+right-side icons with room to spare (same discipline as "Header title
+stays short" below; re-verify if the wordmark asset changes again). Right
+side has **three** icons: settings (`Type`), About (`Info`), `Share2`
+(popover: Copy link / native Share) — About was inserted between the other
+two per John's request. Share used to be on the left with the logo
+centered next to the title — moved to the right icon cluster so the logo
+could stand alone on the left. Structure and behavior mirror tenpa.app's
+share popover and settings bottom sheet, recolored to Jonah's gold/ink
+palette instead of tenpa's dark theme.
+
+### Header title and logo react to reading language
+Per Brett: the title should say "Jonah" in Tibetan (`ཡོ་ནཱ།`) when reading
+Tibetan, and the wordmark-image logo should become plain "New Tibetan
+Bible" text in English (the Tibetan-script image doesn't read as English).
+`updateHeaderTitle()` in Layout.astro's script toggles both together on
+`jonah:text-settings-changed` and on init — swapping `#header-title`'s
+text/`.tibetan` class and toggling which of `#header-logo-img`/
+`#header-logo-text` is hidden. **Only active on pages using the default
+title** — guarded by `data-reactive-title` on `#header-title`, set server-
+side from `title === 'Jonah'` — so the static `/chapter/[n]` fallback page
+(which passes its own `Chapter N — Jonah` title) is untouched regardless of
+reading language; that page was never part of the language-toggle system.
+The English text logo needed real tuning to fit: at the header's normal
+title size it overlapped the centered "Jonah" title (confirmed by
+measuring — ~170px wide against a ~130px budget before the title's left
+edge), so `#header-logo-text` is deliberately small (`text-xs`, tight
+letter-spacing) — don't bump it back up to a normal logo/title size without
+re-measuring, same "Header title stays short" discipline as below.
+
+### Header icon is `Type`, not a gear
+The reading-settings button used to be a `Settings` (gear) icon; became a
+plain bold "T" text glyph once the audio-dialect row moved out of that
+sheet (the sheet is text-only now, so a gear no longer fit what it opens);
+Brett then asked for the icon from Jonah's earlier two-icon header (Type +
+Headphones, before they were merged into one Settings sheet) instead — the
+Lucide `Type` icon, a thinner "Aa"-style glyph he preferred over the bold
+plain letter. Don't swap this back to a literal "T" or to `Settings` without
+checking first — this is his second correction on this one icon.
+
+### Audio dialect picker lives in the LISTEN bar, not the header
+Per John's request, dialect switching moved out of the header's settings
+sheet entirely and into a small popover anchored on the dialect name in the
+LISTEN bar's row 1 (`#modal-dialect-btn`/`#modal-dialect-popover` in
+index.astro) — tapping the dialect name (with a small chevron-down next to
+it) opens a 3-option popover right there, rather than requiring a trip to
+the general settings sheet just to switch dialect while listening. This
+also means the settings sheet only has one job (text/reading settings) now
+— see "Header icon is Type" above. Implementation notes:
+- `populateDialectPopover(lang)` fills in the three options' text (via the
+  same `dialectDisplay()`/`DIALECT_LABELS` used elsewhere) and highlights
+  the active one; called on chapter open (`initDialectPopover()`), on a
+  language change (`renderReadSection()`), and on a dialect change
+  (`updateAudioForDialect()`) — three different reasons the popover's
+  displayed text or highlight could go stale.
+- The popover's own toggle-button click and option-click listeners are
+  bound in `initDialectPopover()`, called fresh every `openChapter()` (same
+  reasoning as `initAudioPlayer()` — the LISTEN bar's DOM is fully
+  regenerated on every chapter open/switch).
+- The outside-click-to-close listener is the one exception: it's bound
+  **once**, outside `initDialectPopover()`, directly in `initModal()`'s
+  outer scope, and looks up the current popover/button by `getElementById`
+  inside the handler rather than closing over references. Binding it
+  per-chapter-open instead (like the pattern above) would stack a fresh
+  `document` click listener on every chapter switch that's never cleaned
+  up until the next full page load — harmless at this app's 4-chapter
+  scale, but the wrong pattern to copy elsewhere.
+- The popover opens **upward** (`bottom:100%`, not `top:100%`) — it's
+  anchored near the top of the LISTEN bar, which itself sits near the
+  bottom of the modal/viewport, so opening downward pushed the third
+  option (Kham) off-screen. Don't flip this back to `top:100%` without
+  re-checking that all three options stay fully visible on a real phone
+  viewport, not just a tall desktop one.
 
 The header row has **no fixed height** — it used to be `h-[56px]`, which
 (under Tailwind's border-box preflight) meant a large safe-area
@@ -548,28 +650,61 @@ per the reading-layout setting; full text always shown, no read-more
 truncation — these are short scripture chapters, not story transcripts)
 scroll inside `#modal-content`; a **sticky LISTEN bar** (`#modal-listen-bar`)
 below that never scrolls away, laid out as three rows:
-1. "LISTEN" label + current dialect name (current reading language's
-   script only — see "Dialect labels" above).
+1. "LISTEN" label + current dialect name, tappable to open a small popover
+   to switch dialect (current reading language's script only — see
+   "Dialect labels" above, and "Audio dialect picker lives in the LISTEN
+   bar" further down).
 2. The seek track — the circle marking playback position doubles as the
    play/pause button (see "Play/pause is the position circle" below).
 3. Time indicator, prev/next-verse chevrons, and the playback-speed
-   cycling button (0.5×/0.75×/0.85×/1×/1.1×/1.2×/1.5×), laid out with
-   `justify-content: space-between` so the chevrons land visually between
-   the time and the speed control.
-Dialect itself is picked from the header settings sheet, not inside the
-tile. Between the READ section and the copyright note is **chapter-to-
-chapter nav** (`chapterNavHtml()` in index.astro) — just a number + chevron
-per chapter (`‹ 1`, `3 ›`), not "Chapter N" (the label/title above already
-say that), prev on the left and next on the right via
-`justify-content: space-between`, omitted on either end where there's no
-such chapter (no prev on chapter 1, no next on the last chapter). Clicking
-one calls `openChapter()` again for that number — same function used for
-the initial open, re-entrant by design — rather than navigating away, so it
-stays inside the same modal/SPA pattern. `openChapter()` explicitly pauses
-the outgoing chapter's `<audio>` before regenerating the LISTEN bar's HTML
-(which would otherwise implicitly stop it anyway via element removal, but
-not necessarily instantly) so audio never bleeds across a chapter switch.
+   cycling button (0.5×/0.7×/0.8×/0.9×/1×/1.1×/1.2×/1.3×/1.5× — John's
+   second-round set), laid out with `justify-content: space-between` so
+   the chevrons land visually between the time and the speed control.
+   Speed persists across chapters within a session (settings-store.ts).
+Between the READ section and the copyright note is **chapter-to-chapter
+nav** (`chapterNavHtml()` in index.astro) — just a number + chevron per
+chapter (`‹ 1`, `3 ›`), not "Chapter N" (the label/title above already say
+that), prev on the left and next on the right via `justify-content:
+space-between`, omitted on either end where there's no such chapter (no
+prev on chapter 1, no next on the last chapter). A horizontal swipe on the
+reading content (left = next chapter, right = previous) does the same
+thing — John's request, since scrolling all the way down to these links
+was the only way to move between chapters before. The swipe listener is on
+`scrollDiv` (the vertically-scrolling wrapper around `#modal-content`)
+specifically, not the whole modal panel — the LISTEN bar's seek-track/
+play-button drag gesture lives on a sibling element outside `scrollDiv`,
+so a deliberate horizontal drag there can never be misread as a
+chapter-swipe. Both ways of navigating call `openChapter()` again for the
+target number — same function used for the initial open, re-entrant by
+design — rather than navigating away, so it stays inside the same
+modal/SPA pattern. `openChapter()` explicitly pauses the outgoing
+chapter's `<audio>` before regenerating the LISTEN bar's HTML (which would
+otherwise implicitly stop it anyway via element removal, but not
+necessarily instantly) so audio never bleeds across a chapter switch.
 Copyright/attribution note is the last thing inside the scrolling content.
+
+### About page
+A header icon (`Info`, between settings and share — see "App shell" above)
+opens a bottom sheet (`#about-sheet` in Layout.astro) with John's requested
+About content: title, version, copyright, a free-distribution note, a
+cross-promo line to new-tibetan-bible.com, and a contact email. Same
+dim-backdrop/outside-click-close pattern as the settings sheet, plus an
+explicit close button (matches the chapter modal's own close-button
+treatment) since this content is longer and scrolls. Content is bilingual
+and re-renders on `jonah:text-settings-changed` same as the chapter
+modal's READ section — the English copy is Claude's provisional
+translation of John's Tibetan text and needs his review, same caveat as
+the LISTEN label's translation. Cover art is `jonah-cover-about.png`
+(`source-assets/images/Jonah_cover.png`) — a placeholder per Brett's
+explicit go-ahead ("so John can see it, then we can replace it") — it
+still has John's chapter-title/wordmark text baked into the raster (it's a
+flat PNG, not layered), so it needs a text-free export from him before
+it's final; swapping `aboutCover`'s import in Layout.astro is the only
+change needed once that arrives. The URL in this content is
+new-tibetan-bible.com, not www.yohna.app — John's original sheet said
+yohna.app, but Brett found that domain isn't resolving and asked to use
+new-tibetan-bible.com instead; worth re-confirming with John once the
+final hosting/domain decision (see project's hosting discussion) settles.
 
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
@@ -580,13 +715,27 @@ Copyright/attribution note is the last thing inside the scrolling content.
 - Do not use plain gold (`#CFB63C`) as small text/icon color on light
   backgrounds — fails contrast; use `gold-deep` or ink instead
 - Do not remove the manually-injected PWA tags from Layout.astro
-- Do not add per-modal language/font/dialect toggles back — these are global
-  header settings now (`settings-store.ts`); the modal only reflects them
-- Do not split the header settings back into two icons (Type + Headphones) —
-  they were merged into one `Settings` (gear) sheet specifically to free up
-  header width; re-splitting them reopens the header-title space problem
+- Do not add per-modal language/font/size/layout toggles back — these are
+  global header settings now (`settings-store.ts`); the modal only reflects
+  them. Dialect is the one exception — it's global state too, but picked
+  from its own popover in the LISTEN bar, not the header (see "Audio
+  dialect picker lives in the LISTEN bar" above)
+- Do not merge the audio-dialect popover back into the header's settings
+  sheet, and don't turn the settings icon back into a `Settings` gear or a
+  literal "T" — it's the Lucide `Type` icon now, Brett's preferred pick
+  from Jonah's earlier two-icon header (see "Header icon is Type" and
+  "Audio dialect picker" above)
 - Do not put the full "New Tibetan Bible - Jonah" / `བོད་འགྱུར་གསར་མ། ཡོ་ནཱ།`
   title back in the header without re-verifying the 375px fit test above
+- Do not make the header title/logo language-reactive on every page — only
+  on pages using the default title (`data-reactive-title`); the static
+  `/chapter/[n]` fallback keeps its own custom title and the Tibetan logo
+  regardless of reading language (see "Header title and logo react to
+  reading language" above)
+- Do not enlarge `#header-logo-text` ("New Tibetan Bible" in English mode)
+  without re-measuring against the centered title — at normal logo/title
+  text size it visibly overlapped "Jonah"; it's deliberately `text-xs` with
+  tight letter-spacing to fit
 - Do not reskin or recreate the App Store/Google Play badges — use the
   official artwork in `public/badges/` as-is
 - Do not add a new top-level `<script>` to Layout.astro without wrapping its
@@ -602,18 +751,27 @@ Copyright/attribution note is the last thing inside the scrolling content.
   is the position circle" above); don't add backgrounds back to the
   prev/next chevrons or the speed button either
 - Do not give the speed button an auto/content-based width again — it must
-  stay fixed-width or the chevrons visibly shift position across the seven
-  speed values (see "Play/pause is the position circle" above)
+  stay fixed-width or the chevrons visibly shift position across the nine
+  speed values (0.5×–1.5×, see "Play/pause is the position circle" above)
+- Do not reset playback speed to 1× on chapter open — it persists across
+  chapters within a session via `getPlaybackSpeed()`/`setPlaybackSpeed()`
+  in settings-store.ts (John: it used to reset every chapter switch)
 - Do not spell out "Verse-by-verse"/"Paragraph" or shrink the audio dialect
   labels back down in English — layout uses "1 2 3"/"¶" glyphs, and the
   English dialect labels (Amdo/Central/Kham) match the layout row's text-xl
   size, both per feedback
-- Do not put the gold circle fill back on the header logo — it's now a
-  transparent-background mark (`ntb-logo-mark-white.png`) with a CSS
-  `rounded-full` + border for the circle look, not a pre-filled badge image
+- Do not put the gold circle fill back on the header logo, and don't add a
+  CSS `rounded-full`/border treatment to it — it's now the self-contained
+  wordmark-on-gold-pill graphic (`ntb-navbar-wordmark-gold.png`), not a
+  transparent icon mark needing a CSS circle drawn around it
 - Do not put a fixed height back on the header row (`h-[56px]` etc.) — see
   "The header row has no fixed height" above; it must size from its own
   content so a large safe-area inset can't squeeze the logo into overflow
+- Do not give verse numbers the Tibetan reading font again — `.verse-num`
+  is deliberately a plain system font at `0.7em` with `vertical-align:
+  middle` (not `<sup>`'s default raised position); the Tibetan font's own
+  digit glyphs read oversized/high at the same nominal size, which was the
+  original complaint
 
 ## Deployment
 - Push to GitHub → Cloudflare Pages auto-deploys

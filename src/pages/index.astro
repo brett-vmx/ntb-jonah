@@ -107,6 +107,20 @@ const chapterData = await Promise.all(
     opacity: 0.35;
     cursor: default;
   }
+
+  /* Verse numbers: deliberately NOT the Tibetan reading font — its digit
+     glyphs read oversized/high next to Latin numerals at the same nominal
+     size (John: "the numbers are embedded into the Tibetan fonts"). A plain
+     system font at a smaller relative size plus vertical-align:middle
+     (instead of the default <sup> "super" baseline) is what actually reads
+     as "smaller and lower" per his and Brett's feedback. */
+  .verse-num {
+    font-family: system-ui, sans-serif;
+    font-size: 0.7em;
+    font-weight: 700;
+    color: #a38a1e;
+    vertical-align: middle;
+  }
 </style>
 
 <script define:vars={{ chapterData }}>
@@ -114,7 +128,7 @@ const chapterData = await Promise.all(
 </script>
 
 <script>
-  import { getTextLang, getFont, getTextSize, getTextLayout, getDialect, DIALECT_LABELS } from '../i18n/settings-store';
+  import { getTextLang, getFont, getTextSize, getTextLayout, getDialect, setDialect, DIALECT_LABELS, getPlaybackSpeed, setPlaybackSpeed } from '../i18n/settings-store';
 
   interface ImageBlock { type: 'image'; src: string }
   interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; paragraphStart: boolean }
@@ -191,7 +205,7 @@ const chapterData = await Promise.all(
         const lineHeight = lang === 'bo' ? 2 : 1.75;
         return `
           <div class="verse-block${tibetanClass}" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">
-            <sup style="color:#a38a1e;font-weight:700;margin-right:.25rem">${b.number}</sup>${verseInnerHtml(b, lang)}
+            <span class="verse-num" style="margin-right:.25rem">${b.number}</span>${verseInnerHtml(b, lang)}
           </div>`;
       })
       .join('');
@@ -225,7 +239,7 @@ const chapterData = await Promise.all(
       }
       if (b.paragraphStart) flush();
       const text = lang === 'bo' ? b.bo.join(' ') : b.en;
-      para += `<span data-verse="${b.number}"><sup style="color:#a38a1e;font-weight:700">${b.number}</sup> ${text}</span> `;
+      para += `<span data-verse="${b.number}"><span class="verse-num">${b.number}</span> ${text}</span> `;
     }
     flush();
     return html;
@@ -292,6 +306,7 @@ const chapterData = await Promise.all(
       // it needs to update on a language change too, not just a dialect one.
       const dialectLabelEl = document.getElementById('modal-dialect-label');
       if (dialectLabelEl) dialectLabelEl.innerHTML = dialectDisplay(getDialect(), lang);
+      populateDialectPopover(lang);
 
       const listenLabelEl = document.getElementById('modal-listen-label');
       if (listenLabelEl) {
@@ -371,7 +386,39 @@ const chapterData = await Promise.all(
 
       updatePrevNextEnabled();
       applyVerseHighlight(); // dialect change swaps the timing track too
+      populateDialectPopover(getTextLang());
     }
+
+    // Fills in the LISTEN bar's dialect popover options (labels + which one
+    // reads as active) — called after every (re)render of the popover's DOM
+    // (chapter open) and whenever language or dialect changes, since neither
+    // regenerates the popover markup itself.
+    function populateDialectPopover(lang: 'bo' | 'en') {
+      const popover = document.getElementById('modal-dialect-popover');
+      if (!popover) return;
+      const current = getDialect();
+      popover.querySelectorAll<HTMLButtonElement>('.modal-dialect-option').forEach((btn) => {
+        const d = btn.dataset.pickDialect as 'adx' | 'bod' | 'khg';
+        btn.innerHTML = dialectDisplay(d, lang);
+        const active = d === current;
+        btn.style.background = active ? 'rgba(207,182,60,.25)' : 'none';
+        btn.style.fontWeight = active ? '800' : '600';
+      });
+    }
+
+    // Toggle + outside-click-to-close for the dialect popover, bound once
+    // here (not per chapter-open) — it looks up the current button/popover
+    // nodes by id on every click rather than closing over references, since
+    // those nodes are recreated on every openChapter() call.
+    document.addEventListener('click', (e) => {
+      const popover = document.getElementById('modal-dialect-popover');
+      const btn = document.getElementById('modal-dialect-btn');
+      if (!popover || !btn || popover.classList.contains('hidden')) return;
+      const target = e.target as Node;
+      if (btn.contains(target) || popover.contains(target)) return;
+      popover.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+    }, { signal });
 
     window.addEventListener('jonah:text-settings-changed', renderReadSection, { signal });
     window.addEventListener('jonah:dialect-changed', updateAudioForDialect, { signal });
@@ -416,10 +463,29 @@ const chapterData = await Promise.all(
 
       listenBar.innerHTML = `
         <div style="margin:0 1.25rem 1rem;background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 2px 8px rgba(0,0,0,.2)">
-          <!-- Row 1: LISTEN + dialect -->
-          <div style="display:flex;justify-content:space-between;align-items:center">
+          <!-- Row 1: LISTEN + dialect. The dialect name doubles as a button
+               that opens a small popover to switch dialect right here (per
+               John's request #9 — this replaced the "Audio dialect" section
+               that used to live in the header's settings sheet, which now
+               only holds text/reading settings). -->
+          <div style="display:flex;justify-content:space-between;align-items:center;position:relative">
             <span id="modal-listen-label" class="${lang === 'bo' ? 'tibetan' : ''}" style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">${listenLabel(lang)}</span>
-            <span id="modal-dialect-label" style="font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">${dialectDisplay(dialect, lang)}</span>
+            <div style="position:relative">
+              <button id="modal-dialect-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Switch dialect"
+                style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:.2rem;font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">
+                <span id="modal-dialect-label">${dialectDisplay(dialect, lang)}</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <!-- Opens upward (bottom:100%, not top:100%) — the dialect
+                   button sits near the top of the LISTEN bar, which is
+                   itself near the bottom of the modal, so opening downward
+                   pushed the third option (Kham) off-screen. -->
+              <div id="modal-dialect-popover" class="hidden" style="position:absolute;bottom:100%;right:0;margin-bottom:.5rem;background:#fff;border-radius:.75rem;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden;z-index:20;min-width:110px">
+                <button type="button" data-pick-dialect="adx" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+                <button type="button" data-pick-dialect="bod" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+                <button type="button" data-pick-dialect="khg" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+              </div>
+            </div>
           </div>
           <audio id="modal-audio" preload="metadata" crossorigin="anonymous" src="${chapter.audio[dialect]}" style="display:none"></audio>
 
@@ -440,11 +506,14 @@ const chapterData = await Promise.all(
             </div>
           </div>
 
-          <!-- Row 3: time indicator — prev/next chevrons — speed. The speed
-               button has a fixed width (wide enough for its longest label,
-               "0.75×"/"0.85×") so the chevrons' centered position (via
-               justify-content:space-between) never shifts as the label
-               text changes width. -->
+          <!-- Row 3: time indicator — prev/next chevrons — loop + speed.
+               The loop+speed pair is grouped as one flex child (fixed-ish
+               width: a constant-size icon button plus the speed button's
+               own fixed width) so it still acts as a single third item
+               under justify-content:space-between — the chevrons' centered
+               position never shifts as either the loop icon or the speed
+               label changes, same reasoning as the speed button's own
+               fixed width before this. -->
           <div style="display:flex;align-items:center;justify-content:space-between">
             <span id="modal-time-display" style="font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
             <div style="display:flex;align-items:center;gap:1.5rem">
@@ -455,13 +524,24 @@ const chapterData = await Promise.all(
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
               </button>
             </div>
-            <button id="modal-speed-btn" type="button" aria-label="Playback speed"
-              style="background:none;border:none;padding:0;width:2.75rem;text-align:right;font-size:.8rem;font-weight:700;color:#1c1710;cursor:pointer">1×</button>
+            <div style="display:flex;align-items:center;gap:.85rem">
+              <button id="modal-loop-btn" type="button" aria-label="Loop: off" style="background:none;border:none;padding:0;cursor:pointer;color:#1c1710;display:flex;align-items:center;opacity:.35">
+                <svg id="modal-loop-icon-all" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+                </svg>
+                <svg id="modal-loop-icon-one" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
+                  <path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/>
+                </svg>
+              </button>
+              <button id="modal-speed-btn" type="button" aria-label="Playback speed"
+                style="background:none;border:none;padding:0;width:2.75rem;text-align:right;font-size:.8rem;font-weight:700;color:#1c1710;cursor:pointer">1×</button>
+            </div>
           </div>
         </div>
       `;
 
       initAudioPlayer(chapter.duration[dialect]);
+      initDialectPopover();
       updatePrevNextEnabled();
 
       // Chapter-to-chapter nav at the bottom of the reading content is
@@ -491,7 +571,33 @@ const chapterData = await Promise.all(
       }
     }
 
-    const SPEEDS = [0.5, 0.75, 0.85, 1, 1.1, 1.2, 1.5];
+    // Re-bound on every openChapter() call since the popover's DOM is
+    // recreated with the rest of the LISTEN bar — same reasoning as
+    // initAudioPlayer below. The outside-click-to-close listener is NOT
+    // here; that one's bound once, outside this function (see above).
+    function initDialectPopover() {
+      const btn = document.getElementById('modal-dialect-btn') as HTMLButtonElement | null;
+      const popover = document.getElementById('modal-dialect-popover');
+      if (!btn || !popover) return;
+
+      populateDialectPopover(getTextLang()); // fresh DOM each chapter open — needs its initial fill
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasHidden = popover.classList.contains('hidden');
+        popover.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', String(wasHidden));
+      });
+      popover.querySelectorAll<HTMLButtonElement>('.modal-dialect-option').forEach((optBtn) => {
+        optBtn.addEventListener('click', () => {
+          setDialect(optBtn.dataset.pickDialect as 'adx' | 'bod' | 'khg');
+          popover.classList.add('hidden');
+          btn.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
+
+    const SPEEDS = [0.5, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.5];
 
     function initAudioPlayer(initialDuration: string) {
       const audio      = document.getElementById('modal-audio')       as HTMLAudioElement | null;
@@ -504,16 +610,57 @@ const chapterData = await Promise.all(
       const nextBtn    = document.getElementById('modal-next-btn')    as HTMLButtonElement | null;
       const timeDisplay = document.getElementById('modal-time-display') as HTMLElement | null;
       const speedBtn   = document.getElementById('modal-speed-btn')   as HTMLButtonElement | null;
-      if (!audio || !track || !fill || !playBtn || !playIcon || !pauseIcon || !prevBtn || !nextBtn || !timeDisplay || !speedBtn) return;
+      const loopBtn    = document.getElementById('modal-loop-btn')    as HTMLButtonElement | null;
+      const loopIconAll = document.getElementById('modal-loop-icon-all') as SVGElement | null;
+      const loopIconOne = document.getElementById('modal-loop-icon-one') as SVGElement | null;
+      if (!audio || !track || !fill || !playBtn || !playIcon || !pauseIcon || !prevBtn || !nextBtn || !timeDisplay || !speedBtn || !loopBtn || !loopIconAll || !loopIconOne) return;
 
       let totalLabel = initialDuration;
-      let speedIndex = SPEEDS.indexOf(1);
+      // Persisted across chapters within a session (John: it used to reset
+      // to 1x on every chapter switch) — settings-store.ts holds the value,
+      // this just applies it to the fresh <audio> element each chapter open
+      // creates.
+      let speedIndex = SPEEDS.indexOf(getPlaybackSpeed());
+      if (speedIndex < 0) speedIndex = SPEEDS.indexOf(1);
       let dragging = false;
+
+      audio.playbackRate = SPEEDS[speedIndex];
+      speedBtn.textContent = `${SPEEDS[speedIndex]}×`;
 
       speedBtn.addEventListener('click', () => {
         speedIndex = (speedIndex + 1) % SPEEDS.length;
         audio.playbackRate = SPEEDS[speedIndex];
         speedBtn.textContent = `${SPEEDS[speedIndex]}×`;
+        setPlaybackSpeed(SPEEDS[speedIndex]);
+      });
+
+      // Loop control (John's request #10, modeled on Global Bible Tools):
+      // off → repeat verse → repeat chapter → off. Not persisted across
+      // chapters/sessions like playback speed — it resets to "off" on every
+      // chapter open, since looping is a momentary listening choice, not a
+      // lasting preference. "Repeat verse" only makes sense with timing
+      // data; without it there's no per-verse boundary to loop against, so
+      // it's disabled the same way prev/next are (updatePrevNextEnabled).
+      type LoopMode = 'off' | 'verse' | 'chapter';
+      let loopMode: LoopMode = 'off';
+      let loopVerseIdx: number | null = null; // which verse index we're locked to, when loopMode === 'verse'
+
+      function setLoopMode(mode: LoopMode) {
+        loopMode = mode;
+        loopBtn!.setAttribute('aria-label', `Loop: ${mode}`);
+        loopBtn!.style.opacity = mode === 'off' ? '.35' : '1';
+        loopIconOne!.style.display = mode === 'verse' ? '' : 'none';
+        loopIconAll!.style.display = mode === 'verse' ? 'none' : '';
+        if (mode === 'verse') {
+          const timings = openChapterEntry?.timing[getDialect()];
+          loopVerseIdx = timings ? findVerseIndex(timings, audio.currentTime) : null;
+        } else {
+          loopVerseIdx = null;
+        }
+      }
+
+      loopBtn.addEventListener('click', () => {
+        setLoopMode(loopMode === 'off' ? 'verse' : loopMode === 'verse' ? 'chapter' : 'off');
       });
 
       function fmt(secs: number): string {
@@ -610,7 +757,9 @@ const chapterData = await Promise.all(
         const idx = findVerseIndex(timings, audio.currentTime);
         if (idx < 0) { audio.currentTime = 0; return; }
         const intoVerse = audio.currentTime - timings[idx].time;
-        audio.currentTime = (intoVerse > PREV_THRESHOLD || idx === 0) ? timings[idx].time : timings[idx - 1].time;
+        const targetIdx = (intoVerse > PREV_THRESHOLD || idx === 0) ? idx : idx - 1;
+        audio.currentTime = timings[targetIdx].time;
+        if (loopMode === 'verse') loopVerseIdx = targetIdx; // re-lock to the verse we jumped to
         applyVerseHighlight();
       });
       nextBtn.addEventListener('click', () => {
@@ -619,6 +768,7 @@ const chapterData = await Promise.all(
         const idx = findVerseIndex(timings, audio.currentTime);
         const nextIdx = Math.min(idx + 1, timings.length - 1);
         audio.currentTime = timings[nextIdx].time;
+        if (loopMode === 'verse') loopVerseIdx = nextIdx; // re-lock to the verse we jumped to
         applyVerseHighlight();
       });
 
@@ -628,6 +778,18 @@ const chapterData = await Promise.all(
         setProgressPct(pct);
         timeDisplay.textContent = `${fmt(audio.currentTime)} / ${totalLabel}`;
         applyVerseHighlight();
+
+        // "Repeat verse": once playback has moved past the locked verse's
+        // end (i.e. into the next verse's start), jump back to its start
+        // instead of letting it continue — checked every tick, same as the
+        // highlight above.
+        if (loopMode === 'verse' && loopVerseIdx !== null) {
+          const timings = openChapterEntry?.timing[getDialect()];
+          if (timings) {
+            const idx = findVerseIndex(timings, audio.currentTime);
+            if (idx > loopVerseIdx) audio.currentTime = timings[loopVerseIdx].time;
+          }
+        }
       });
 
       audio.addEventListener('loadedmetadata', () => {
@@ -636,6 +798,14 @@ const chapterData = await Promise.all(
       });
 
       audio.addEventListener('ended', () => {
+        // "Repeat chapter": restart instead of stopping. "Repeat verse"
+        // doesn't need handling here — the timeupdate check above already
+        // loops well before the chapter's own end is reached.
+        if (loopMode === 'chapter') {
+          audio.currentTime = 0;
+          audio.play();
+          return;
+        }
         setPlaying(false);
         setProgressPct(0);
         timeDisplay.textContent = `0:00 / ${totalLabel}`;
@@ -690,6 +860,29 @@ const chapterData = await Promise.all(
         closeModal(false);
       }
     }, { passive: true });
+
+    // Swipe left/right on the reading content to go to the next/previous
+    // chapter (John's request #3 — an alternative to scrolling all the way
+    // down to the bottom chapter-nav links). Bound to scrollDiv specifically
+    // (the vertically-scrolling wrapper around #modal-content), NOT the
+    // whole panel — the LISTEN bar's seek track/play-button drag gesture is
+    // a sibling outside scrollDiv, so a deliberate horizontal drag there can
+    // never be misread as a chapter-swipe.
+    let contentTouchStartX = 0;
+    let contentTouchStartY = 0;
+    scrollDiv?.addEventListener('touchstart', (e) => {
+      contentTouchStartX = e.touches[0].clientX;
+      contentTouchStartY = e.touches[0].clientY;
+    }, { passive: true, signal });
+    scrollDiv?.addEventListener('touchend', (e) => {
+      if (!openChapterEntry) return;
+      const deltaX = e.changedTouches[0].clientX - contentTouchStartX;
+      const deltaY = e.changedTouches[0].clientY - contentTouchStartY;
+      if (Math.abs(deltaX) < 70 || Math.abs(deltaY) > 50) return; // require a mostly-horizontal swipe
+      const n = openChapterEntry.chapterNumber;
+      if (deltaX < 0 && n < chapters.length) openChapter(n + 1);
+      else if (deltaX > 0 && n > 1) openChapter(n - 1);
+    }, { passive: true, signal });
 
     // Handles both directions of browser back/forward: closes the modal
     // when the URL lands back on '/', opens (or switches to) the right

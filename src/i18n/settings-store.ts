@@ -49,14 +49,16 @@ export const TEXT_SIZE_REM: Record<TextSize, string> = {
   xl: '1.6rem',
 };
 
-// Dialect names in both scripts, shared by the header's Settings sheet and
-// the modal's LISTEN tile so the two never drift out of sync. "Central" per
-// John (not "Lhasa") — paired with བོད་སྐད ("Tibetan/Central speech"), which
-// also echoes the dialect's own file code, `bod`.
+// Dialect names in both scripts, shared by the modal's LISTEN-bar dialect
+// popover (dialect picking moved there from the header's settings sheet —
+// see index.astro/Layout.astro). "Central" per John (not "Lhasa"). Bo labels
+// are John's second-round wording, each with a trailing shad (།) per his
+// explicit request — these replace the earlier ཨ་མདོ/བོད་སྐད/ཁམས entirely,
+// not just add punctuation to them.
 export const DIALECT_LABELS: Record<Dialect, { en: string; bo: string }> = {
-  adx: { en: 'Amdo', bo: 'ཨ་མདོ' },
-  bod: { en: 'Central', bo: 'བོད་སྐད' },
-  khg: { en: 'Kham', bo: 'ཁམས' },
+  adx: { en: 'Amdo', bo: 'ཨམ་སྐད།' },
+  bod: { en: 'Central', bo: 'དབུས་སྐད།' },
+  khg: { en: 'Kham', bo: 'ཁམས་སྐད།' },
 };
 
 function readEnum<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
@@ -89,6 +91,19 @@ export function setTextLayout(v: TextLayout): void {
 export function setDialect(v: Dialect): void {
   localStorage.setItem(DIALECT_KEY, v);
   window.dispatchEvent(new CustomEvent('jonah:dialect-changed', { detail: { dialect: v } }));
+}
+
+// Playback speed persists across chapters within a session (John: it used to
+// reset to 1x on every chapter switch). No custom event — only one chapter's
+// audio player exists at a time, and it reads this at its own init instead of
+// needing to react live to a change made elsewhere.
+const SPEED_KEY = 'jonah-speed';
+export function getPlaybackSpeed(): number {
+  const stored = Number(localStorage.getItem(SPEED_KEY));
+  return Number.isFinite(stored) && stored > 0 ? stored : 1;
+}
+export function setPlaybackSpeed(v: number): void {
+  localStorage.setItem(SPEED_KEY, String(v));
 }
 
 /** Applies the current font + text size as CSS custom properties on :root. */
