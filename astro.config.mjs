@@ -5,7 +5,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://ntb-jonah.pages.dev',
+  site: 'https://ntb-jonah.netlify.app',
   // Default output is fully static — no SSR adapter (deploys to Cloudflare Pages as static).
   server: { port: 4415 },
   prefetch: { prefetchAll: true },

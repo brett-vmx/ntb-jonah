@@ -407,6 +407,10 @@ const {
 
         textLangBtns.forEach((b) => b.addEventListener('click', () => {
           setTextLang(b.dataset.pickTextlang as 'bo' | 'en' | 'cmn');
+          // Text size is language-dependent now (Tibetan reads +2px larger
+          // at every step) — re-apply here, same as the font/size handlers
+          // below, not just when font/size themselves change.
+          applyTextSettings();
           refreshSettingsSheet();
         }, { signal }));
         dialectBtns.forEach((b) => b.addEventListener('click', () => {
@@ -445,7 +449,7 @@ const {
           if (lang === 'bo') {
             aboutContent.innerHTML = `
             <h2 class="tibetan" style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">རྒྱུན་ཤེས།</h2>
-            <div class="tibetan" style="text-align:center;font-size:1.05rem;line-height:2;color:#1c1710">
+            <div class="tibetan" style="text-align:left;font-size:1.05rem;line-height:2;color:#1c1710">
               <p>བེད་སྤྱོད་པར་གཞི། 1.0</p>
               <p>པར་དབང་། (c) 2026 new-tibetan-bible.com</p>
               <p style="margin-top:1rem">མཉེན་ཆས་འདི་གཞན་ལ་སྤྲོད་རྒྱུ་ཡིན།</p>
@@ -456,7 +460,7 @@ const {
           } else if (lang === 'cmn') {
             aboutContent.innerHTML = `
             <h2 class="chinese" style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">关于</h2>
-            <div class="chinese" style="text-align:center;font-size:1.05rem;line-height:1.9;color:#1c1710">
+            <div class="chinese" style="text-align:left;font-size:1.05rem;line-height:1.9;color:#1c1710">
               <p>版本 1.0</p>
               <p>版权所有 © 2026 new-tibetan-bible.com</p>
               <p style="margin-top:1rem">本应用程序可自由分享给他人。</p>
@@ -467,7 +471,7 @@ const {
           } else {
             aboutContent.innerHTML = `
             <h2 style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">About</h2>
-            <div style="text-align:center;font-size:1rem;line-height:1.8;color:#1c1710">
+            <div style="text-align:left;font-size:1rem;line-height:1.8;color:#1c1710">
               <p>Version 1.0</p>
               <p>Copyright © 2026 new-tibetan-bible.com</p>
               <p style="margin-top:1rem">This app may be freely shared with others.</p>

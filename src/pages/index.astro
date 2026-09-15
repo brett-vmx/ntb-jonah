@@ -163,14 +163,6 @@ const chapterData = await Promise.all(
     return lang === 'bo' ? `<span class="tibetan">${bo}</span>` : en;
   }
 
-  // The LISTEN bar's own label, translated (provisional — flag for John to
-  // confirm the exact wording he'd want here, cmn included).
-  function listenLabel(lang: TextLang): string {
-    if (lang === 'bo') return 'ཉན་པ';
-    if (lang === 'cmn') return '收听';
-    return 'LISTEN';
-  }
-
   // Reading-language script class, used everywhere a block of text needs
   // its font switched: 'tibetan'/'chinese' pull in the self-hosted webfonts
   // (global.css), English needs no class (default sans stack).
@@ -321,6 +313,11 @@ const chapterData = await Promise.all(
         labelEl.textContent = label;
         labelEl.classList.toggle('tibetan', lang === 'bo');
         labelEl.classList.toggle('chinese', lang === 'cmn');
+        // Centered + matching the section title's size, Tibetan only (John:
+        // the "Chapter N" line reads better centered and larger in Tibetan;
+        // English/Chinese keep the original small left-aligned label).
+        labelEl.style.textAlign = lang === 'bo' ? 'center' : 'left';
+        labelEl.style.fontSize = lang === 'bo' ? '1.5rem' : '1rem';
       }
       if (titleEl) {
         titleEl.textContent = sectionTitle;
@@ -333,13 +330,6 @@ const chapterData = await Promise.all(
       const dialectLabelEl = document.getElementById('modal-dialect-label');
       if (dialectLabelEl) dialectLabelEl.innerHTML = dialectDisplay(getDialect(), lang);
       populateDialectPopover(lang);
-
-      const listenLabelEl = document.getElementById('modal-listen-label');
-      if (listenLabelEl) {
-        listenLabelEl.textContent = listenLabel(lang);
-        listenLabelEl.classList.toggle('tibetan', lang === 'bo');
-        listenLabelEl.classList.toggle('chinese', lang === 'cmn');
-      }
 
       applyVerseHighlight(); // re-render wiped #modal-blocks, so the highlight needs reapplying
     }
@@ -470,7 +460,7 @@ const chapterData = await Promise.all(
 
       content.innerHTML = `
         <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
-          <p id="modal-label" class="${scriptCls}" style="color:#a38a1e;font-weight:700;font-size:1rem;margin-bottom:.25rem;padding-right:2.5rem">${label}</p>
+          <p id="modal-label" class="${scriptCls}" style="color:#a38a1e;font-weight:700;font-size:${lang === 'bo' ? '1.5rem' : '1rem'};text-align:${lang === 'bo' ? 'center' : 'left'};margin-bottom:.25rem;padding-right:2.5rem">${label}</p>
           <h2 id="modal-title" class="${scriptCls}" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5;padding-right:2.5rem">${sectionTitle}</h2>
 
           <!-- READ -->
@@ -489,41 +479,54 @@ const chapterData = await Promise.all(
       `;
 
       listenBar.innerHTML = `
-        <div style="margin:0 1.25rem 1rem;background:#cfb63c;border-radius:14px;padding:1.1rem;box-shadow:0 2px 8px rgba(0,0,0,.2)">
-          <!-- Row 1: LISTEN + dialect. The dialect name doubles as a button
-               that opens a small popover to switch dialect right here (per
-               John's request #9 — this replaced the "Audio dialect" section
-               that used to live in the header's settings sheet, which now
-               only holds text/reading settings). -->
-          <div style="display:flex;justify-content:space-between;align-items:center;position:relative">
-            <span id="modal-listen-label" class="${scriptCls}" style="font-size:.8rem;font-weight:700;letter-spacing:.12em;color:#1c1710;text-transform:uppercase">${listenLabel(lang)}</span>
-            <div style="position:relative">
-              <button id="modal-dialect-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Switch dialect"
-                style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:.2rem;font-size:.8rem;font-weight:700;color:rgba(28,23,16,.7)">
-                <span id="modal-dialect-label">${dialectDisplay(dialect, lang)}</span>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <!-- Opens upward (bottom:100%, not top:100%) — the dialect
-                   button sits near the top of the LISTEN bar, which is
-                   itself near the bottom of the modal, so opening downward
-                   pushed the third option (Kham) off-screen. -->
-              <div id="modal-dialect-popover" class="hidden" style="position:absolute;bottom:100%;right:0;margin-bottom:.5rem;background:#fff;border-radius:.75rem;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden;z-index:20;min-width:110px">
-                <button type="button" data-pick-dialect="adx" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
-                <button type="button" data-pick-dialect="bod" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
-                <button type="button" data-pick-dialect="khg" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
-                <button type="button" data-pick-dialect="eng" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
-                <button type="button" data-pick-dialect="cmn" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
-              </div>
+        <div style="position:relative;margin:0 1.25rem 1rem;background:#cfb63c;border-radius:14px 0 14px 14px;padding:1.1rem;box-shadow:0 2px 8px rgba(0,0,0,.2)">
+          <!-- Dialect picker as a "notch" tab, gold (same as the tile, so
+               it reads as one continuous shape, not a separate floating
+               chip) and right-aligned, replacing the old full-width row 1
+               (LISTEN label + dialect, removed per Brett's request — see
+               "Sticky LISTEN bar" in CLAUDE.md). bottom:100% sits it
+               flush on top of the tile's own top edge — no extra margin
+               reserved above the tile itself, so reading content still
+               flows/scrolls all the way up to the tile everywhere except
+               directly behind the notch's own small footprint. The tile's
+               own top-right corner is deliberately square (border-radius
+               "14px 0 14px 14px", not a flat 14px) so its right edge runs
+               straight up to meet the notch with no curve of its own —
+               the notch's right side (flush at right:0, square bottom
+               corner) continues that same straight line, and only curves
+               again at the very top (the notch's own rounded top-right
+               corner). One smooth right edge for the whole composite
+               shape, not two competing curves close together where the
+               notch meets the tile. -->
+          <div style="position:absolute;right:0;bottom:100%;z-index:5">
+            <button id="modal-dialect-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Switch dialect"
+              style="display:flex;align-items:center;gap:.3rem;white-space:nowrap;background:#cfb63c;border:none;border-radius:14px 14px 0 0;padding:.5rem 1.1rem;font-size:.8rem;font-weight:700;color:#1c1710;cursor:pointer">
+              <span id="modal-dialect-label">${dialectDisplay(dialect, lang)}</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <!-- Opens upward (bottom:100%, not top:100%) — the notch sits
+                 near the top of the LISTEN bar, which is itself near the
+                 bottom of the modal, so opening downward would land on top
+                 of the tile's own seek track/controls below it. Right-
+                 aligned under the notch, matching the notch's own
+                 alignment. -->
+            <div id="modal-dialect-popover" class="hidden" style="position:absolute;bottom:100%;right:0;margin-bottom:.5rem;background:#fff;border-radius:.75rem;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden;z-index:20;min-width:110px">
+              <button type="button" data-pick-dialect="adx" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+              <button type="button" data-pick-dialect="bod" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+              <button type="button" data-pick-dialect="khg" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+              <button type="button" data-pick-dialect="eng" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
+              <button type="button" data-pick-dialect="cmn" class="modal-dialect-option" style="display:block;width:100%;text-align:left;padding:.6rem 1rem;background:none;border:none;font-size:.9rem;color:#1c1710;cursor:pointer"></button>
             </div>
           </div>
           <audio id="modal-audio" preload="metadata" crossorigin="anonymous" src="${chapter.audio[dialect]}" style="display:none"></audio>
 
-          <!-- Row 2: audio position, combined with play/pause — the circle
-               that marks where playback is also toggles play/pause. The
-               track is inset horizontally by half the button's width (17px)
-               so the button's own edges — not its center — land flush with
-               the LISTEN label's left edge and the dialect/speed controls'
-               right edge at the 0%/100% extremes. -->
+          <!-- Row 1 (was row 2): audio position, combined with play/pause —
+               the circle that marks where playback is also toggles
+               play/pause. The track is inset horizontally by half the
+               button's width (17px) so the button's own edges — not its
+               center — land flush with the tile's left content edge and
+               the dialect/speed controls' right edge at the 0%/100%
+               extremes. -->
           <div style="padding:19px 17px">
             <div id="modal-progress-track" style="position:relative;width:100%;height:6px;border-radius:9999px;background:rgba(28,23,16,.25);cursor:pointer;touch-action:none">
               <div id="modal-progress-fill" style="position:absolute;top:0;left:0;height:100%;border-radius:9999px;background:#1c1710;width:0%;pointer-events:none"></div>
@@ -535,7 +538,7 @@ const chapterData = await Promise.all(
             </div>
           </div>
 
-          <!-- Row 3: time indicator — prev/next chevrons — loop + speed.
+          <!-- Row 2 (was row 3): time indicator — prev/next chevrons — loop + speed.
                The loop+speed pair is grouped as one flex child (fixed-ish
                width: a constant-size icon button plus the speed button's
                own fixed width) so it still acts as a single third item

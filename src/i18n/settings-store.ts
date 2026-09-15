@@ -70,6 +70,19 @@ export const TEXT_SIZE_REM: Record<TextSize, string> = {
   xl: '1.6rem',
 };
 
+// Tibetan gets +2px at every size step (John: Tibetan specifically read
+// small at all four sizes; English/Chinese were fine as-is) — a separate
+// map rather than a flat offset so each step is still a clean rem value.
+// Applied in applyTextSettings() based on the *current reading language*,
+// not a font/size setting of its own — switching reading language must
+// re-apply this (see the textLangBtns click handler in Layout.astro).
+export const TEXT_SIZE_REM_TIBETAN: Record<TextSize, string> = {
+  sm: '1.125rem', // 16px + 2px
+  md: '1.275rem', // 18.4px + 2px
+  lg: '1.475rem', // 21.6px + 2px
+  xl: '1.725rem', // 25.6px + 2px
+};
+
 // Dialect/audio-track names in both scripts, shared by the modal's LISTEN-bar
 // popover and (for the 3 Tibetan dialects only) the header settings sheet's
 // conditional dialect row — see "Audio dialect picker" in CLAUDE.md. "Central"
@@ -143,8 +156,14 @@ export function setPlaybackSpeed(v: number): void {
   localStorage.setItem(SPEED_KEY, String(v));
 }
 
-/** Applies the current font + text size as CSS custom properties on :root. */
+/**
+ * Applies the current font + text size as CSS custom properties on :root.
+ * Text size depends on the *reading language*, not just the text-size
+ * setting — Tibetan uses TEXT_SIZE_REM_TIBETAN (+2px at every step), so this
+ * must be re-called on a language change too, not just a font/size change.
+ */
 export function applyTextSettings(): void {
   document.documentElement.style.setProperty('--font-tibetan-active', FONT_STACKS[getFont()]);
-  document.documentElement.style.setProperty('--reading-font-size', TEXT_SIZE_REM[getTextSize()]);
+  const sizeMap = getTextLang() === 'bo' ? TEXT_SIZE_REM_TIBETAN : TEXT_SIZE_REM;
+  document.documentElement.style.setProperty('--reading-font-size', sizeMap[getTextSize()]);
 }

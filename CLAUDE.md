@@ -196,6 +196,26 @@ CSS custom properties on `:root` (`--font-tibetan-active`,
 `--reading-font-size`) by `applyTextSettings()`, and verse blocks reference
 those vars directly, so they update live with zero re-render.
 
+Text size is reading-language-dependent, not just a flat setting: Tibetan
+uses `TEXT_SIZE_REM_TIBETAN` (+2px at every step) instead of the plain
+`TEXT_SIZE_REM` English/Chinese use — John found Tibetan specifically read
+small at all four sizes, English/Chinese were fine. Because of this,
+`applyTextSettings()` has to be re-called on a **language** change too, not
+just when font/size themselves change — the textLangBtns click handler in
+Layout.astro calls it explicitly, same as the font/size handlers already
+did. Don't merge these two maps back into one flat `TEXT_SIZE_REM` without
+re-checking with Brett — the two scripts are deliberately not the same
+size at a given "step" any more.
+
+The chapter label ("Chapter 1" / `ལེའུ་དང་པོ།`) is centered and matches the
+section title's font size (1.5rem) in Tibetan only — English/Chinese keep
+the original small, left-aligned label. Set both in the initial
+`openChapter()` template (computed from `lang` at creation time) and again
+in `renderReadSection()` (`labelEl.style.textAlign`/`.fontSize`) for when
+the reading language changes while a chapter is already open — the initial
+template alone isn't enough, since inline styles baked in at creation time
+don't update on their own.
+
 ### Header buttons need re-init after every view transition
 `Layout.astro`'s header script (share popover, both settings sheets) is
 wrapped in `document.addEventListener('astro:page-load', initHeader)` with
@@ -271,6 +291,34 @@ button (top-right, always visible now, not `hidden md:flex` split from a
 separate mobile "Close" pill) is what replaced the old mobile-only
 gradient-pill dismiss affordance — simpler, one control for every
 breakpoint, plus swipe-down-to-dismiss still works on mobile.
+
+The tile's row 1 used to be "LISTEN" label (left) + dialect picker (right)
+under `justify-content:space-between` — Brett had the "LISTEN" word (in all
+three languages) removed entirely as redundant, `listenLabel()` and
+`#modal-listen-label` are gone from index.astro, don't reintroduce a label
+there without checking first. With row 1 mostly empty afterward, Brett asked to shrink the tile and turn
+the dialect picker into a right-aligned "notch" cut into the tile's own
+top-right corner — gold (`#cfb63c`, matching the tile, so it reads as one
+continuous shape rather than a separate floating chip), not the white
+centered pill tried first. `#modal-dialect-btn`'s wrapper is
+`position:absolute;right:0;bottom:100%` — flush against the tile's own
+right edge and sitting exactly on its top edge, no translate/negative-
+margin tricks needed. `border-radius:14px 14px 0 0` on the button (both
+top corners rounded, matching the tile's own 14px radius; bottom corners
+square) is what makes it read as a notch rather than a floating tab — the
+top-right corner's curve continues the tile's own corner curve below it,
+while the top-left corner is the new curve that makes it look "cut in."
+Costs no flow height inside the tile (absolute positioning), so removing
+row 1 entirely is what actually shrinks the player. The tile's own top
+margin is unchanged (`0`, not bumped) — Brett was explicit that the area
+directly above the *rest* of the tile (i.e. not behind the notch itself)
+should stay transparent, so reading content keeps flowing/scrolling all
+the way up to the tile everywhere except the notch's own small footprint,
+which does cover whatever's directly behind it (an expected, ordinary
+consequence of a floating tab, not something to design around). The
+popover still opens **upward** (`bottom:100%`) for the same off-screen
+reason as before, right-aligned under the notch (`right:0`, no
+transform) — matching the notch's own alignment, not centered.
 
 ### Play/pause is the position circle, not a separate 72px button
 Per feedback, there's no dedicated big play/pause button anymore — the
@@ -354,16 +402,15 @@ The row 2 wrapper around the seek track is inset `padding: 19px 17px`
 the 6px track, plus 5px more breathing room per feedback; horizontal 17px
 = half the circle's width) — the horizontal inset means the track's own
 0%/100% extremes put the *circle's edge*, not its center, flush with the
-LISTEN label's left edge and the dialect/speed controls' right edge,
+tile's left content edge and the dialect/speed controls' right edge,
 matching row 1 and row 3's content width exactly. Don't make the track
 `width: 100%` of the full tile again — it needs this narrower, inset track
 to keep the button from overhanging the tile's edges.
 
-The "LISTEN" label itself is translated per the current reading language
-(`listenLabel(lang)` in index.astro — `'ཉན་པ'` for Tibetan) and, like the
-dialect label, needs refreshing in `renderReadSection()` on a language
-change, not just at initial chapter open. The Tibetan wording is
-provisional — flag it for John to confirm his preferred term.
+Row 1 used to also carry a "LISTEN" label (left-aligned, translated per
+language) opposite the dialect picker — removed per Brett's request as
+redundant in all three languages; see "Sticky LISTEN bar" above for the
+current row 1 layout (dialect picker only, right-aligned).
 
 ### Header safe-area padding needs a real minimum, not just env()
 The header's top padding is `max(1.5rem, env(safe-area-inset-top))`, not
@@ -776,13 +823,17 @@ About content: title, version, copyright, a free-distribution note, a
 cross-promo line to new-tibetan-bible.com, and a contact email. Same
 dim-backdrop/outside-click-close pattern as the settings sheet, plus an
 explicit close button (matches the chapter modal's own close-button
-treatment) since this content is longer and scrolls. Content covers all
-three reading languages (bo/en/cmn) and re-renders on
-`jonah:text-settings-changed` same as the chapter modal's READ section —
-the English and Chinese copy are both Claude's provisional translations of
-John's Tibetan text and need his review, same caveat as the LISTEN label's
-translation. Chinese needed its own character-subset fix after being added
-— see "Fonts" above. Cover art is `jonah-cover-about.png`
+treatment) since this content is longer and scrolls. Body text is
+left-aligned in all three languages — only the title (`h2`) stays
+centered; it used to be fully centered like a lot of "About" screens
+default to, until Brett asked for the body to read like normal left-
+aligned prose instead. Content covers all three reading languages
+(bo/en/cmn) and re-renders on `jonah:text-settings-changed` same as the
+chapter modal's READ section — the English and Chinese copy are both
+Claude's provisional translations of John's Tibetan text and need his
+review, same caveat as other provisional translations in this doc (the
+dialect labels, for instance). Chinese needed its own character-subset fix
+after being added — see "Fonts" above. Cover art is `jonah-cover-about.png`
 (`source-assets/images/Jonah_cover.png`) — a placeholder per Brett's
 explicit go-ahead ("so John can see it, then we can replace it") — it
 still has John's chapter-title/wordmark text baked into the raster (it's a
@@ -865,6 +916,19 @@ final hosting/domain decision (see project's hosting discussion) settles.
   original complaint
 
 ## Deployment
-- Push to GitHub → Cloudflare Pages auto-deploys
+- **Netlify**, not Cloudflare Pages — push to GitHub → Netlify auto-deploys.
+  Cloudflare Pages was the original host but was dropped: it doesn't honor
+  HTTP Range requests for static assets, which broke audio seeking (see
+  "Cloudflare Pages doesn't support Range requests" above) and needed an
+  elaborate service-worker workaround to paper over; Netlify supports Range
+  natively, so that workaround could eventually be simplified away (not
+  done yet — the SW still works fine as-is, just no longer strictly
+  necessary for Netlify specifically).
+- `site:` in astro.config.mjs points at the Netlify domain
+  (`ntb-jonah.netlify.app`) — update this if a custom domain is ever added.
+- The Cloudflare Pages project itself (dashboard, GitHub integration) isn't
+  actually decommissioned yet — that's an account-level action on
+  Cloudflare's dashboard, not a code change, so it's on Brett to do
+  directly rather than something done from here.
 - Build command: `npm run build`
 - Output directory: `dist`
