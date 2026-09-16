@@ -48,7 +48,7 @@ export default defineConfig({
         // woff2 added alongside ttf for the Chinese font (public/fonts/
         // NotoSansSC-*.woff2) — same "offline-ready after install" reasoning
         // as the Tibetan ttf files already here.
-        globPatterns: ['**/*.{html,js,css,webp,png,jpg,ttf,woff2}'],
+        globPatterns: ['**/*.{html,js,css,webp,png,jpg,ico,ttf,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),

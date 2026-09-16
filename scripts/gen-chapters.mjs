@@ -18,6 +18,16 @@ const RTF_PATH = path.join(ROOT, 'source-assets/Jonah_BSB.rtf');
 // addition alongside English. Same USFM-style \c/\v/\p markers as the
 // Tibetan SFM, plus \pn...\pn* proper-name tags to strip.
 const CMN_USFM_PATH = path.join(ROOT, 'source-assets/33-JONcmn-cu89s.usfm');
+// Hindi (2017) and Nepali (Unlocked Literal Bible) — text-only reading
+// languages, no audio (John: no capacity yet to make Hindi/Nepali timing
+// files, and no one to verify recordings). Both are plain USFM \c/\v/\p/\s1
+// like the Chinese source, so they share one parser (parseIndicUsfm) instead
+// of Chinese's own (which additionally strips all whitespace — meaningless
+// for Chinese, but wrong for these two word-spaced scripts). Hindi's source
+// also carries footnotes (\f + \fr...\f*) and inline \it/\bdit formatting
+// tags that CUV doesn't, so the shared parser strips those too.
+const HI_USFM_PATH = path.join(ROOT, 'source-assets/33-JONhin2017.usfm');
+const NE_USFM_PATH = path.join(ROOT, 'source-assets/33-JONnpiulb.usfm');
 const TIMING_DIR = path.join(ROOT, 'source-assets/timing');
 const OUT_DIR = path.join(ROOT, 'src/content/chapters');
 
@@ -69,6 +79,24 @@ const ENGLISH_TITLES = {
 // CUV source's own \s1 lines instead (see parseCmnUsfm) — no translation
 // needed there.
 const CHINESE_LABELS = { 1: '第一章', 2: '第二章', 3: '第三章', 4: '第四章' };
+
+// Hindi/Nepali chapter label — same "no \cl marker" gap as Chinese, and the
+// same word ("अध्याय", chapter) works unchanged in both languages, so one
+// map covers both instead of duplicating identical values twice.
+const INDIC_CHAPTER_LABELS = { 1: 'अध्याय 1', 2: 'अध्याय 2', 3: 'अध्याय 3', 4: 'अध्याय 4' };
+
+// Hindi's USFM source carries its own \s1 section titles (used as-is, no
+// translation needed — see parseIndicUsfm). Nepali's source has none at all
+// (unlike Hindi/Chinese), so these are editorial titles, provisionally
+// translated by Claude to match the same theme as the Hindi/English titles —
+// flag for John/Brett to confirm wording, same caveat as the About page's
+// provisional English/Chinese translations.
+const NEPALI_TITLES = {
+  1: 'परमेश्‍वरको आज्ञाको उल्लङ्घन',
+  2: 'योनाको प्रार्थना',
+  3: 'आज्ञाको पालना',
+  4: 'योनाको रिस र परमेश्‍वरको दया',
+};
 
 // Dialect audio durations in seconds, read with ffprobe from the source MP3s
 // (adx/bod/khg = Amdo/Central-Lhasa/Kham per John's note: bod=Central, adx=Amdo, khg=Kham).
@@ -248,6 +276,79 @@ function parseCmnUsfm(raw) {
 }
 
 // ---------------------------------------------------------------------------
+// 2c. Parse Hindi/Nepali USFM (Brett's third/fourth reading-language
+//    addition — text only, no audio). Shared by both since they're the same
+//    plain \c/\v/\p/\s1 USFM shape; unlike parseCmnUsfm this keeps normal
+//    word-spacing (collapsed, not stripped) since neither script is written
+//    without spaces. \q1 continuation lines are appended to the current
+//    verse's buffer, same treatment as the Tibetan SFM's own \q1 handling,
+//    except the result stays a single string per verse (not an array of
+//    lines) — verse-by-verse mode just doesn't get separate poetry lines for
+//    these two, matching how English/Chinese already work. Hindi's footnotes
+//    (\f + \fr...\f*) and inline \it/\bdit formatting tags are stripped;
+//    Nepali's source has neither.
+// ---------------------------------------------------------------------------
+
+function stripIndicMarkup(s) {
+  return s
+    .replace(/\\f \+.*?\\f\*/gs, '') // footnotes — whole note dropped, incl. \fr/\ft/\fq content
+    .replace(/\\(bdit|it)\*?/g, '') // inline emphasis tags — text kept, tags stripped
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseIndicUsfm(raw) {
+  const chapters = {}; // { [n]: { section: string, verses: { [v]: string } } }
+  let chapterNum = null;
+  let verseNum = null;
+  let buf = [];
+
+  const flush = () => {
+    if (chapterNum !== null && verseNum !== null && buf.length) {
+      chapters[chapterNum].verses[verseNum] = stripIndicMarkup(buf.join(' '));
+    }
+    buf = [];
+  };
+
+  for (const rawLine of raw.split('\n')) {
+    const line = rawLine.replace(/\r$/, '').trim();
+    if (!line) continue;
+
+    let m = line.match(/^\\c\s+(\d+)/);
+    if (m) {
+      flush();
+      chapterNum = parseInt(m[1], 10);
+      chapters[chapterNum] = { section: '', verses: {} };
+      verseNum = null;
+      continue;
+    }
+    if (chapterNum === null) continue; // skip \id/\h/\toc/\mt/\is1/\ip front matter
+
+    m = line.match(/^\\s1\s*(.*)$/);
+    if (m) {
+      chapters[chapterNum].section = m[1].trim();
+      continue;
+    }
+    m = line.match(/^\\v\s+(\d+)\s*(.*)$/);
+    if (m) {
+      flush();
+      verseNum = parseInt(m[1], 10);
+      buf = [m[2]];
+      continue;
+    }
+    m = line.match(/^\\q1\s?(.*)$/);
+    if (m) {
+      if (m[1] && verseNum !== null) buf.push(m[1]);
+      continue;
+    }
+    if (line.startsWith('\\p') || line.startsWith('\\m')) continue;
+    if (verseNum !== null) buf.push(line);
+  }
+  flush();
+  return chapters;
+}
+
+// ---------------------------------------------------------------------------
 // 3. Parse per-dialect verse-timing files (word/verse-aligned export from
 //    John's forced-aligner). Each line is "start\tend\t[verseNumber]" —
 //    start === end (a single timestamp, not a range), and the verse number
@@ -299,7 +400,7 @@ function parseTiming(dialect, n) {
 // 4. Merge into per-chapter block lists and write JSON
 // ---------------------------------------------------------------------------
 
-function buildChapter(n, sfmChapter, bsbChapter, cmnChapter) {
+function buildChapter(n, sfmChapter, bsbChapter, cmnChapter, hiChapter, neChapter) {
   const verseNums = Object.keys(sfmChapter.verses)
     .map(Number)
     .sort((a, b) => a - b);
@@ -315,8 +416,12 @@ function buildChapter(n, sfmChapter, bsbChapter, cmnChapter) {
       bo: sfmChapter.verses[v],
       en: bsbChapter?.[v] ?? '',
       cmn: cmnChapter?.verses[v] ?? '',
+      hi: hiChapter?.verses[v] ?? '',
+      ne: neChapter?.verses[v] ?? '',
       // True at each SFM \p/\m marker — i.e. this verse starts a new paragraph.
       // Used by the paragraph-layout reading mode; verse-by-verse mode ignores it.
+      // Reused for every reading language (not just bo) — see CLAUDE.md's
+      // "Verse-by-verse vs. paragraph layout" note.
       paragraphStart: sfmChapter.paragraphStarts.has(v),
     });
     if (imageAfter.has(v)) {
@@ -333,6 +438,10 @@ function buildChapter(n, sfmChapter, bsbChapter, cmnChapter) {
     sectionTitleEn: ENGLISH_TITLES[n].section,
     labelCmn: CHINESE_LABELS[n],
     sectionTitleCmn: cmnChapter?.section ?? '',
+    labelHi: INDIC_CHAPTER_LABELS[n],
+    sectionTitleHi: hiChapter?.section ?? '',
+    labelNe: INDIC_CHAPTER_LABELS[n],
+    sectionTitleNe: NEPALI_TITLES[n],
     cover: COVER_IMAGES[n],
     verseCount: verseNums.length,
     audio: {
@@ -364,15 +473,19 @@ function main() {
   const sfmRaw = fs.readFileSync(SFM_PATH, 'utf8');
   const rtfRaw = fs.readFileSync(RTF_PATH, 'latin1');
   const cmnRaw = fs.readFileSync(CMN_USFM_PATH, 'utf8');
+  const hiRaw = fs.readFileSync(HI_USFM_PATH, 'utf8');
+  const neRaw = fs.readFileSync(NE_USFM_PATH, 'utf8');
 
   const sfmChapters = parseSfm(sfmRaw);
   const bsbChapters = parseBsb(rtfRaw);
   const cmnChapters = parseCmnUsfm(cmnRaw);
+  const hiChapters = parseIndicUsfm(hiRaw);
+  const neChapters = parseIndicUsfm(neRaw);
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   for (const n of Object.keys(sfmChapters).map(Number).sort((a, b) => a - b)) {
-    const chapter = buildChapter(n, sfmChapters[n], bsbChapters[n], cmnChapters[n]);
+    const chapter = buildChapter(n, sfmChapters[n], bsbChapters[n], cmnChapters[n], hiChapters[n], neChapters[n]);
     const outPath = path.join(OUT_DIR, `chapter-${n}.json`);
     fs.writeFileSync(outPath, JSON.stringify(chapter, null, 2) + '\n');
     const timingDialects = Object.entries(chapter.timing)

@@ -3,7 +3,7 @@
 // same localStorage + CustomEvent pattern as Tenpa's language-store.ts.
 //
 // Five independent settings:
-//   jonah-text-lang    'bo' | 'en' | 'cmn'                         default 'bo'
+//   jonah-text-lang    'bo' | 'en' | 'cmn' | 'hi' | 'ne'            default 'bo'
 //   jonah-font         'ouchan2' | 'choukmatik' | 'dutsa2'         default 'ouchan2'
 //   jonah-text-size    'sm' | 'md' | 'lg' | 'xl'                  default 'md'
 //   jonah-text-layout  'verse' | 'paragraph'                      default 'verse'
@@ -35,7 +35,7 @@
 // reason to distinguish where in that list the boundary between "dialect"
 // and "language" falls.
 
-export type TextLang = 'bo' | 'en' | 'cmn';
+export type TextLang = 'bo' | 'en' | 'cmn' | 'hi' | 'ne';
 export type TibetanFont = 'ouchan2' | 'choukmatik' | 'dutsa2';
 export type TextSize = 'sm' | 'md' | 'lg' | 'xl';
 export type TextLayout = 'verse' | 'paragraph';
@@ -47,7 +47,7 @@ const TEXT_SIZE_KEY = 'jonah-text-size';
 const TEXT_LAYOUT_KEY = 'jonah-text-layout';
 const DIALECT_KEY = 'jonah-dialect';
 
-const TEXT_LANGS: readonly TextLang[] = ['bo', 'en', 'cmn'];
+const TEXT_LANGS: readonly TextLang[] = ['bo', 'en', 'cmn', 'hi', 'ne'];
 const FONTS: readonly TibetanFont[] = ['ouchan2', 'choukmatik', 'dutsa2'];
 const SIZES: readonly TextSize[] = ['sm', 'md', 'lg', 'xl'];
 const LAYOUTS: readonly TextLayout[] = ['verse', 'paragraph'];
@@ -73,6 +73,8 @@ export const TEXT_SIZE_REM: Record<TextSize, string> = {
 // Tibetan gets +2px at every size step (John: Tibetan specifically read
 // small at all four sizes; English/Chinese were fine as-is) — a separate
 // map rather than a flat offset so each step is still a clean rem value.
+// Hindi/Nepali use the flat TEXT_SIZE_REM too, same as English/Chinese —
+// nothing about either script was flagged as reading small.
 // Applied in applyTextSettings() based on the *current reading language*,
 // not a font/size setting of its own — switching reading language must
 // re-apply this (see the textLangBtns click handler in Layout.astro).
@@ -122,6 +124,13 @@ export function setTextLang(v: TextLang): void {
   // Amdo/Central/Kham choice by snapping to a fixed default. setDialect()
   // fires its own 'jonah:dialect-changed' event, so the open chapter's
   // audio (if any) updates the same way a manual dialect pick would.
+  //
+  // Hindi/Nepali have no audio of their own (John: no capacity yet to make
+  // timing files, and no one to verify recordings) — deliberately NOT
+  // included in this coupling, so picking either one leaves the dialect
+  // exactly as it was. That's what lets someone read Hindi/Nepali text with
+  // whichever of the 5 existing audio tracks they prefer, picked
+  // independently from the LISTEN-bar popover.
   if (v === 'en' && getDialect() !== 'eng') setDialect('eng');
   else if (v === 'cmn' && getDialect() !== 'cmn') setDialect('cmn');
   else if (v === 'bo' && !TIBETAN_DIALECTS.includes(getDialect())) setDialect('bod');

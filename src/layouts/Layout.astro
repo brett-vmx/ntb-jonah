@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import { ViewTransitions } from 'astro:transitions';
 import logoWordmark from '../assets/branding/ntb-navbar-wordmark-gold.png';
-import aboutCover from '../assets/branding/jonah-cover-about.png';
+import aboutCover from '../assets/branding/jonah-about-banner.jpg';
 import { Image } from 'astro:assets';
 import { Share2, Info, Settings } from '@lucide/astro';
 import { DIALECT_LABELS } from '../i18n/settings-store';
@@ -31,7 +31,7 @@ const {
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <script src="/registerSW.js" is:inline></script>
@@ -153,10 +153,22 @@ const {
       <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none">
         <div id="settings-sheet-panel" class="w-full max-w-[448px] bg-white rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto pointer-events-auto" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
           <p class="text-xs font-bold uppercase tracking-widest text-ink/50 mb-2">Language</p>
-          <div class="flex gap-3 mb-5">
+          <div class="flex gap-3 mb-3">
             <button type="button" data-pick-textlang="bo" class="textlang-btn tibetan flex-1 rounded-xl py-3 text-base font-semibold">བོད་ཡིག</button>
             <button type="button" data-pick-textlang="en" class="textlang-btn flex-1 rounded-xl py-3 text-base font-semibold">English</button>
             <button type="button" data-pick-textlang="cmn" class="textlang-btn chinese flex-1 rounded-xl py-3 text-base font-semibold">中文</button>
+          </div>
+          <!-- Hindi/Nepali — text only, no audio track of their own (John:
+               no capacity yet for timing files, and no one to verify
+               recordings), so they're a second row under the 3 languages
+               that do have audio, not squeezed into the same row. Picking
+               either one leaves the dialect/audio setting untouched (see
+               setTextLang() in settings-store.ts) — the reader's existing
+               audio choice, from any of the 5 LISTEN-bar options, keeps
+               playing under the new text. -->
+          <div class="flex gap-3 mb-5">
+            <button type="button" data-pick-textlang="hi" class="textlang-btn flex-1 rounded-xl py-3 text-base font-semibold">हिन्दी</button>
+            <button type="button" data-pick-textlang="ne" class="textlang-btn flex-1 rounded-xl py-3 text-base font-semibold">नेपाली</button>
           </div>
 
           <!-- Audio dialect — only when reading Tibetan (Brett: "if Tibetan
@@ -204,10 +216,11 @@ const {
          Same dim-backdrop/outside-click-close pattern as the settings sheet,
          plus an explicit close button since its content is longer/scrollable
          (matches the chapter modal's own close-button treatment). Cover art
-         is the placeholder Jonah_cover.png John sent (request #13) — it has
-         his chapter-title/wordmark text baked into the raster, so it's a
-         stand-in until a text-free version arrives; swap aboutCover's import
-         for that file when it does, nothing else needs to change. -->
+         is jonah-about-banner.jpg — one of the Sweet Publishing illustrations
+         with John's own logo + Tibetan "Jonah" wordmark composited into the
+         bottom-left corner (John's request #14), replacing the earlier
+         Jonah_cover.png placeholder (which had used a different, unfinished
+         text overlay baked into the raster). -->
     <div id="about-sheet" class="fixed inset-0 z-[300] hidden pointer-events-none">
       <div id="about-sheet-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none"></div>
       <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none md:inset-0 md:items-center">
@@ -218,7 +231,7 @@ const {
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-          <Image src={aboutCover} alt="" width={448} height={627} style="width:100%;height:auto;display:block" />
+          <Image src={aboutCover} alt="" width={448} height={559} style="width:100%;height:auto;display:block" />
           <div id="about-content" style="padding:0 1.5rem 2rem"></div>
         </div>
       </div>
@@ -266,10 +279,15 @@ const {
         const headerTitleEl = document.getElementById('header-title');
         const headerLogoImg = document.getElementById('header-logo-img');
         const headerLogoText = document.getElementById('header-logo-text');
+        // "Jonah" in each reading language's own script/word. Hindi and
+        // Nepali both render this as योना (their Bibles' own short name for
+        // the book, per the source USFM's \toc2) — same Devanagari word in
+        // both, no separate Nepali translation needed.
+        const HEADER_TITLES: Record<string, string> = { bo: 'ཡོ་ནཱ།', cmn: '约拿书', en: 'Jonah', hi: 'योना', ne: 'योना' };
         function updateHeaderTitle() {
           if (headerTitleEl?.dataset.reactiveTitle !== 'true') return;
           const lang = getTextLang();
-          headerTitleEl.textContent = lang === 'bo' ? 'ཡོ་ནཱ།' : lang === 'cmn' ? '约拿书' : 'Jonah';
+          headerTitleEl.textContent = HEADER_TITLES[lang] ?? 'Jonah';
           headerTitleEl.classList.toggle('tibetan', lang === 'bo');
           headerTitleEl.classList.toggle('chinese', lang === 'cmn');
           // Logo: image only in Tibetan mode, plain "New Tibetan Bible" text
@@ -443,6 +461,9 @@ const {
         // Tibetan text (flag for his review, same as the LISTEN-label
         // translation above) — re-rendered on every language change, not
         // just on open, same as the chapter modal's own READ section.
+        // Hindi/Nepali have no About-page translation yet (only the reading
+        // text itself), so they fall through to the English copy below —
+        // same "no dedicated asset yet" fallback as Chinese's header logo.
         function renderAboutContent() {
           if (!aboutContent) return;
           const lang = getTextLang();
@@ -451,7 +472,7 @@ const {
             <h2 class="tibetan" style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">རྒྱུན་ཤེས།</h2>
             <div class="tibetan" style="text-align:left;font-size:1.05rem;line-height:2;color:#1c1710">
               <p>བེད་སྤྱོད་པར་གཞི། 1.0</p>
-              <p>པར་དབང་། (c) 2026 new-tibetan-bible.com</p>
+              <p>པར་དབང་། (c) 2026 yohna.app</p>
               <p style="margin-top:1rem">མཉེན་ཆས་འདི་གཞན་ལ་སྤྲོད་རྒྱུ་ཡིན།</p>
               <p style="margin-top:1rem">དམ་པའི་གསུང་རབ་སྐོར་གྱི་མཉེན་ཆས་གཞན་རྣམས་དང་བོད་འགྱུར་གསར་མ་པར་གཞི་དངོས་སུ་འབྱོར་འདོད་ན། <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a> ལ་གཟིགས་རོགས།</p>
               <p style="margin-top:1rem">གལ་ཏེཁྱེད་ཀྱི་བློ་ངོར་དོགས་འདྲིའམ་བསམ་ཚུལ་ཞིག་ཡོད་ན་ང་ཚོར་འབྲེལ་གཏུག་གནང་བར་ཞུ།<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
@@ -462,7 +483,7 @@ const {
             <h2 class="chinese" style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">关于</h2>
             <div class="chinese" style="text-align:left;font-size:1.05rem;line-height:1.9;color:#1c1710">
               <p>版本 1.0</p>
-              <p>版权所有 © 2026 new-tibetan-bible.com</p>
+              <p>版权所有 © 2026 yohna.app</p>
               <p style="margin-top:1rem">本应用程序可自由分享给他人。</p>
               <p style="margin-top:1rem">如需其他圣经相关软件，以及《新藏文圣经》应用程序本身，请访问 <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a>。</p>
               <p style="margin-top:1rem">有任何问题或建议？请通过以下邮箱与我们联系：<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
@@ -473,7 +494,7 @@ const {
             <h2 style="text-align:center;font-size:1.5rem;font-weight:700;color:#1c1710;margin:1.5rem 0 1.25rem">About</h2>
             <div style="text-align:left;font-size:1rem;line-height:1.8;color:#1c1710">
               <p>Version 1.0</p>
-              <p>Copyright © 2026 new-tibetan-bible.com</p>
+              <p>Copyright © 2026 yohna.app</p>
               <p style="margin-top:1rem">This app may be freely shared with others.</p>
               <p style="margin-top:1rem">For other Scripture-related software, and the New Tibetan Bible app itself, visit <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a>.</p>
               <p style="margin-top:1rem">Questions or feedback?<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>

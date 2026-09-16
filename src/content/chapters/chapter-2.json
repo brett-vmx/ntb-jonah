@@ -7,6 +7,10 @@
   "sectionTitleEn": "Jonah's Prayer",
   "labelCmn": "第二章",
   "sectionTitleCmn": "约拿的祷告",
+  "labelHi": "अध्याय 2",
+  "sectionTitleHi": "योना की प्रार्थना",
+  "labelNe": "अध्याय 2",
+  "sectionTitleNe": "योनाको प्रार्थना",
   "cover": "../../assets/chapters/covers/chapter-2.webp",
   "verseCount": 10,
   "audio": {
@@ -244,6 +248,8 @@
       ],
       "en": "From inside the fish, Jonah prayed to the LORD his God,",
       "cmn": "约拿在鱼腹中祷告耶和华—他的神，",
+      "hi": "तब योना ने महा मच्छ के पेट में से अपने परमेश्वर यहोवा से प्रार्थना करके कहा,",
+      "ne": "तब योनाले त्यस माछाको पेटबाट आफ्ना परमप्रभु परमेश्‍वरसँग प्रार्थना गरे ।",
       "paragraphStart": true
     },
     {
@@ -257,6 +263,8 @@
       ],
       "en": "saying: “In my distress I called to the LORD, and He answered me. From the belly of Sheol I called for help, and You heard my voice.",
       "cmn": "说：我遭遇患难求告耶和华，你就应允我；从阴间的深处呼求，你就俯听我的声音。",
+      "hi": "“मैंने संकट में पड़े हुए यहोवा की दुहाई दी, और उसने मेरी सुन ली है; अधोलोक के उदर में से मैं चिल्ला उठा, और तूने मेरी सुन ली।",
+      "ne": "तिनले भने, “मेरो सङ्कष्‍टको बारेमा मैले परमप्रभुलाई पुकारें र उहाँले मलाई जवाज दिनुभयो । चिहानको गर्भबाट मैले सहायताको निम्ति पुकारें! तपाईंले मेरो सोर सुन्‍नुभयो ।",
       "paragraphStart": false
     },
     {
@@ -271,6 +279,8 @@
       ],
       "en": "For You cast me into the deep, into the heart of the seas, and the current swirled about me; all Your breakers and waves swept over me.",
       "cmn": "你将我投下深渊，就是海的深处；大水环绕我，你的波浪洪涛都漫过我身。",
+      "hi": "तूने मुझे गहरे सागर में समुद्र की थाह तक डाल दिया; और मैं धाराओं के बीच में पड़ा था, तेरी सब तरंग और लहरें मेरे ऊपर से बह गईं।",
+      "ne": "तपाईंले मलाई गहिरा ठाउँहरूमा, समुद्रको अन्‍तस्‍करणमा नै फाल्‍नुभएको थियो, अनि धारहरूले मलाई घेरे, र तपाईंका सबै छालहरू र लहरहरू ममाथि भए ।",
       "paragraphStart": false
     },
     {
@@ -284,6 +294,8 @@
       ],
       "en": "At this, I said, ‘I have been banished from Your sight; yet I will look once more toward Your holy temple.’",
       "cmn": "我说：我从你眼前虽被驱逐，我仍要仰望你的圣殿。",
+      "hi": "तब मैंने कहा, ‘मैं तेरे सामने से निकाल दिया गया हूँ; कैसे मैं तेरे पवित्र मन्दिर की ओर फिर ताकूँगा?’",
+      "ne": "मैले भनें, ‘तपाईंको नजरबाट म हटाइएको छु, अझै म फेरि तपाईंको पवित्र मन्दिरतिर आफ्ना आँखा लगाउनेछु ।’",
       "paragraphStart": false
     },
     {
@@ -296,6 +308,8 @@
       ],
       "en": "The waters engulfed me to take my life; the watery depths closed around me; the seaweed wrapped around my head.",
       "cmn": "诸水环绕我，几乎淹没我；深渊围住我；海草缠绕我的头。",
+      "hi": "मैं जल से यहाँ तक घिरा हुआ था कि मेरे प्राण निकले जाते थे; गहरा सागर मेरे चारों ओर था, और मेरे सिर में सिवार लिपटा हुआ था।",
+      "ne": "पानीले मेरा घाँटीसम्म नै भर्‍यो । र मेरो सबैतिर समुद्रको गहिराइ थियो, र मेरो टाउकोमा समुद्रका झारहरू बेहेरिए ।",
       "paragraphStart": false
     },
     {
@@ -311,6 +325,8 @@
       ],
       "en": "To the roots of the mountains I descended; the earth beneath me barred me in forever! But You raised my life from the pit, O LORD my God!",
       "cmn": "我下到山根，地的门将我永远关住。耶和华—我的神啊，你却将我的性命从坑中救出来。",
+      "hi": "मैं पहाड़ों की जड़ तक पहुँच गया था; मैं सदा के लिये भूमि में बन्द हो गया था; तो भी हे मेरे परमेश्वर यहोवा, तूने मेरे प्राणों को गड्ढे में से उठाया है।",
+      "ne": "पहाडका फेदहरूमा म तल गएँ, र पृथ्वीले आफ्ना घेराहरूले सदाको निम्ति मलाई थुनिदियो । तापनि हे परमप्रभु, मेरा परमेश्‍वर, तपाईंले मेरो जीवनलाई खाडलबाट माथि ल्‍याउनुभयो ।",
       "paragraphStart": false
     },
     {
@@ -328,6 +344,8 @@
       ],
       "en": "As my life was fading away, I remembered the LORD. My prayer went up to You, to Your holy temple.",
       "cmn": "我心在我里面发昏的时候，我就想念耶和华。我的祷告进入你的圣殿，达到你的面前。",
+      "hi": "जब मैं मूर्छा खाने लगा, तब मैंने यहोवा को स्मरण किया; और मेरी प्रार्थना तेरे पास वरन् तेरे पवित्र मन्दिर में पहुँच गई।",
+      "ne": "जब मेरो प्राणले मभित्रै मुर्छा खायो, तब मैले परमप्रभुलाई याद गरें, अनि मेरो प्रार्थना तपाईंकहाँ, तपाईंको पवित्र मन्दिरमा आयो ।",
       "paragraphStart": false
     },
     {
@@ -339,6 +357,8 @@
       ],
       "en": "Those who cling to worthless idols forsake His loving devotion.",
       "cmn": "那信奉虚无之神的人，离弃怜爱他们的主；",
+      "hi": "जो लोग धोखे की व्यर्थ वस्तुओं पर मन लगाते हैं, वे अपने करुणानिधान को छोड़ देते हैं।",
+      "ne": "तिनीहरूले प्रेमपुर्ण विश्‍वस्ततालाई प्रेम गर्न छोड्‍दा, तिनीहरूले बेकारका देवताहरूमाथि ध्यान लगाए ।",
       "paragraphStart": false
     },
     {
@@ -352,6 +372,8 @@
       ],
       "en": "But I, with the voice of thanksgiving, will sacrifice to You. I will fulfill what I have vowed. Salvation is from the LORD!”",
       "cmn": "但我必用感谢的声音献祭与你。我所许的愿，我必偿还。救恩出于耶和华。",
+      "hi": "परन्तु मैं ऊँचे शब्द से धन्यवाद करके तुझे बलिदान चढ़ाऊँगा; जो मन्नत मैंने मानी, उसको पूरी करूँगा। उद्धार यहोवा ही से होता है।”",
+      "ne": "तर मेरो बारेमा, उच्‍च सोरले म तपाईंलाई धन्यवादको बलिदान चढाउँछु । मैले गरेको भाकल म पुरा गर्नेछु । मुक्‍ति परमप्रभुबाट नै आउँछ!”",
       "paragraphStart": false
     },
     {
@@ -362,6 +384,8 @@
       ],
       "en": "And the LORD commanded the fish, and it vomited Jonah onto dry land.",
       "cmn": "耶和华吩咐鱼，鱼就把约拿吐在旱地上。",
+      "hi": "और यहोवा ने महा मच्छ को आज्ञा दी, और उसने योना को स्थल पर उगल दिया।",
+      "ne": "त्यसपछि परमप्रभुले माछालाई आज्ञा गर्नुभयो, र त्यसले योनालाई सुख्खा जमिनमा उकेलिदियो ।",
       "paragraphStart": true
     }
   ]

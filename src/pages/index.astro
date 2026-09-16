@@ -27,6 +27,10 @@ const chapterData = await Promise.all(
       sectionTitleEn: c.data.sectionTitleEn,
       labelCmn: c.data.labelCmn,
       sectionTitleCmn: c.data.sectionTitleCmn,
+      labelHi: c.data.labelHi,
+      sectionTitleHi: c.data.sectionTitleHi,
+      labelNe: c.data.labelNe,
+      sectionTitleNe: c.data.sectionTitleNe,
       audio: c.data.audio,
       duration: c.data.duration,
       timing: c.data.timing,
@@ -50,7 +54,7 @@ const chapterData = await Promise.all(
     <section class="mt-10 pt-6 border-t border-ink/10 text-center">
       <p class="text-sm font-bold text-ink/80 mb-1">Get the full New Tibetan Bible app</p>
       <p class="text-xs text-ink/50 mb-4 max-w-[280px] mx-auto">
-        The complete Bible in Central, Amdo, and Kham Tibetan — read, listen, and study.
+        The complete Bible in Modern Literary Tibetan with Central, Amdo, and Kham audio.
       </p>
       <div class="flex items-center justify-center gap-3">
         <a href="https://apps.apple.com/my/app/new-tibetan-bible/id1515160881" target="_blank" rel="noopener noreferrer" aria-label="Download New Tibetan Bible on the App Store">
@@ -134,7 +138,7 @@ const chapterData = await Promise.all(
   import type { TextLang, Dialect } from '../i18n/settings-store';
 
   interface ImageBlock { type: 'image'; src: string }
-  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; cmn: string; paragraphStart: boolean }
+  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; cmn: string; hi: string; ne: string; paragraphStart: boolean }
   type Block = ImageBlock | VerseBlock;
   type TimingTrack = { verse: number; time: number }[] | null;
   type AudioMap<T> = { adx: T; bod: T; khg: T; eng: T; cmn: T };
@@ -146,10 +150,39 @@ const chapterData = await Promise.all(
     sectionTitleEn: string;
     labelCmn: string;
     sectionTitleCmn: string;
+    labelHi: string;
+    sectionTitleHi: string;
+    labelNe: string;
+    sectionTitleNe: string;
     audio: AudioMap<string>;
     duration: AudioMap<string>;
     timing: AudioMap<TimingTrack>;
     blocks: Block[];
+  }
+
+  // Chapter label/section-title lookup for the current reading language —
+  // one place instead of the same 5-way branch repeated at every call site
+  // (renderReadSection, openChapter). Hindi/Nepali fall in alongside
+  // English/Chinese: none of the four non-Tibetan languages get the
+  // centered/larger "Chapter N" treatment (see the lang === 'bo' checks
+  // wherever these are used).
+  function chapterLabel(c: ChapterEntry, lang: TextLang): string {
+    switch (lang) {
+      case 'bo': return c.labelBo;
+      case 'cmn': return c.labelCmn;
+      case 'hi': return c.labelHi;
+      case 'ne': return c.labelNe;
+      default: return c.labelEn;
+    }
+  }
+  function chapterSectionTitle(c: ChapterEntry, lang: TextLang): string {
+    switch (lang) {
+      case 'bo': return c.sectionTitleBo;
+      case 'cmn': return c.sectionTitleCmn;
+      case 'hi': return c.sectionTitleHi;
+      case 'ne': return c.sectionTitleNe;
+      default: return c.sectionTitleEn;
+    }
   }
 
   // Only the current reading language's script, not both. For the two
@@ -195,7 +228,7 @@ const chapterData = await Promise.all(
 
   const COPYRIGHT_HTML = `
     <p style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid rgba(28,23,16,.1);font-size:.8rem;color:rgba(28,23,16,.55);line-height:1.6">
-      Text © 2016–2025 New Tibetan Bible translation committee, used under
+      Text © 2016–2026 New Tibetan Bible translation committee, used under
       <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" style="color:#a38a1e;text-decoration:underline">CC BY-NC-ND 4.0</a>.
       Illustrations courtesy of Sweet Publishing (public domain).
     </p>`;
@@ -204,7 +237,12 @@ const chapterData = await Promise.all(
     if (lang === 'bo') {
       return b.bo.length > 1 ? b.bo.map((line) => `<div>${line}</div>`).join('') : b.bo[0];
     }
-    return lang === 'cmn' ? b.cmn : b.en;
+    switch (lang) {
+      case 'cmn': return b.cmn;
+      case 'hi': return b.hi;
+      case 'ne': return b.ne;
+      default: return b.en;
+    }
   }
 
   // Verse-by-verse: each verse is its own block, full-size leading number.
@@ -252,7 +290,14 @@ const chapterData = await Promise.all(
         continue;
       }
       if (b.paragraphStart) flush();
-      const text = lang === 'bo' ? b.bo.join(' ') : lang === 'cmn' ? b.cmn : b.en;
+      let text: string;
+      switch (lang) {
+        case 'bo': text = b.bo.join(' '); break;
+        case 'cmn': text = b.cmn; break;
+        case 'hi': text = b.hi; break;
+        case 'ne': text = b.ne; break;
+        default: text = b.en;
+      }
       para += `<span data-verse="${b.number}"><span class="verse-num">${b.number}</span> ${text}</span> `;
     }
     flush();
@@ -307,8 +352,8 @@ const chapterData = await Promise.all(
 
       const labelEl = document.getElementById('modal-label');
       const titleEl = document.getElementById('modal-title');
-      const label = lang === 'bo' ? openChapterEntry.labelBo : lang === 'cmn' ? openChapterEntry.labelCmn : openChapterEntry.labelEn;
-      const sectionTitle = lang === 'bo' ? openChapterEntry.sectionTitleBo : lang === 'cmn' ? openChapterEntry.sectionTitleCmn : openChapterEntry.sectionTitleEn;
+      const label = chapterLabel(openChapterEntry, lang);
+      const sectionTitle = chapterSectionTitle(openChapterEntry, lang);
       if (labelEl) {
         labelEl.textContent = label;
         labelEl.classList.toggle('tibetan', lang === 'bo');
@@ -454,8 +499,8 @@ const chapterData = await Promise.all(
       const dialect = getDialect();
       const lang = getTextLang();
       const layout = getTextLayout();
-      const label = lang === 'bo' ? chapter.labelBo : lang === 'cmn' ? chapter.labelCmn : chapter.labelEn;
-      const sectionTitle = lang === 'bo' ? chapter.sectionTitleBo : lang === 'cmn' ? chapter.sectionTitleCmn : chapter.sectionTitleEn;
+      const label = chapterLabel(chapter, lang);
+      const sectionTitle = chapterSectionTitle(chapter, lang);
       const scriptCls = scriptClass(lang);
 
       content.innerHTML = `

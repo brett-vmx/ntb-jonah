@@ -7,6 +7,8 @@ const verseBlock = z.object({
   bo: z.array(z.string()), // one entry per poetic line; prose verses have length 1
   en: z.string(),
   cmn: z.string(), // Chinese (CUV) — no poetry line breaks in this source, plain string like en
+  hi: z.string(), // Hindi (2017) — text only, no audio track
+  ne: z.string(), // Nepali (ULB) — text only, no audio track
   paragraphStart: z.boolean(), // from the SFM's \p/\m markers — used by paragraph-layout mode
 });
 
@@ -31,6 +33,10 @@ const chapters = defineCollection({
       sectionTitleEn: z.string(),
       labelCmn: z.string(), // e.g. "第一章" — shown when text language is Chinese
       sectionTitleCmn: z.string(),
+      labelHi: z.string(), // e.g. "अध्याय 1" — shown when text language is Hindi
+      sectionTitleHi: z.string(),
+      labelNe: z.string(), // same label word as Hindi — shown when text language is Nepali
+      sectionTitleNe: z.string(),
       cover: image(),
       verseCount: z.number(),
       audio: z.object({

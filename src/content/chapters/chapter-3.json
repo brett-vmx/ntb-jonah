@@ -7,6 +7,10 @@
   "sectionTitleEn": "Jonah Goes to Nineveh",
   "labelCmn": "第三章",
   "sectionTitleCmn": "约拿顺服耶和华",
+  "labelHi": "अध्याय 3",
+  "sectionTitleHi": "आज्ञा का मानना",
+  "labelNe": "अध्याय 3",
+  "sectionTitleNe": "आज्ञाको पालना",
   "cover": "../../assets/chapters/covers/chapter-3.webp",
   "verseCount": 10,
   "audio": {
@@ -244,6 +248,8 @@
       ],
       "en": "Then the word of the LORD came to Jonah a second time:",
       "cmn": "耶和华的话二次临到约拿说：",
+      "hi": "तब यहोवा का यह वचन दूसरी बार योना के पास पहुँचा,",
+      "ne": "परमप्रभुको वचन योनाकहाँ दोस्रो पटक यसो भनेर आयो,",
       "paragraphStart": true
     },
     {
@@ -254,6 +260,8 @@
       ],
       "en": "“Get up! Go to the great city of Nineveh and proclaim to it the message that I give you.”",
       "cmn": "「你起来！往尼尼微大城去，向其中的居民宣告我所吩咐你的话。」",
+      "hi": "“उठकर उस बड़े नगर नीनवे को जा, और जो बात मैं तुझ से कहूँगा, उसका उसमें प्रचार कर।”",
+      "ne": "“उठ्‍, र त्यस ठुलो सहर निनवेमा जा र त्‍यसलाई दिनलाई मैले तँलाई आज्ञा गरेको सन्देश घोषणा गर् ।”",
       "paragraphStart": false
     },
     {
@@ -264,6 +272,8 @@
       ],
       "en": "This time Jonah got up and went to Nineveh, in accordance with the word of the LORD. Now Nineveh was an exceedingly great city, requiring a three-day journey.",
       "cmn": "约拿便照耶和华的话起来，往尼尼微去。这尼尼微是极大的城，有三日的路程。",
+      "hi": "तब योना यहोवा के वचन के अनुसार नीनवे को गया। नीनवे एक बहुत बड़ा नगर था, वह तीन दिन की यात्रा का था।",
+      "ne": "यसैले योना उठे र परमप्रभुको वचनमा आज्ञाकारी भएर निनवेमा गए । त्‍यस बेला निनवे अत्यन्‍तै ठुलो सहर थियो । त्यहाँ पुग्‍न तिन दिनको यात्रा गर्नुपर्थ्‍यो ।",
       "paragraphStart": false
     },
     {
@@ -274,6 +284,8 @@
       ],
       "en": "On the first day of his journey, Jonah set out into the city and proclaimed, “Forty more days and Nineveh will be overturned!”",
       "cmn": "约拿进城走了一日，宣告说：「再等四十日，尼尼微必倾覆了！」",
+      "hi": "और योना ने नगर में प्रवेश करके एक दिन की यात्रा पूरी की, और यह प्रचार करता गया, “अब से चालीस दिन के बीतने पर नीनवे उलट दिया जाएगा।”",
+      "ne": "योना सहरभित्र प्रवेश गर्न थाले र एक दिनको यात्रापछि उनले कराए र यसो भने, “अबको चालीस दिनमा निनवे नाश हुनेछ ।”",
       "paragraphStart": false
     },
     {
@@ -284,6 +296,8 @@
       ],
       "en": "And the Ninevites believed God. They proclaimed a fast and dressed in sackcloth, from the greatest of them to the least.",
       "cmn": "尼尼微人信服神，便宣告禁食，从最大的到至小的都穿麻衣-3:5或译：披上麻布。",
+      "hi": "तब नीनवे के मनुष्यों ने परमेश्वर के वचन पर विश्वास किया; और उपवास का प्रचार किया गया और बड़े से लेकर छोटे तक सभी ने टाट ओढ़ा। (मत्ती 12:41)",
+      "ne": "निनवेका मानिसहरूले परमेश्‍वरलाई विश्‍वास गरे र तिनीहरूले उपवासको घोषणा गरे । तिमध्‍ये ठुलादेखि लिएर सानासम्म सबैले भाङ्‍ग्रा लगाए ।",
       "paragraphStart": true
     },
     {
@@ -294,6 +308,8 @@
       ],
       "en": "When word reached the king of Nineveh, he got up from his throne, took off his royal robe, covered himself with sackcloth, and sat in ashes.",
       "cmn": "这信息传到尼尼微王的耳中，他就下了宝座，脱下朝服，披上麻布，坐在灰中。",
+      "hi": "तब यह समाचार नीनवे के राजा के कान में पहुँचा; और उसने सिंहासन पर से उठ, अपना राजकीय ओढ़ना उतारकर टाट ओढ़ लिया, और राख पर बैठ गया।",
+      "ne": "त्यो खबर चाँडै नै निनवेका राजाकहाँ पुग्‍यो । तिनी आफ्ना सिंहासनबाट उठे, आफ्नो वस्‍त्र उतारे, आफूलाई भाङ्‍ग्रा ढाके, र खरानीमा बसे ।",
       "paragraphStart": false
     },
     {
@@ -304,6 +320,8 @@
       ],
       "en": "Then he issued a proclamation in Nineveh: “By the decree of the king and his nobles: Let no man or beast, herd or flock, taste anything at all. They must not eat or drink.",
       "cmn": "他又使人遍告尼尼微通城，说：「王和大臣有令，人不可尝什么，牲畜、牛羊不可吃草，也不可喝水。",
+      "hi": "राजा ने अपने प्रधानों से सम्मति लेकर नीनवे में इस आज्ञा का ढिंढोरा पिटवाया, “क्या मनुष्य, क्या गाय-बैल, क्या भेड़-बकरी, या और पशु, कोई कुछ भी न खाएँ; वे न खाएँ और न पानी पीएँ।",
+      "ne": "तिनले एउटा यस्तो घोषणाको सन्‍देश पठाए, “निनवेमा, राजा र भारदारहरूको अधिकारले, कुनै मानिस वा गाईबस्‍तु वा भेडाबाख्राले कुनै कुरा खानेछैनन् । तिनीहरूले खाना नखाऊन्, न पानी पिऊन् ।",
       "paragraphStart": false
     },
     {
@@ -318,6 +336,8 @@
       ],
       "en": "Furthermore, let both man and beast be covered with sackcloth, and have everyone call out earnestly to God. Let each one turn from his evil ways and from the violence in his hands.",
       "cmn": "人与牲畜都当披上麻布；人要切切求告神。各人回头离开所行的恶道，丢弃手中的强暴。",
+      "hi": "और मनुष्य और पशु दोनों टाट ओढ़ें, और वे परमेश्वर की दुहाई चिल्ला चिल्लाकर दें; और अपने कुमार्ग से फिरें; और उस उपद्रव से, जो वे करते हैं, पश्चाताप करें।",
+      "ne": "तर मानिस र पशु दुबैले भाङ्‍ग्राले ढाकून्, र तिनीहरूले ठुलो सोरले परमेश्‍वारमा पुकारा गरून् । हरेक व्‍यक्‍ति आफ्ना दुष्‍ट मार्ग र आफ्ना हातले हिंसात्‍मक कामबाट फर्कून् ।",
       "paragraphStart": false
     },
     {
@@ -328,6 +348,8 @@
       ],
       "en": "Who knows? God may turn and relent; He may turn from His fierce anger, so that we will not perish.”",
       "cmn": "或者神转意后悔，不发烈怒，使我们不致灭亡，也未可知。」",
+      "hi": "सम्भव है, परमेश्वर दया करे और अपनी इच्छा बदल दे, और उसका भड़का हुआ कोप शान्त हो जाए और हम नाश होने से बच जाएँ।”",
+      "ne": "कसलाई जान्‍दछ? परमेश्‍वर नरम बन्‍न र आफ्नो मनलाई बद्लन र आफ्नो भयङ्कर क्रोधबाट फर्कन सक्‍नुहुन्‍छ, जसले गर्दा हामी नष्‍ट हुनेछैनौं ।”",
       "paragraphStart": false
     },
     {
@@ -338,6 +360,8 @@
       ],
       "en": "When God saw their actions—that they had turned from their evil ways—He relented from the disaster He had threatened to bring upon them.",
       "cmn": "于是神察看他们的行为，见他们离开恶道，他就后悔，不把所说的灾祸降与他们了。",
+      "hi": "जब परमेश्वर ने उनके कामों को देखा, कि वे कुमार्ग से फिर रहे हैं, तब परमेश्वर ने अपनी इच्छा बदल दी, और उनकी जो हानि करने की ठानी थी, उसको न किया।",
+      "ne": "तिनीहरूले जे गरे त्‍यो परमेश्‍वरले देख्‍नुभयो । यसरी तिनीहरू आफ्ना दुष्‍ट मार्गहरूबाट फर्के । यसैले परमेश्‍वरले तिनीहरूलाई दिन्‍छु भन्‍नुभएको दण्डको बारेमा उहाँले आफ्नो मन परिवर्तन गर्नुभयो, र उहाँले त्यसो गर्नुभएन ।",
       "paragraphStart": true
     }
   ]
