@@ -267,6 +267,39 @@ the first such round-trip because their listeners were bound to DOM nodes
 that no longer exist post-swap. Reproduce-and-verify this specific sequence
 (open a chapter → close it → click a header icon) after touching Layout.astro.
 
+### `initModal()`/`initHeader()` also run once eagerly, not only on `astro:page-load`
+**Real bug, reported and fixed:** on a cold/first load, clicking a chapter
+card would sometimes navigate to the static `/chapter/[n]` fallback page
+(showing its own "← Back to Chapters" link) instead of opening the SPA
+modal — but only ever on the *first* click after a fresh page load; every
+click after that worked correctly. Root cause: `initModal()` (index.astro)
+and `initHeader()` (Layout.astro) were called *only* from inside their
+`astro:page-load` listener. That event fires once for the very first
+navigation too, but this page's own script is a separately-fetched module —
+on a cold load it can still be loading/parsing when `astro:page-load`
+already fires, so the listener isn't registered yet to catch that first
+dispatch, and `initModal()` never runs at all for that load. Every
+`a[data-chapter]` card is a real `<a href="/chapter/N">`, so with no
+listener intercepting it, the click just falls through to the browser's
+plain navigation, landing on the real static fallback page. The very next
+navigation back to `/` is a same-document view-transition swap (no network
+fetch involved, the module's already resident), so its `astro:page-load`
+fires and is caught normally — which is why the bug only ever showed up
+once per fresh load, not on every click.
+
+Fixed by also calling `initModal()`/`initHeader()` once, synchronously,
+right after each one is defined — not waiting on the event at all for that
+first run. This only works safely because every listener each function
+binds directly (not the ones inside per-chapter-open helpers like
+`initAudioPlayer()`, which already get fresh DOM nodes each open) uses
+`{ signal }` from that function's own `AbortController` guard — so if both
+the eager call and the `astro:page-load` listener end up firing for the
+same initial load, the second call just aborts-and-rebinds instead of
+stacking a second copy of every listener. Don't add a new listener inside
+either function without `{ signal }`, or this eager-call safety net breaks
+silently (double-firing on every subsequent real view transition, not just
+this edge case).
+
 ### Astro's ClientRouter hijacks our own back/forward — intercepted deliberately
 **Real bug, reproduced and fixed, not a guess:** using the browser's own
 back/forward buttons around an open chapter modal would sometimes land on

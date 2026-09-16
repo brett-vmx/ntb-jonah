@@ -920,23 +920,23 @@ const chapterData = await Promise.all(
       link.addEventListener('click', (e) => {
         e.preventDefault();
         openChapter(Number(link.dataset.chapter));
-      });
+      }, { signal });
     });
 
-    closeBtn.addEventListener('click', () => closeModal(false));
-    backdrop.addEventListener('click', () => closeModal(false));
+    closeBtn.addEventListener('click', () => closeModal(false), { signal });
+    backdrop.addEventListener('click', () => closeModal(false), { signal });
 
     let touchStartY = 0;
     panel.addEventListener('touchstart', (e) => {
       touchStartY = e.touches[0].clientY;
-    }, { passive: true });
+    }, { passive: true, signal });
     panel.addEventListener('touchend', (e) => {
       if (window.innerWidth >= 768) return;
       const deltaY = e.changedTouches[0].clientY - touchStartY;
       if (deltaY > 80 && (scrollDiv?.scrollTop ?? 0) === 0) {
         closeModal(false);
       }
-    }, { passive: true });
+    }, { passive: true, signal });
 
     // Swipe left/right on the reading content to go to the next/previous
     // chapter (John's request #3 — an alternative to scrolling all the way
@@ -994,4 +994,24 @@ const chapterData = await Promise.all(
   document.addEventListener('astro:page-load', () => {
     initModal();
   });
+
+  // Also run once immediately, synchronously, rather than relying solely on
+  // the listener above. Real bug, reproduced: on a cold/first load, this
+  // module script (fetched over the network, unlike Astro's own
+  // ClientRouter setup) can still be loading when `astro:page-load` fires
+  // for that very first navigation — the listener above simply isn't
+  // registered yet to catch it, so initModal() never ran and every
+  // `a[data-chapter]` card fell through to its plain href, landing on the
+  // static /chapter/[n] fallback page instead of opening the SPA modal.
+  // Only ever showed up on the *first* click after a fresh page load — by
+  // the time the reader navigated back (a same-document swap Astro's
+  // router handles instantly, no network fetch involved), this script had
+  // long since finished loading, so the next `astro:page-load` was caught
+  // normally and everything worked from then on. initModal()'s own
+  // AbortController guard (and the `{ signal }` on every listener it binds
+  // directly, not just the ones inside per-chapter-open helpers) makes it
+  // safe to call twice in a row against the same DOM, so this eager call
+  // can never double-bind anything even when both this line and the
+  // listener above end up firing for the same initial load.
+  initModal();
 </script>

@@ -523,6 +523,15 @@ const {
       }
 
       document.addEventListener('astro:page-load', initHeader);
+
+      // Also run once immediately — see the matching comment in
+      // index.astro's own `initModal()` call for why: on a cold/first load,
+      // this script can still be loading when `astro:page-load` fires for
+      // that very first navigation, so the listener above alone can miss
+      // it. initHeader()'s AbortController guard (every listener it binds
+      // uses `{ signal }`) makes it safe to call twice in a row against the
+      // same DOM.
+      initHeader();
     </script>
   </body>
 </html>
