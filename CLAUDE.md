@@ -1061,23 +1061,48 @@ check for the introduction means none of them needed to change at all.
 Unlike a chapter, opening the introduction does **not** push a history
 entry — same as the About/Settings sheets in Layout.astro, it's a peek
 from the homepage, not a deep-linkable page. The bottom-of-content nav
-reuses `chapterNavHtml(0, chapters.length)` unchanged — passing `0` for
-"current chapter" naturally omits the prev link (nothing before the
+reuses `chapterNavHtml(0, chapters.length, 'bo')` unchanged — passing `0`
+for "current chapter" naturally omits the prev link (nothing before the
 introduction) and renders a real "1 ›" link to chapter 1, no new code
 needed there.
 
-**Swipe-to-chapter-1**: the existing chapter-to-chapter swipe handler on
-`scrollDiv` now checks `introOpen` first — only a forward (left) swipe does
-anything (opens chapter 1); a swipe right is a no-op, since there's nothing
-before "Chapter 0". Going from the introduction into chapter 1 this way is
-just a normal `openChapter(1)` call, which *does* push its own history
-entry as usual — closing chapter 1 afterward then goes back to before the
-introduction was ever opened (same as closing any About/Settings-sheet-style
-overlay), not to the introduction itself. Reaching chapter 1 from the
-introduction is one-directional by design (per Brett's own description,
-"close out or swipe to chapter 1") — chapter 1 does not gain a
-swipe-back/prev-nav-link into the introduction; add that later if asked,
-rather than assuming it's wanted.
+**Swipe/nav is bidirectional between the introduction and chapter 1**
+(Brett's follow-up request, for consistency — his own words: "I don't like
+how [it's one-directional]... I'm leaning toward [both directions]"):
+- Forward (introduction → chapter 1): the chapter-to-chapter swipe handler
+  on `scrollDiv` checks `introOpen` first — a forward (left) swipe opens
+  chapter 1; a swipe right there is still a no-op (nothing before "Chapter
+  0"). The bottom "1 ›" link does the same via `bindNavLinks()`.
+- Backward (chapter 1 → introduction, Tibetan only): `chapterNavHtml()`
+  takes a `lang` parameter now — when `n === 1 && lang === 'bo'`, the
+  "prev" slot renders a `‹ ངོ་སྤྲོད།` link (`data-goto-intro`, the same
+  Tibetan word as the homepage button) instead of staying empty. The
+  swipe handler's chapter-1 branch mirrors this: `deltaX > 0 && n === 1 &&
+  getTextLang() === 'bo'` calls `openIntro()`. Both are gated on Tibetan
+  the same way the introduction button itself is — reading any other
+  language, chapter 1's "prev" slot stays empty and swiping right does
+  nothing, exactly like before this change.
+- Since this back-link's presence now depends on `lang`, not just chapter
+  number, it needs to be re-derived on a language change while chapter 1
+  is already open, not only at `openChapter()` time — `renderReadSection()`
+  regenerates `#modal-chapter-nav`'s innerHTML and re-binds its links on
+  every `jonah:text-settings-changed`, the same live-update treatment
+  already given to the label/title/dialect display right above it in that
+  function. Forgetting this step would leave a stale Tibetan-only link
+  visible after switching to English/Chinese/Hindi/Nepali on chapter 1.
+- `bindNavLinks()` is the one shared helper behind all three call sites
+  that ever render this nav (`openChapter()`, `openIntro()`,
+  `renderReadSection()`'s refresh) — binds both `a[data-goto-chapter]` and
+  `a[data-goto-intro]` clicks, since every one of those call sites
+  regenerates fresh DOM each time and needs fresh listeners to match (same
+  reasoning as `initAudioPlayer()`/`initDialectPopover()`).
+- Going from the introduction into chapter 1 (or back) is a normal
+  `openChapter(1)`/`openIntro()` call either way, so it follows the same
+  history rules already described above: entering a chapter always pushes
+  a history entry; opening the introduction never does. Closing chapter 1
+  after arriving via the back-link still goes back to wherever the
+  introduction itself was opened from (its own entry was never pushed),
+  not to the introduction a second time.
 
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
@@ -1168,9 +1193,15 @@ rather than assuming it's wanted.
   and don't show `#intro-btn` for any reading language but Tibetan — NTB
   hasn't translated the introduction into those languages (see "Book
   introduction" above)
-- Do not give the introduction its own history entry / URL, and don't add
-  a swipe-back/prev-nav link from chapter 1 into it — it's a homepage peek
-  like the About/Settings sheets, one-directional into chapter 1 by design
+- Do not give the introduction its own history entry / URL — it's a
+  homepage peek like the About/Settings sheets, even though chapter 1 now
+  links/swipes back to it (see "Book introduction" above); closing chapter
+  1 after arriving that way still goes back to before the introduction was
+  opened, not to the introduction itself
+- Do not add the chapter-1-back-to-introduction link/swipe for any reading
+  language but Tibetan — it's gated in both `chapterNavHtml()` and the
+  swipe handler the same way `#intro-btn` is, and needs to disappear (not
+  just stay stale) if the reader switches language while chapter 1 is open
   (see "Book introduction" above)
 
 ## Deployment

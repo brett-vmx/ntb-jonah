@@ -245,9 +245,17 @@ const chapterData = await Promise.all(
   // Previous/next-CHAPTER nav at the bottom of the reading content — distinct
   // from the prev/next-VERSE transport buttons on the LISTEN bar. Just a
   // number + chevron per John's spec, not "Chapter N", since the chapter
-  // label/title already say that at the top.
-  function chapterNavHtml(n: number, maxChapter: number): string {
-    const prev = n > 1
+  // label/title already say that at the top. Chapter 1's "prev" slot is the
+  // one exception — reading Tibetan, it links back to the introduction
+  // ("Chapter 0") instead of staying empty, so the swipe-back gesture has a
+  // discoverable, tappable equivalent (Brett's request, for consistency
+  // with swipe-forward from the introduction into chapter 1). Gated on
+  // `lang` since the introduction only exists in Tibetan — n===1 in any
+  // other reading language still shows nothing here, same as before.
+  function chapterNavHtml(n: number, maxChapter: number, lang: TextLang): string {
+    const prev = n === 1 && lang === 'bo'
+      ? `<a href="#" data-goto-intro style="display:flex;align-items:center;gap:.3rem;color:#1c1710;font-weight:700;font-size:1.1rem;text-decoration:none">${CHEVRON_LEFT}<span class="tibetan">ངོ་སྤྲོད།</span></a>`
+      : n > 1
       ? `<a href="/chapter/${n - 1}" data-goto-chapter="${n - 1}" style="display:flex;align-items:center;gap:.3rem;color:#1c1710;font-weight:700;font-size:1.1rem;text-decoration:none">${CHEVRON_LEFT}<span>${n - 1}</span></a>`
       : '<span></span>';
     const next = n < maxChapter
@@ -419,6 +427,17 @@ const chapterData = await Promise.all(
       if (dialectLabelEl) dialectLabelEl.innerHTML = dialectDisplay(getDialect(), lang);
       populateDialectPopover(lang);
 
+      // Chapter 1's bottom nav shows a "back to introduction" link only in
+      // Tibetan (see chapterNavHtml) — needs regenerating on a language
+      // change too, not just at chapter-open time, or switching away from
+      // Tibetan on chapter 1 would leave a stale link to Tibetan-only
+      // content visible.
+      const navEl = document.getElementById('modal-chapter-nav');
+      if (navEl) {
+        navEl.innerHTML = chapterNavHtml(openChapterEntry.chapterNumber, chapters.length, lang);
+        bindNavLinks(navEl);
+      }
+
       applyVerseHighlight(); // re-render wiped #modal-blocks, so the highlight needs reapplying
     }
 
@@ -537,6 +556,26 @@ const chapterData = await Promise.all(
       if (introOpen && getTextLang() !== 'bo') closeModal(false);
     }, { signal });
 
+    // Shared by openChapter()/openIntro()'s bottom nav (chapterNavHtml) and
+    // by renderReadSection()'s refresh of that same nav on a language
+    // change — every one of those regenerates the nav's HTML from scratch,
+    // so the links need fresh listeners each time, same reasoning as
+    // initAudioPlayer()/initDialectPopover() below.
+    function bindNavLinks(container: HTMLElement) {
+      container.querySelectorAll<HTMLAnchorElement>('a[data-goto-chapter]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          openChapter(Number(link.dataset.gotoChapter));
+        });
+      });
+      container.querySelectorAll<HTMLAnchorElement>('a[data-goto-intro]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          openIntro();
+        });
+      });
+    }
+
     // Book introduction (John's request #20) — reuses the same modal shell
     // as a chapter (backdrop, panel, close button, swipe-to-advance) but
     // with no LISTEN bar at all, since there's no audio for it. Doesn't
@@ -578,7 +617,7 @@ const chapterData = await Promise.all(
             </div>
           </section>
 
-          ${chapterNavHtml(0, chapters.length)}
+          ${chapterNavHtml(0, chapters.length, 'bo')}
 
           ${COPYRIGHT_HTML}
         </div>
@@ -588,12 +627,7 @@ const chapterData = await Promise.all(
       // Same re-entrant nav pattern as openChapter()'s own bottom link —
       // chapterNavHtml(0, ...) only ever renders a "next" link (to chapter
       // 1), since there's nothing before the introduction.
-      content.querySelectorAll<HTMLAnchorElement>('a[data-goto-chapter]').forEach((link) => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          openChapter(Number(link.dataset.gotoChapter));
-        });
-      });
+      bindNavLinks(content);
 
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
@@ -640,7 +674,7 @@ const chapterData = await Promise.all(
             </div>
           </section>
 
-          ${chapterNavHtml(n, chapters.length)}
+          <div id="modal-chapter-nav">${chapterNavHtml(n, chapters.length, lang)}</div>
 
           ${COPYRIGHT_HTML}
         </div>
@@ -752,15 +786,11 @@ const chapterData = await Promise.all(
       initDialectPopover();
       updatePrevNextEnabled();
 
-      // Chapter-to-chapter nav at the bottom of the reading content is
-      // regenerated on every openChapter() call, so its links need fresh
-      // listeners each time too (same reasoning as initAudioPlayer above).
-      content.querySelectorAll<HTMLAnchorElement>('a[data-goto-chapter]').forEach((link) => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          openChapter(Number(link.dataset.gotoChapter));
-        });
-      });
+      // Chapter-to-chapter nav (and, on chapter 1 in Tibetan, the link back
+      // to the introduction) is regenerated on every openChapter() call, so
+      // its links need fresh listeners each time too (same reasoning as
+      // initAudioPlayer above).
+      bindNavLinks(content);
 
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
@@ -1109,6 +1139,11 @@ const chapterData = await Promise.all(
       const n = openChapterEntry.chapterNumber;
       if (deltaX < 0 && n < chapters.length) openChapter(n + 1);
       else if (deltaX > 0 && n > 1) openChapter(n - 1);
+      // Chapter 1 swiping right, reading Tibetan, goes back to the
+      // introduction — the reverse of "Chapter 0"'s own forward-only swipe
+      // above. Gated on lang the same way chapterNavHtml's own back-to-
+      // intro link is, since the introduction doesn't exist otherwise.
+      else if (deltaX > 0 && n === 1 && getTextLang() === 'bo') openIntro();
     }, { passive: true, signal });
 
     // Handles both directions of browser back/forward: closes the modal
