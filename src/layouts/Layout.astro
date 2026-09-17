@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import { ViewTransitions } from 'astro:transitions';
 import logoWordmark from '../assets/branding/ntb-navbar-wordmark-gold.png';
-import aboutCover from '../assets/branding/jonah-about-banner.jpg';
+import aboutCover from '../assets/branding/jonah-about-banner.webp';
 import { Image } from 'astro:assets';
 import { Share2, Info, Settings } from '@lucide/astro';
 import { DIALECT_LABELS } from '../i18n/settings-store';
@@ -216,11 +216,15 @@ const {
          Same dim-backdrop/outside-click-close pattern as the settings sheet,
          plus an explicit close button since its content is longer/scrollable
          (matches the chapter modal's own close-button treatment). Cover art
-         is jonah-about-banner.jpg — one of the Sweet Publishing illustrations
+         is jonah-about-banner.webp — one of the Sweet Publishing illustrations
          with John's own logo + Tibetan "Jonah" wordmark composited into the
-         bottom-left corner (John's request #14), replacing the earlier
-         Jonah_cover.png placeholder (which had used a different, unfinished
-         text overlay baked into the raster). -->
+         bottom-left corner (John's request #14, finalized as request #19),
+         replacing the earlier Jonah_cover.png placeholder (which had used a
+         different, unfinished text overlay baked into the raster). Source
+         (source-assets/images/jonah-about-banner-final.jpg, 1484×1850,
+         ~1.1MB) is resized to 896×1118 — 2x the display size, for retina
+         sharpness on a prominent hero image — and converted to webp; see
+         "About page" in CLAUDE.md for the exact file sizes at each step. -->
     <div id="about-sheet" class="fixed inset-0 z-[300] hidden pointer-events-none">
       <div id="about-sheet-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none"></div>
       <div class="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none md:inset-0 md:items-center">

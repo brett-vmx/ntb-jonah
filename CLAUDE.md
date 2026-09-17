@@ -438,6 +438,21 @@ across the nine speed values ("1×" vs. "0.5×"/"1.3×"), and under
 (the chevrons') computed gap, so without a fixed width the chevrons
 visibly jumped position every time the speed changed.
 
+**Real bug, reported and fixed:** `#modal-time-display` (the *other*
+flanking child, on row 2's opposite side) needed the same treatment —
+John noticed the chevrons drifting left/right as playback progressed, even
+though every duration in this app is under 10 minutes, so the string's
+*character count* never actually changes ("M:SS / M:SS" always). The
+culprit was pixel width, not character count: the default sans font isn't
+using tabular figures, so "1" and "8" don't render the same width, and
+`audio.currentTime` ticking through its digits every second was enough to
+visibly nudge the chevrons under `space-between`. Fixed the same way as
+the speed button — `#modal-time-display` now has a fixed `width:5.5rem`
+— plus `font-variant-numeric:tabular-nums` so the digits themselves stop
+fluctuating too (belt-and-suspenders, since a fixed-width container alone
+already stops the chevrons moving). Widen this if a future chapter/dialect
+ever runs 10+ minutes (a 5th "M" digit would need the extra room).
+
 ### Loop control (John's request #10, modeled on Global Bible Tools)
 `#modal-loop-btn` sits immediately left of the speed button — both wrapped
 in one flex group so they still act as row 3's single third child under
@@ -678,7 +693,7 @@ src/assets/chapters/covers/   Homepage chapter-card images (webp, square-cropped
 src/assets/chapters/inline/   In-reading illustrations (webp)
 src/assets/branding/          Logo variants — ntb-navbar-wordmark-gold.png (current
                                header logo, John's second-round Tibetan-wordmark-on-
-                               gold-pill design) and jonah-about-banner.jpg (About
+                               gold-pill design) and jonah-about-banner.webp (About
                                page cover art, see "About page" above) plus older
                                circle/inverse/full/mark-white variants kept for
                                reference (ntb-logo-mark-white.png was the header
@@ -851,11 +866,13 @@ popover's outside-click close, not a backdrop click handler.
 
 ## Page structure
 Essentially one page (`src/pages/index.astro`):
-1. 2-col grid of 4 chapter cards — square image, dark scrim + big white
+1. Book-introduction button (`#intro-btn`, Tibetan reading language only —
+   see "Book introduction" above), directly above the grid
+2. 2-col grid of 4 chapter cards — square image, dark scrim + big white
    numeral (per client reference: a food-photography meal-plan app with the
    same "numeral over photo" card treatment), Tibetan chapter label at the
    bottom
-2. Cross-promo section: "Get the full New Tibetan Bible app" + official
+3. Cross-promo section: "Get the full New Tibetan Bible app" + official
    App Store / Google Play badges linking to that separate sibling app. The
    subtext under the heading is John's own wording ("The complete Bible in
    Modern Literary Tibetan with Central, Amdo, and Kham audio.") — don't
@@ -922,15 +939,30 @@ other provisional translations in this doc (the dialect labels, for
 instance). Chinese needed its own character-subset fix after being added —
 see "Fonts" above.
 
-Cover art is `jonah-about-banner.jpg` (`source-assets/images/
-jonah-about-banner-fullbody_1.jpg`) — one of the Sweet Publishing chapter
+Cover art is `jonah-about-banner.webp` (`source-assets/images/
+jonah-about-banner-final.jpg` — John's finalized version of the earlier
+`-fullbody_1.jpg` draft) — one of the Sweet Publishing chapter
 illustrations with John's own logo + Tibetan "Jonah" wordmark composited
-into the bottom-left corner (John's request #14, second round of quick
-edits), replacing the earlier `jonah-cover-about.png` placeholder (which
-had used a different, unfinished raster with baked-in text). Displayed at
+into the bottom-left corner (John's request #14, finalized as #19),
+replacing the earlier `jonah-cover-about.png` placeholder (which had used a
+different, unfinished raster with baked-in text). Displayed at
 `width={448} height={559}` — matches this image's own ~4:5 aspect ratio
 (1484×1850), not the old placeholder's ~5:7 — re-check this if the image
 is ever swapped again.
+
+Per John's request #19, the checked-in asset is pre-shrunk rather than
+relying solely on Astro's own build-time optimization: resized from the
+1484×1850 source down to 896×1118 (2x the display size, for retina
+sharpness on a prominent hero image — not 1x, since a photo like this
+visibly softens without headroom) and converted to WebP, both with Pillow.
+File size at each step, since John asked specifically: source JPG 1.1MB →
+resized JPG 328KB → resized+WebP 179KB. (Astro's own asset pipeline then
+optimizes *that* down further to the actual served file, ~51KB at the
+`width={448}` this component renders — the manual shrink is about not
+carrying a needlessly huge original in the repo, not about the production
+file size, which Astro would have produced correctly either way.) Re-derive
+the same way (Pillow resize + WebP, quality ~82) if this image is ever
+replaced again.
 
 The copyright line reads "yohna.app", not "new-tibetan-bible.com" — Brett
 clarified that yohna.app is the custom domain John bought specifically for
@@ -945,6 +977,107 @@ is what he meant, not the cross-promo one. `astro.config.mjs`'s `site:`
 was deliberately left on the Netlify domain, not changed to yohna.app —
 that's a DNS/custom-domain hookup on Netlify's own dashboard, an
 account-level action, not a code change.
+
+### Book introduction — "Chapter 0", Tibetan only
+John's request #20 (third round of quick edits): NTB has written
+introductions for all 66 books (title/background, author/date, theme/
+message, outline), and wanted Jonah's added. His first idea was a
+hamburger-menu icon on the LISTEN bar opening a dedicated page — Brett
+pushed back on that specifically because the introduction is pure text
+with **no audio component at all** (confirmed: `source-assets/
+NTB_Jonah_Introduction.rtf` is the only file in the folder John pointed
+to, no accompanying audio), so putting its entry point on the *audio*
+player conflated two unrelated things. Brett's own placement, which is
+what got built: a plain text button above the 4 chapter cards on the
+homepage that opens the same modal shell a chapter uses, functioning as
+an unnumbered "Chapter 0" — closeable normally, or swipeable forward into
+chapter 1.
+
+**Content pipeline** — same "generated, not hand-authored" discipline as
+the chapters: `gen-chapters.mjs`'s `parseIntro()`/`decodeIntroRtf()` parse
+`source-assets/NTB_Jonah_Introduction.rtf` into `src/content/intro/
+jonah.json` (a new one-entry `intro` content collection, `content.config.ts`)
+every time `npm run gen-chapters` runs — don't hand-edit that JSON. The RTF
+is a Cocoa/TextEdit export whose body is *literally USFM markup typed as
+plain text* (`\mt`/`\imt`/`\is1`/`\ipi`) wrapped in Cocoa RTF's Unicode
+escaping (`\uc0\uNNNN` per character, `\\` for a literal backslash, a lone
+`\` before a real newline for a paragraph break) — `decodeIntroRtf()`
+un-escapes exactly that scheme from scratch in JS, the same "no shelling
+out to a Mac-only tool" discipline as `unescapeRtf()`/`parseBsb()` already
+use for `Jonah_BSB.rtf` (`textutil -convert txt` was used only to
+eyeball/verify the decoder's output while writing it, never as part of the
+actual pipeline). `\mt` (the book's own title) and `\imt` (the
+introduction's own longer title) become the modal's small label + heading,
+mirroring a chapter's labelBo/sectionTitleBo pairing; each `\is1` section's
+`\ipi` paragraphs — including the outline's numbered/lettered sub-points,
+which are already literal text in the source (ཀ/ཁ/ག/ང markers, verse-range
+parens) — render as plain stacked paragraphs under a gold heading, no
+special list markup needed.
+
+**Text-only, Tibetan-only, by design** — per John, no introductions for
+English/Chinese/Hindi/Nepali (NTB hasn't translated them, and there's
+nothing to translate them *from* in-app the way other provisional
+translations in this doc are Claude's own). The `#intro-btn` button
+(index.astro, homepage markup) starts visible in the server-rendered HTML
+(Tibetan is the default reading language) and is hidden/shown by
+`updateIntroBtnVisibility()` on every `jonah:text-settings-changed`, same
+event-driven pattern as every other reactive UI bit in this app. If the
+introduction is open and the reader switches away from Tibetan mid-view, a
+dedicated listener closes the modal outright — `renderReadSection()`
+(bound to the same event) doesn't handle this itself, since it bails out
+whenever `openChapterEntry` is null, which is always true while the
+introduction is showing (see below).
+
+**Styling — deliberately not a primary button.** Brett was explicit: no
+background, no border, since a bold filled button would visually compete
+with the chapter grid right below it for primary attention. Reviewed 3
+live variants (gold text+chevron, black text+chevron, faint-background
+pill with no chevron) before picking plain ink (`#1c1710`) text plus a
+small trailing chevron over gold — full-width for a comfortable tap
+target but with zero button "chrome". Don't add a fill, border, or
+shadow back, or swap the text color to gold, without checking first.
+
+The label sits in a true center column
+(`grid-template-columns:1fr auto 1fr`, chevron in the trailing column)
+rather than a plain flex row with the chevron as a sibling — **real bug,
+reported and fixed:** a flex layout centers the *whole* label+chevron
+group, which shifts the *text's own* center off the button's true center
+since the chevron only adds width on one side. Brett noticed this reading
+as visibly out of line with "Jonah" in the header directly above it. The
+grid's two equal (`1fr`) side columns keep the middle (text) column
+exactly centered regardless of the chevron, which lives entirely in the
+third column and never affects the text's position.
+
+**`openIntro()` reuses the chapter modal shell** (index.astro,
+`initModal()`) — same backdrop/panel/close-button/swipe-down-to-dismiss as
+a chapter, but with `listenBar.innerHTML` left empty (no audio, so no
+LISTEN bar at all) and a new `introOpen` boolean tracked alongside (never
+simultaneously with) `openChapterEntry`. Kept as a separate flag rather
+than modeling the introduction as a fake `ChapterEntry` because every
+audio/dialect/timing function in this file already treats "`openChapterEntry`
+is null" as its no-op condition (`renderReadSection`, `applyVerseHighlight`,
+`updatePrevNextEnabled`, `updateAudioForDialect`) — reusing that same null
+check for the introduction means none of them needed to change at all.
+Unlike a chapter, opening the introduction does **not** push a history
+entry — same as the About/Settings sheets in Layout.astro, it's a peek
+from the homepage, not a deep-linkable page. The bottom-of-content nav
+reuses `chapterNavHtml(0, chapters.length)` unchanged — passing `0` for
+"current chapter" naturally omits the prev link (nothing before the
+introduction) and renders a real "1 ›" link to chapter 1, no new code
+needed there.
+
+**Swipe-to-chapter-1**: the existing chapter-to-chapter swipe handler on
+`scrollDiv` now checks `introOpen` first — only a forward (left) swipe does
+anything (opens chapter 1); a swipe right is a no-op, since there's nothing
+before "Chapter 0". Going from the introduction into chapter 1 this way is
+just a normal `openChapter(1)` call, which *does* push its own history
+entry as usual — closing chapter 1 afterward then goes back to before the
+introduction was ever opened (same as closing any About/Settings-sheet-style
+overlay), not to the introduction itself. Reaching chapter 1 from the
+introduction is one-directional by design (per Brett's own description,
+"close out or swipe to chapter 1") — chapter 1 does not gain a
+swipe-back/prev-nav-link into the introduction; add that later if asked,
+rather than assuming it's wanted.
 
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
@@ -1026,6 +1159,19 @@ account-level action, not a code change.
   yohna.app — they're deliberately different domains now (see "About page"
   above); if this reads wrong, it's Claude's interpretation of an
   ambiguous instruction, not a settled decision — check with Brett first
+- Do not add a background, border, or shadow to `#intro-btn` (the book-
+  introduction button above the chapter grid) without checking with Brett
+  first — he was explicit it should read as plain text, not a primary
+  button, so it doesn't visually compete with the chapter grid right below
+  it (see "Book introduction" above)
+- Do not add English/Chinese/Hindi/Nepali content to the book introduction,
+  and don't show `#intro-btn` for any reading language but Tibetan — NTB
+  hasn't translated the introduction into those languages (see "Book
+  introduction" above)
+- Do not give the introduction its own history entry / URL, and don't add
+  a swipe-back/prev-nav link from chapter 1 into it — it's a homepage peek
+  like the About/Settings sheets, one-directional into chapter 1 by design
+  (see "Book introduction" above)
 
 ## Deployment
 - **Netlify**, not Cloudflare Pages — push to GitHub → Netlify auto-deploys.

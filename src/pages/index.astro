@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 import { getImage } from 'astro:assets';
 import Layout from '../layouts/Layout.astro';
 import ChapterCard from '../components/ChapterCard.astro';
@@ -7,6 +7,9 @@ import ChapterCard from '../components/ChapterCard.astro';
 const all = await getCollection('chapters');
 const byOrder = (a: any, b: any) => a.data.order - b.data.order;
 const chapters = all.sort(byOrder);
+
+const introEntry = await getEntry('intro', 'jonah');
+const introData = introEntry?.data ?? null;
 
 const chapterData = await Promise.all(
   chapters.map(async (c) => {
@@ -42,6 +45,33 @@ const chapterData = await Promise.all(
 
 <Layout>
   <div class="px-4 py-6">
+    <!-- Book introduction (John's request #20) — Tibetan only (see
+         "Book introduction" in CLAUDE.md), so this starts visible
+         (default reading language is Tibetan) and is hidden/shown by
+         updateIntroBtnVisibility() below on every language change.
+         Deliberately no background/border per Brett — a plain text
+         label+chevron, not a primary-looking button, so it doesn't
+         visually compete with the chapter grid right below it (Brett's
+         choice among 3 options — variant "B": black/ink text, not gold).
+         The label sits in a true center column (grid-template-columns:
+         1fr auto 1fr) with the chevron riding in the trailing column
+         instead of as a flex sibling — a flex layout with the chevron
+         next to the text shifts the *label's own* center off the
+         button's true center (visibly out of line with "Jonah" in the
+         header above), which is what this avoids. -->
+    <button
+      type="button"
+      id="intro-btn"
+      class="tibetan w-full mb-3"
+      style="background:none;border:none;padding:.6rem 0;cursor:pointer;color:#1c1710;font-size:1.05rem;font-weight:700;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%"
+    >
+      <span></span>
+      <span>ངོ་སྤྲོད།</span>
+      <span style="justify-self:start;margin-left:.35rem;display:flex;align-items:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+      </span>
+    </button>
+
     <div class="grid grid-cols-2 gap-4">
       {
         chapters.map((c) => (
@@ -129,8 +159,9 @@ const chapterData = await Promise.all(
   }
 </style>
 
-<script define:vars={{ chapterData }}>
+<script define:vars={{ chapterData, introData }}>
   window.__CHAPTERS__ = chapterData;
+  window.__INTRO__ = introData;
 </script>
 
 <script>
@@ -159,6 +190,9 @@ const chapterData = await Promise.all(
     timing: AudioMap<TimingTrack>;
     blocks: Block[];
   }
+
+  interface IntroSection { heading: string; paragraphs: string[] }
+  interface IntroData { mainTitle: string; introTitle: string; sections: IntroSection[] }
 
   // Chapter label/section-title lookup for the current reading language —
   // one place instead of the same 5-way branch repeated at every call site
@@ -333,9 +367,18 @@ const chapterData = await Promise.all(
     if (!modal || !backdrop || !panel || !closeBtn || !content || !listenBar) return;
 
     const chapters: ChapterEntry[] = (window as unknown as { __CHAPTERS__: ChapterEntry[] }).__CHAPTERS__ ?? [];
+    const introData: IntroData | null = (window as unknown as { __INTRO__: IntroData | null }).__INTRO__ ?? null;
     let modalOpen   = false;
     let pushedState = false;
     let openChapterEntry: ChapterEntry | null = null;
+    // Set while the book-introduction "Chapter 0" is showing — mutually
+    // exclusive with openChapterEntry (never both at once). Kept separate
+    // rather than folding into ChapterEntry|null because the introduction
+    // has no audio/dialect/timing at all, and every other function here
+    // already treats "openChapterEntry is null" as "nothing chapter-shaped
+    // is open" — reusing that would make those functions run for the
+    // introduction too.
+    let introOpen = false;
 
     const prevAbort = (window as any).__modalAbort as AbortController | undefined;
     if (prevAbort) prevAbort.abort();
@@ -484,6 +527,85 @@ const chapterData = await Promise.all(
 
     window.addEventListener('jonah:text-settings-changed', renderReadSection, { signal });
     window.addEventListener('jonah:dialect-changed', updateAudioForDialect, { signal });
+    // The introduction only exists in Tibetan (see openIntro() below) — if
+    // it's open and the reader switches away from Tibetan, close it rather
+    // than leave Tibetan-only content showing under a different reading
+    // language. renderReadSection() above doesn't touch this case since it
+    // bails out whenever openChapterEntry is null, which is always true
+    // while the introduction is open.
+    window.addEventListener('jonah:text-settings-changed', () => {
+      if (introOpen && getTextLang() !== 'bo') closeModal(false);
+    }, { signal });
+
+    // Book introduction (John's request #20) — reuses the same modal shell
+    // as a chapter (backdrop, panel, close button, swipe-to-advance) but
+    // with no LISTEN bar at all, since there's no audio for it. Doesn't
+    // push a history entry, same as the About/Settings sheets in
+    // Layout.astro — it's a peek from the homepage, not a deep-linkable
+    // page like a chapter. `\mt`/`\imt` (mainTitle/introTitle) are shown as
+    // the small label + heading, mirroring a chapter's labelBo/
+    // sectionTitleBo pairing; each section's paragraphs (its \ipi lines,
+    // outline sub-points included — already literal text in the source, no
+    // list markup needed) render as plain stacked <p>s under a gold \is1
+    // heading.
+    function openIntro() {
+      if (!introData) return;
+
+      const outgoingAudio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      outgoingAudio?.pause();
+
+      openChapterEntry = null;
+      introOpen = true;
+
+      const sectionsHtml = introData.sections
+        .map(
+          (s) => `
+            <div style="margin-bottom:1.5rem">
+              <h3 class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1.1rem;margin-bottom:.5rem">${s.heading}</h3>
+              ${s.paragraphs.map((p) => `<p class="tibetan" style="margin-bottom:.75rem;font-size:var(--reading-font-size,1.15rem);line-height:2">${p}</p>`).join('')}
+            </div>`,
+        )
+        .join('');
+
+      content.innerHTML = `
+        <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
+          <p class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1rem;text-align:center;margin-bottom:.25rem;padding-right:2.5rem">${introData.mainTitle}</p>
+          <h2 class="tibetan" style="font-size:1.35rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.6;text-align:center;padding-right:2.5rem">${introData.introTitle}</h2>
+
+          <section>
+            <div style="background:#fff;border-radius:10px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+              ${sectionsHtml}
+            </div>
+          </section>
+
+          ${chapterNavHtml(0, chapters.length)}
+
+          ${COPYRIGHT_HTML}
+        </div>
+      `;
+      listenBar.innerHTML = '';
+
+      // Same re-entrant nav pattern as openChapter()'s own bottom link —
+      // chapterNavHtml(0, ...) only ever renders a "next" link (to chapter
+      // 1), since there's nothing before the introduction.
+      content.querySelectorAll<HTMLAnchorElement>('a[data-goto-chapter]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          openChapter(Number(link.dataset.gotoChapter));
+        });
+      });
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      if (scrollDiv) scrollDiv.scrollTop = 0;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          panel.classList.remove('translate-y-full');
+          panel.classList.add('translate-y-0');
+        });
+      });
+      modalOpen = true;
+    }
 
     function openChapter(n: number) {
       const chapter = chapters.find((c) => c.chapterNumber === n);
@@ -496,6 +618,7 @@ const chapterData = await Promise.all(
       outgoingAudio?.pause();
 
       openChapterEntry = chapter;
+      introOpen = false;
       const dialect = getDialect();
       const lang = getTextLang();
       const layout = getTextLayout();
@@ -590,9 +713,17 @@ const chapterData = await Promise.all(
                under justify-content:space-between — the chevrons' centered
                position never shifts as either the loop icon or the speed
                label changes, same reasoning as the speed button's own
-               fixed width before this. -->
+               fixed width before this. The time display (first child) needs
+               the same fixed-width treatment — under space-between, a
+               changing flanking-item width shifts the middle item's
+               computed gap, and every current-time tick changes this one's
+               rendered width slightly even though the character count
+               itself doesn't (proportional digits aren't all the same
+               pixel width) — so the chevrons visibly drifted left/right as
+               playback progressed. tabular-nums makes the digits
+               themselves a fixed width too, belt-and-suspenders. -->
           <div style="display:flex;align-items:center;justify-content:space-between">
-            <span id="modal-time-display" style="font-size:.85rem;color:#1c1710;font-weight:600">0:00 / ${chapter.duration[dialect]}</span>
+            <span id="modal-time-display" style="font-size:.85rem;color:#1c1710;font-weight:600;width:5.5rem;white-space:nowrap;font-variant-numeric:tabular-nums">0:00 / ${chapter.duration[dialect]}</span>
             <div style="display:flex;align-items:center;gap:1.5rem">
               <button id="modal-prev-btn" type="button" aria-label="Previous verse" style="background:none;border:none;padding:0;cursor:pointer;color:#1c1710;display:flex;align-items:center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
@@ -893,6 +1024,7 @@ const chapterData = await Promise.all(
       if (!modalOpen) return;
       modalOpen = false;
       openChapterEntry = null;
+      introOpen = false;
 
       const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
       if (audio) { audio.pause(); audio.src = ''; audio.load(); }
@@ -923,6 +1055,18 @@ const chapterData = await Promise.all(
       }, { signal });
     });
 
+    // Book-introduction button — visible only when reading Tibetan (it has
+    // no other-language content at all, see openIntro() above). Bound/
+    // toggled once here, not per chapter-open, since it lives on the
+    // homepage outside the modal entirely.
+    const introBtn = document.getElementById('intro-btn');
+    function updateIntroBtnVisibility() {
+      introBtn?.classList.toggle('hidden', getTextLang() !== 'bo');
+    }
+    updateIntroBtnVisibility();
+    window.addEventListener('jonah:text-settings-changed', updateIntroBtnVisibility, { signal });
+    introBtn?.addEventListener('click', () => openIntro(), { signal });
+
     closeBtn.addEventListener('click', () => closeModal(false), { signal });
     backdrop.addEventListener('click', () => closeModal(false), { signal });
 
@@ -952,10 +1096,16 @@ const chapterData = await Promise.all(
       contentTouchStartY = e.touches[0].clientY;
     }, { passive: true, signal });
     scrollDiv?.addEventListener('touchend', (e) => {
-      if (!openChapterEntry) return;
       const deltaX = e.changedTouches[0].clientX - contentTouchStartX;
       const deltaY = e.changedTouches[0].clientY - contentTouchStartY;
       if (Math.abs(deltaX) < 70 || Math.abs(deltaY) > 50) return; // require a mostly-horizontal swipe
+      if (introOpen) {
+        // "Chapter 0" — only a forward swipe means anything, into chapter 1;
+        // there's nothing before the introduction to swipe back to.
+        if (deltaX < 0) openChapter(1);
+        return;
+      }
+      if (!openChapterEntry) return;
       const n = openChapterEntry.chapterNumber;
       if (deltaX < 0 && n < chapters.length) openChapter(n + 1);
       else if (deltaX > 0 && n > 1) openChapter(n - 1);

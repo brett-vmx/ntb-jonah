@@ -28,8 +28,18 @@ const CMN_USFM_PATH = path.join(ROOT, 'source-assets/33-JONcmn-cu89s.usfm');
 // tags that CUV doesn't, so the shared parser strips those too.
 const HI_USFM_PATH = path.join(ROOT, 'source-assets/33-JONhin2017.usfm');
 const NE_USFM_PATH = path.join(ROOT, 'source-assets/33-JONnpiulb.usfm');
+// Book introduction (John's request #20, third round of quick edits) —
+// Tibetan only, per John: no introductions needed for the other reading
+// languages. Saved as an RTF (a Word/TextEdit export), but the body is
+// literally USFM markup (\mt/\imt/\is1/\ipi) typed as plain text inside
+// it — decodeIntroRtf() below un-escapes Cocoa RTF's \uc0\uNNNN Unicode
+// scheme into real characters rather than shelling out to a Mac-only tool
+// like `textutil`, matching this script's existing from-scratch RTF
+// handling for Jonah_BSB.rtf (unescapeRtf/parseBsb below).
+const INTRO_RTF_PATH = path.join(ROOT, 'source-assets/NTB_Jonah_Introduction.rtf');
 const TIMING_DIR = path.join(ROOT, 'source-assets/timing');
 const OUT_DIR = path.join(ROOT, 'src/content/chapters');
+const INTRO_OUT_DIR = path.join(ROOT, 'src/content/intro');
 
 // Paths below are relative to src/content/chapters/, resolved by content.config.ts's
 // image() schema helper — they point at the pre-optimized webp copies in src/assets/,
@@ -349,6 +359,84 @@ function parseIndicUsfm(raw) {
 }
 
 // ---------------------------------------------------------------------------
+// 2d. Parse the book introduction (Tibetan only). The RTF is Cocoa-flavored
+//    (TextEdit/macOS export): every non-ASCII character is a \uc0\uNNNN
+//    escape, a literal "\" is doubled to "\\" (so the USFM tags typed as
+//    plain text — \mt, \imt, \is1, \ipi — survive as literal text once
+//    un-escaped), and a lone "\" immediately before a real newline is
+//    Cocoa RTF's shorthand for a paragraph break. decodeIntroRtf() walks
+//    the file once, left to right, handling exactly those cases (plus
+//    skipping any other stray control word) — this only needs to handle
+//    what this one export actually contains, not the general RTF spec.
+// ---------------------------------------------------------------------------
+
+function decodeIntroRtf(raw) {
+  const bodyStart = raw.indexOf('\\f0\\fs24');
+  const body = bodyStart >= 0 ? raw.slice(bodyStart) : raw;
+
+  let out = '';
+  let i = 0;
+  while (i < body.length) {
+    if (body[i] === '\\' && body[i + 1] === '\\') {
+      out += '\\';
+      i += 2;
+      continue;
+    }
+    if (body[i] === '\\') {
+      const rest = body.slice(i, i + 30);
+      let m;
+      if ((m = rest.match(/^\\uc0/))) { i += m[0].length; continue; }
+      if ((m = rest.match(/^\\u(-?\d+) ?/))) {
+        let code = parseInt(m[1], 10);
+        if (code < 0) code += 65536; // RTF encodes >32767 codepoints as signed 16-bit
+        out += String.fromCharCode(code);
+        i += m[0].length;
+        continue;
+      }
+      if (body[i + 1] === '\n') { out += '\n'; i += 2; continue; }
+      if (body[i + 1] === '\r' && body[i + 2] === '\n') { out += '\n'; i += 3; continue; }
+      if ((m = rest.match(/^\\[a-zA-Z]+-?\d*\s?/))) { i += m[0].length; continue; } // any other stray control word
+      i += 1;
+      continue;
+    }
+    if (body[i] === '{' || body[i] === '}') { i++; continue; } // group braces (only the final closing brace appears in the body)
+    out += body[i];
+    i++;
+  }
+  return out;
+}
+
+// \mt is the book's own title, \imt the introduction's own (longer) title —
+// shown as the modal's small label + heading, same pairing as a chapter's
+// labelBo/sectionTitleBo. \is1 starts a new section; every \ipi until the
+// next \is1 (or end of file) is one of that section's paragraphs — the
+// outline section's numbered/lettered sub-points are already literal text
+// in the source (the Tibetan letters ཀ/ཁ/ག/ང plus verse-range parens), so
+// they don't need any special list markup, just one paragraph per \ipi.
+function parseIntro(raw) {
+  const text = decodeIntroRtf(raw);
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  let mainTitle = '';
+  let introTitle = '';
+  const sections = [];
+
+  for (const line of lines) {
+    let m;
+    if ((m = line.match(/^\\mt\s+(.*)$/))) { mainTitle = m[1]; continue; }
+    if ((m = line.match(/^\\imt\s+(.*)$/))) { introTitle = m[1]; continue; }
+    if ((m = line.match(/^\\is1\s+(.*)$/))) { sections.push({ heading: m[1], paragraphs: [] }); continue; }
+    if ((m = line.match(/^\\ipi\s+(.*)$/))) {
+      if (sections.length) sections[sections.length - 1].paragraphs.push(m[1]);
+      continue;
+    }
+    // ignore any other front-matter marker (\rem, \is1/\ipi handled above)
+  }
+
+  return { mainTitle, introTitle, sections };
+}
+
+// ---------------------------------------------------------------------------
 // 3. Parse per-dialect verse-timing files (word/verse-aligned export from
 //    John's forced-aligner). Each line is "start\tend\t[verseNumber]" —
 //    start === end (a single timestamp, not a range), and the verse number
@@ -475,14 +563,19 @@ function main() {
   const cmnRaw = fs.readFileSync(CMN_USFM_PATH, 'utf8');
   const hiRaw = fs.readFileSync(HI_USFM_PATH, 'utf8');
   const neRaw = fs.readFileSync(NE_USFM_PATH, 'utf8');
+  const introRaw = fs.readFileSync(INTRO_RTF_PATH, 'latin1');
 
   const sfmChapters = parseSfm(sfmRaw);
   const bsbChapters = parseBsb(rtfRaw);
   const cmnChapters = parseCmnUsfm(cmnRaw);
   const hiChapters = parseIndicUsfm(hiRaw);
   const neChapters = parseIndicUsfm(neRaw);
+  const intro = parseIntro(introRaw);
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
+  fs.mkdirSync(INTRO_OUT_DIR, { recursive: true });
+  fs.writeFileSync(path.join(INTRO_OUT_DIR, 'jonah.json'), JSON.stringify(intro, null, 2) + '\n');
+  console.log(`intro: ${intro.sections.length} sections -> ${path.relative(ROOT, path.join(INTRO_OUT_DIR, 'jonah.json'))}`);
 
   for (const n of Object.keys(sfmChapters).map(Number).sort((a, b) => a - b)) {
     const chapter = buildChapter(n, sfmChapters[n], bsbChapters[n], cmnChapters[n], hiChapters[n], neChapters[n]);
