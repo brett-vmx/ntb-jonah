@@ -37,9 +37,24 @@ const NE_USFM_PATH = path.join(ROOT, 'source-assets/33-JONnpiulb.usfm');
 // like `textutil`, matching this script's existing from-scratch RTF
 // handling for Jonah_BSB.rtf (unescapeRtf/parseBsb below).
 const INTRO_RTF_PATH = path.join(ROOT, 'source-assets/NTB_Jonah_Introduction.rtf');
+// NTB Bible introduction + Creation-to-Christ timeline (John's request #21,
+// "grand slam") — both Tibetan-only "intro item" toggles alongside the
+// existing book introduction, surfaced from the homepage's 3-way toggle
+// (see CLAUDE.md's "Bible introduction & timeline toggle" section). The
+// Bible introduction is an RTF, same Cocoa export shape as the book intro's
+// own RTF — see parseBibleIntroRtf() below. The timeline has no text to
+// parse at all (each of its 6 pages is a single image with its own title
+// baked in) — its JSON just enumerates the 6 pre-resized webp files in
+// src/assets/timeline/ (see "Asset locations" in CLAUDE.md for how those
+// were produced from source-assets/timeline/page-{1-6}.png).
+const BIBLE_INTRO_RTF_PATH = path.join(ROOT, 'source-assets/Bible introduction for NTB – for NTB PWA apps.rtf');
+const TIMELINE_ASSET_DIR = '../../assets/timeline'; // resolved by content.config.ts's image() helper, same convention as INLINE_DIR/COVER_DIR below
+const TIMELINE_PAGE_COUNT = 6;
 const TIMING_DIR = path.join(ROOT, 'source-assets/timing');
 const OUT_DIR = path.join(ROOT, 'src/content/chapters');
 const INTRO_OUT_DIR = path.join(ROOT, 'src/content/intro');
+const BIBLE_INTRO_OUT_DIR = path.join(ROOT, 'src/content/bible-intro');
+const TIMELINE_OUT_DIR = path.join(ROOT, 'src/content/timeline');
 
 // Paths below are relative to src/content/chapters/, resolved by content.config.ts's
 // image() schema helper — they point at the pre-optimized webp copies in src/assets/,
@@ -360,19 +375,48 @@ function parseIndicUsfm(raw) {
 
 // ---------------------------------------------------------------------------
 // 2d. Parse the book introduction (Tibetan only). The RTF is Cocoa-flavored
-//    (TextEdit/macOS export): every non-ASCII character is a \uc0\uNNNN
-//    escape, a literal "\" is doubled to "\\" (so the USFM tags typed as
-//    plain text — \mt, \imt, \is1, \ipi — survive as literal text once
-//    un-escaped), and a lone "\" immediately before a real newline is
-//    Cocoa RTF's shorthand for a paragraph break. decodeIntroRtf() walks
-//    the file once, left to right, handling exactly those cases (plus
-//    skipping any other stray control word) — this only needs to handle
-//    what this one export actually contains, not the general RTF spec.
+//    (TextEdit/macOS export): every non-ASCII character outside the 0x20-
+//    0x7E ASCII range is a \uc0\uNNNN Unicode escape OR (real bug, caught
+//    while adding the Bible introduction's own RTF below — see
+//    parseBibleIntroRtf) a \'HH hex escape for a single cp1252 byte, used
+//    for characters TextEdit treats as "already representable" in the
+//    document's declared \ansicpg1252 codepage — curly quotes, en/em
+//    dashes, and (what actually broke here) a non-breaking space (\'a0)
+//    sitting mid-paragraph in body text, which leaked through as literal
+//    "'a0" text before this branch existed, since it didn't match any of
+//    the other escape patterns and only the leading backslash got
+//    consumed. A literal "\" is doubled to "\\" (so the USFM tags typed as
+//    plain text — \mt, \imt, \is1, \ipi, or \s/\p in the Bible
+//    introduction — survive as literal text once un-escaped), and a lone
+//    "\" immediately before a real newline is Cocoa RTF's shorthand for a
+//    paragraph break. decodeIntroRtf() walks the file once, left to right,
+//    handling exactly those cases (plus skipping any other stray control
+//    word) — this only needs to handle what these two exports actually
+//    contain, not the general RTF spec.
 // ---------------------------------------------------------------------------
 
+// Windows-1252 codepoints for the 0x80-0x9F byte range, where cp1252
+// diverges from Latin-1/Unicode's direct byte->codepoint mapping (curly
+// quotes, en/em dashes, ellipsis, etc.) — needed for decodeIntroRtf()'s
+// `\'HH` branch below. Bytes outside this range (0x00-0x7F, 0xA0-0xFF) map
+// directly to the same-valued Unicode codepoint in both cp1252 and Latin-1,
+// so only these 32 need an explicit table.
+const CP1252_HIGH = {
+  0x80: 0x20ac, 0x82: 0x201a, 0x83: 0x0192, 0x84: 0x201e, 0x85: 0x2026,
+  0x86: 0x2020, 0x87: 0x2021, 0x88: 0x02c6, 0x89: 0x2030, 0x8a: 0x0160,
+  0x8b: 0x2039, 0x8c: 0x0152, 0x8e: 0x017d, 0x91: 0x2018, 0x92: 0x2019,
+  0x93: 0x201c, 0x94: 0x201d, 0x95: 0x2022, 0x96: 0x2013, 0x97: 0x2014,
+  0x98: 0x02dc, 0x99: 0x2122, 0x9a: 0x0161, 0x9b: 0x203a, 0x9c: 0x0153,
+  0x9e: 0x017e, 0x9f: 0x0178,
+};
+
 function decodeIntroRtf(raw) {
-  const bodyStart = raw.indexOf('\\f0\\fs24');
-  const body = bodyStart >= 0 ? raw.slice(bodyStart) : raw;
+  // Anchor varies by export (Jonah's own intro used \f0\fs24; the Bible
+  // introduction RTF uses \f0\fs32) — match the font size generically
+  // rather than hardcoding one value, since both are otherwise the same
+  // Cocoa/TextEdit export shape.
+  const bodyMatch = raw.match(/\\f0\\fs\d+/);
+  const body = bodyMatch ? raw.slice(bodyMatch.index) : raw;
 
   let out = '';
   let i = 0;
@@ -386,6 +430,12 @@ function decodeIntroRtf(raw) {
       const rest = body.slice(i, i + 30);
       let m;
       if ((m = rest.match(/^\\uc0/))) { i += m[0].length; continue; }
+      if ((m = rest.match(/^\\'([0-9a-fA-F]{2})/))) {
+        const byte = parseInt(m[1], 16);
+        out += String.fromCharCode(CP1252_HIGH[byte] ?? byte);
+        i += m[0].length;
+        continue;
+      }
       if ((m = rest.match(/^\\u(-?\d+) ?/))) {
         let code = parseInt(m[1], 10);
         if (code < 0) code += 65536; // RTF encodes >32767 codepoints as signed 16-bit
@@ -434,6 +484,46 @@ function parseIntro(raw) {
   }
 
   return { mainTitle, introTitle, sections };
+}
+
+// ---------------------------------------------------------------------------
+// 2e. Parse the NTB Bible introduction (John's "grand slam" request #21,
+//    alongside the Creation-to-Christ timeline below) — Tibetan only, same
+//    reasoning as the book introduction above. Same Cocoa RTF export shape
+//    as NTB_Jonah_Introduction.rtf, reusing decodeIntroRtf() unchanged, but
+//    a simpler marker set: one \mt (this document's own title — no \imt
+//    pairing, since there's no separate book-name/introduction-title split
+//    here, just one title), then \s section headings and \p paragraphs
+//    (not \is1/\ipi — a different marker choice in John's own source doc,
+//    handled by its own small parser rather than generalizing parseIntro()
+//    to cover both marker sets for a one-off document). John's instructions
+//    (typed directly into the RTF's own intro matter, not a separate email)
+//    say to render \s section titles gold and both \mt and \p text in
+//    black, using Monlam uni2 for all of it — same visual treatment as the
+//    book introduction gets already, so no new styling code needed, just
+//    matching content shape.
+// ---------------------------------------------------------------------------
+
+function parseBibleIntroRtf(raw) {
+  const text = decodeIntroRtf(raw);
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  let title = '';
+  const sections = [];
+
+  for (const line of lines) {
+    let m;
+    if ((m = line.match(/^\\mt\s+(.*)$/))) { title = m[1]; continue; }
+    if ((m = line.match(/^\\s\s+(.*)$/))) { sections.push({ heading: m[1], paragraphs: [] }); continue; }
+    if ((m = line.match(/^\\p\s+(.*)$/))) {
+      if (sections.length) sections[sections.length - 1].paragraphs.push(m[1]);
+      continue;
+    }
+    // ignore the RTF's own front-matter lines (toggle title/placement notes
+    // above the \mt line) — none of them start with a recognized marker
+  }
+
+  return { title, sections };
 }
 
 // ---------------------------------------------------------------------------
@@ -564,6 +654,7 @@ function main() {
   const hiRaw = fs.readFileSync(HI_USFM_PATH, 'utf8');
   const neRaw = fs.readFileSync(NE_USFM_PATH, 'utf8');
   const introRaw = fs.readFileSync(INTRO_RTF_PATH, 'latin1');
+  const bibleIntroRaw = fs.readFileSync(BIBLE_INTRO_RTF_PATH, 'latin1');
 
   const sfmChapters = parseSfm(sfmRaw);
   const bsbChapters = parseBsb(rtfRaw);
@@ -571,11 +662,24 @@ function main() {
   const hiChapters = parseIndicUsfm(hiRaw);
   const neChapters = parseIndicUsfm(neRaw);
   const intro = parseIntro(introRaw);
+  const bibleIntro = parseBibleIntroRtf(bibleIntroRaw);
+  const timeline = {
+    pages: Array.from({ length: TIMELINE_PAGE_COUNT }, (_, i) => ({
+      n: i + 1,
+      file: `${TIMELINE_ASSET_DIR}/page-${i + 1}.webp`,
+    })),
+  };
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.mkdirSync(INTRO_OUT_DIR, { recursive: true });
+  fs.mkdirSync(BIBLE_INTRO_OUT_DIR, { recursive: true });
+  fs.mkdirSync(TIMELINE_OUT_DIR, { recursive: true });
   fs.writeFileSync(path.join(INTRO_OUT_DIR, 'jonah.json'), JSON.stringify(intro, null, 2) + '\n');
   console.log(`intro: ${intro.sections.length} sections -> ${path.relative(ROOT, path.join(INTRO_OUT_DIR, 'jonah.json'))}`);
+  fs.writeFileSync(path.join(BIBLE_INTRO_OUT_DIR, 'bible-intro.json'), JSON.stringify(bibleIntro, null, 2) + '\n');
+  console.log(`bible-intro: ${bibleIntro.sections.length} sections -> ${path.relative(ROOT, path.join(BIBLE_INTRO_OUT_DIR, 'bible-intro.json'))}`);
+  fs.writeFileSync(path.join(TIMELINE_OUT_DIR, 'timeline.json'), JSON.stringify(timeline, null, 2) + '\n');
+  console.log(`timeline: ${timeline.pages.length} pages -> ${path.relative(ROOT, path.join(TIMELINE_OUT_DIR, 'timeline.json'))}`);
 
   for (const n of Object.keys(sfmChapters).map(Number).sort((a, b) => a - b)) {
     const chapter = buildChapter(n, sfmChapters[n], bsbChapters[n], cmnChapters[n], hiChapters[n], neChapters[n]);

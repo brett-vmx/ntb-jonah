@@ -11,6 +11,21 @@ const chapters = all.sort(byOrder);
 const introEntry = await getEntry('intro', 'jonah');
 const introData = introEntry?.data ?? null;
 
+const bibleIntroEntry = await getEntry('bibleIntro', 'bible-intro');
+const bibleIntroData = bibleIntroEntry?.data ?? null;
+
+const timelineEntry = await getEntry('timeline', 'timeline');
+const timelineData = timelineEntry
+  ? {
+      pages: await Promise.all(
+        timelineEntry.data.pages.map(async (p) => {
+          const optimized = await getImage({ src: p.file, width: 960, format: 'webp', quality: 85 });
+          return { n: p.n, src: optimized.src };
+        }),
+      ),
+    }
+  : null;
+
 const chapterData = await Promise.all(
   chapters.map(async (c) => {
     const blocks = await Promise.all(
@@ -45,32 +60,27 @@ const chapterData = await Promise.all(
 
 <Layout>
   <div class="px-4 py-6">
-    <!-- Book introduction (John's request #20) — Tibetan only (see
-         "Book introduction" in CLAUDE.md), so this starts visible
-         (default reading language is Tibetan) and is hidden/shown by
-         updateIntroBtnVisibility() below on every language change.
-         Deliberately no background/border per Brett — a plain text
-         label+chevron, not a primary-looking button, so it doesn't
-         visually compete with the chapter grid right below it (Brett's
-         choice among 3 options — variant "B": black/ink text, not gold).
-         The label sits in a true center column (grid-template-columns:
-         1fr auto 1fr) with the chevron riding in the trailing column
-         instead of as a flex sibling — a flex layout with the chevron
-         next to the text shifts the *label's own* center off the
-         button's true center (visibly out of line with "Jonah" in the
-         header above), which is what this avoids. -->
-    <button
-      type="button"
-      id="intro-btn"
-      class="tibetan w-full mb-3"
-      style="background:none;border:none;padding:.6rem 0;cursor:pointer;color:#1c1710;font-size:1.05rem;font-weight:700;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%"
-    >
-      <span></span>
-      <span>ངོ་སྤྲོད།</span>
-      <span style="justify-self:start;margin-left:.35rem;display:flex;align-items:center">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-      </span>
-    </button>
+    <!-- "Intro items" buttons (John's request #21 — Bible introduction +
+         Creation-to-Christ timeline — added alongside the existing book
+         introduction from request #20). Brett's placement call: rather
+         than John's own suggestion of 3 separate homepage links (too much
+         top-of-page text/clutter), all 3 sit in one row here. Originally
+         built as a single segmented toggle with one highlighted "active"
+         segment (like a view-mode switcher) — Brett tried it and preferred
+         3 independent white buttons instead, each its own pill with no
+         highlighted/default one, since these aren't really "modes" of one
+         view, just 3 separate things to open. Tibetan only, no icons, per
+         Brett — see "Bible introduction & timeline toggle" in CLAUDE.md.
+         Visible only when reading Tibetan (none of these 3 have other-
+         language content), toggled via style.display directly rather than
+         a "hidden" class — see that section for why classList.toggle
+         ('hidden') alone doesn't work on an element whose own layout also
+         needs an inline `display`. -->
+    <div id="intro-toggle" class="tibetan mb-4" style="display:flex;gap:.5rem">
+      <button type="button" class="intro-toggle-btn" data-intro-tab="jonah" style="flex:1;background:#fff;border:none;border-radius:9999px;padding:.6rem 0;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1)">ངོ་སྤྲོད།</button>
+      <button type="button" class="intro-toggle-btn" data-intro-tab="bible" style="flex:1;background:#fff;border:none;border-radius:9999px;padding:.6rem 0;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1)">སྔོན་འགྲོ</button>
+      <button type="button" class="intro-toggle-btn" data-intro-tab="timeline" style="flex:1;background:#fff;border:none;border-radius:9999px;padding:.6rem 0;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1)">དུས་ཀྱི་བྱུང་རིམ།</button>
+    </div>
 
     <div class="grid grid-cols-2 gap-4">
       {
@@ -157,11 +167,27 @@ const chapterData = await Promise.all(
     color: #a38a1e;
     vertical-align: middle;
   }
+
+  /* Secondary page picker inside the Timeline modal — same pill look as
+     the 3 homepage intro-item buttons, but this one DOES need an
+     active/inactive distinction (unlike those 3, which Brett deliberately
+     wanted with no highlighted/default button — see the homepage markup
+     above) since it's showing which of the 6 pages you're actually on. */
+  .timeline-page-btn {
+    background: none;
+    color: #1c1710;
+  }
+  .timeline-page-btn.active {
+    background: #1c1710;
+    color: #fff;
+  }
 </style>
 
-<script define:vars={{ chapterData, introData }}>
+<script define:vars={{ chapterData, introData, bibleIntroData, timelineData }}>
   window.__CHAPTERS__ = chapterData;
   window.__INTRO__ = introData;
+  window.__BIBLE_INTRO__ = bibleIntroData;
+  window.__TIMELINE__ = timelineData;
 </script>
 
 <script>
@@ -193,6 +219,16 @@ const chapterData = await Promise.all(
 
   interface IntroSection { heading: string; paragraphs: string[] }
   interface IntroData { mainTitle: string; introTitle: string; sections: IntroSection[] }
+
+  // Bible introduction (John's request #21) — simpler shape than IntroData
+  // above: one title, no separate mainTitle/introTitle pairing (see
+  // content.config.ts's bibleIntro schema for why).
+  interface BibleIntroData { title: string; sections: IntroSection[] }
+
+  // Creation-to-Christ timeline (John's request #21, alongside the Bible
+  // introduction) — no text at all, just 6 pre-optimized page images in order.
+  interface TimelinePage { n: number; src: string }
+  interface TimelineData { pages: TimelinePage[] }
 
   // Chapter label/section-title lookup for the current reading language —
   // one place instead of the same 5-way branch repeated at every call site
@@ -376,6 +412,8 @@ const chapterData = await Promise.all(
 
     const chapters: ChapterEntry[] = (window as unknown as { __CHAPTERS__: ChapterEntry[] }).__CHAPTERS__ ?? [];
     const introData: IntroData | null = (window as unknown as { __INTRO__: IntroData | null }).__INTRO__ ?? null;
+    const bibleIntroData: BibleIntroData | null = (window as unknown as { __BIBLE_INTRO__: BibleIntroData | null }).__BIBLE_INTRO__ ?? null;
+    const timelineData: TimelineData | null = (window as unknown as { __TIMELINE__: TimelineData | null }).__TIMELINE__ ?? null;
     let modalOpen   = false;
     let pushedState = false;
     let openChapterEntry: ChapterEntry | null = null;
@@ -387,6 +425,17 @@ const chapterData = await Promise.all(
     // is open" — reusing that would make those functions run for the
     // introduction too.
     let introOpen = false;
+    // Same pattern, one flag each, for the two new "intro item" toggles
+    // (John's request #21) — mutually exclusive with introOpen and with
+    // each other and openChapterEntry. Not folded into one enum together
+    // with introOpen because updateIntroTabUI()/language-gating below need
+    // to check "is any intro-item modal open" as a group in some places
+    // (closing on a language switch) and "which specific one" in others
+    // (which toggle segment to highlight) — three booleans reads clearer
+    // for that than one tri-state plus introOpen as a fourth case.
+    let bibleIntroOpen = false;
+    let timelineOpen = false;
+    let timelinePageIdx = 0; // which of the 6 timeline pages is showing, 0-based
 
     const prevAbort = (window as any).__modalAbort as AbortController | undefined;
     if (prevAbort) prevAbort.abort();
@@ -546,14 +595,15 @@ const chapterData = await Promise.all(
 
     window.addEventListener('jonah:text-settings-changed', renderReadSection, { signal });
     window.addEventListener('jonah:dialect-changed', updateAudioForDialect, { signal });
-    // The introduction only exists in Tibetan (see openIntro() below) — if
-    // it's open and the reader switches away from Tibetan, close it rather
-    // than leave Tibetan-only content showing under a different reading
-    // language. renderReadSection() above doesn't touch this case since it
-    // bails out whenever openChapterEntry is null, which is always true
-    // while the introduction is open.
+    // The introduction and the two other "intro item" toggles (Bible intro,
+    // timeline) only exist in Tibetan (see openIntro()/openBibleIntro()/
+    // openTimeline() above) — if any is open and the reader switches away
+    // from Tibetan, close it rather than leave Tibetan-only content showing
+    // under a different reading language. renderReadSection() above
+    // doesn't touch this case since it bails out whenever openChapterEntry
+    // is null, which is always true while any of the three is open.
     window.addEventListener('jonah:text-settings-changed', () => {
-      if (introOpen && getTextLang() !== 'bo') closeModal(false);
+      if ((introOpen || bibleIntroOpen || timelineOpen) && getTextLang() !== 'bo') closeModal(false);
     }, { signal });
 
     // Shared by openChapter()/openIntro()'s bottom nav (chapterNavHtml) and
@@ -595,6 +645,8 @@ const chapterData = await Promise.all(
 
       openChapterEntry = null;
       introOpen = true;
+      bibleIntroOpen = false;
+      timelineOpen = false;
 
       const sectionsHtml = introData.sections
         .map(
@@ -641,6 +693,168 @@ const chapterData = await Promise.all(
       modalOpen = true;
     }
 
+    // NTB Bible introduction (John's request #21) — same modal-shell reuse
+    // as openIntro() above (no LISTEN bar, no history entry, homepage peek
+    // not a deep link), but a simpler content shape: one title (\mt, no
+    // \imt pairing to also show as a small label above it — see
+    // content.config.ts's bibleIntro schema) and no bottom chapter-nav,
+    // since this isn't part of the chapter reading sequence at all. Kept as
+    // its own function rather than generalizing openIntro() to take a
+    // title-only variant — the two are similar but not identical (one
+    // title field vs. two, nav or no nav), and forcing them through one
+    // parameterized function would need more branching than just writing
+    // the second function plainly.
+    function openBibleIntro() {
+      if (!bibleIntroData) return;
+
+      const outgoingAudio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      outgoingAudio?.pause();
+
+      openChapterEntry = null;
+      introOpen = false;
+      bibleIntroOpen = true;
+      timelineOpen = false;
+
+      const sectionsHtml = bibleIntroData.sections
+        .map(
+          (s) => `
+            <div style="margin-bottom:1.5rem">
+              <h3 class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1.1rem;margin-bottom:.5rem">${s.heading}</h3>
+              ${s.paragraphs.map((p) => `<p class="tibetan" style="margin-bottom:.75rem;font-size:var(--reading-font-size,1.15rem);line-height:2">${p}</p>`).join('')}
+            </div>`,
+        )
+        .join('');
+
+      content.innerHTML = `
+        <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
+          <h2 class="tibetan" style="font-size:1.35rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.6;text-align:center;padding-right:2.5rem">${bibleIntroData.title}</h2>
+
+          <section>
+            <div style="background:#fff;border-radius:10px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+              ${sectionsHtml}
+            </div>
+          </section>
+
+          ${COPYRIGHT_HTML}
+        </div>
+      `;
+      listenBar.innerHTML = '';
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      if (scrollDiv) scrollDiv.scrollTop = 0;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          panel.classList.remove('translate-y-full');
+          panel.classList.add('translate-y-0');
+        });
+      });
+      modalOpen = true;
+    }
+
+    // NTB Creation-to-Christ timeline (John's request #21, alongside the
+    // Bible introduction above) — same modal-shell reuse again, but with a
+    // secondary page-picker toggle (Brett's spec: 6 numbered segments, page
+    // 1 default) instead of any text content — each page is a single image
+    // with its own title baked in (John: "each page has its own title...
+    // it will speak for itself"). Switching pages re-renders in place
+    // (swaps the <img> src + which segment is active) rather than closing
+    // and reopening the modal, same re-entrant spirit as openChapter()'s
+    // own chapter-to-chapter nav.
+    function openTimeline(pageIdx = 0) {
+      if (!timelineData || !timelineData.pages.length) return;
+
+      const outgoingAudio = document.getElementById('modal-audio') as HTMLAudioElement | null;
+      outgoingAudio?.pause();
+
+      openChapterEntry = null;
+      introOpen = false;
+      bibleIntroOpen = false;
+      timelineOpen = true;
+      timelinePageIdx = Math.max(0, Math.min(pageIdx, timelineData.pages.length - 1));
+
+      const pageButtonsHtml = timelineData.pages
+        .map(
+          (p, i) => `
+            <button type="button" class="timeline-page-btn${i === timelinePageIdx ? ' active' : ''}" data-timeline-page="${i}"
+              style="flex:1;border:none;border-radius:9999px;padding:.4rem 0;font-size:.85rem;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums">${p.n}</button>`,
+        )
+        .join('');
+
+      content.innerHTML = `
+        <!-- Unlike the other 3 content types (chapter/intro/bibleIntro),
+             this content has no title sitting below the close button to
+             give it clearance — the page-picker toggle is the very first
+             thing. It first shipped full-width (each button flex:1) and
+             ran underneath the close button (top:1rem;right:1rem on
+             #modal-close, a sibling positioned relative to the panel, not
+             this scrolling content); a since-reverted fix shrank it to
+             fit its own content instead. Brett preferred the original
+             spacious full-width look/bigger tap targets after all, so
+             it's back to flex:1 per button — just with an explicit width
+             on the container (below) that stops short of the close
+             button, rather than spanning truly 100%. Dropped the shared
+             "pt-6 md:pt-11" responsive top padding (meant for title text,
+             not this) in favor of a fixed margin-top on the toggle itself
+             — see its own comment below for why a fixed, non-responsive
+             value is actually correct here specifically. -->
+        <div style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
+          <!-- width:calc(100% - 3rem): #modal-close sits at right:1rem
+               with its own 2.25rem width, so its left edge is 3.25rem
+               from the panel's right edge — 2rem further in than this
+               content's own 1.25rem right padding already provides. 3rem
+               reserves that 2rem plus a visible 1rem gap on top of it, so
+               the toggle's right edge stops comfortably clear of the
+               close button instead of just barely missing it.
+
+               margin-top starts from #modal-close's own top:1rem (fixed,
+               not responsive like pt-6/md:pt-11 elsewhere — the close
+               button's position never changes between breakpoints, so
+               neither should this), then nudged up by 3.28px: the
+               toggle's own rendered height (~43px, from its .25rem
+               container padding + each button's .4rem padding + line-
+               height) is taller than the close button's fixed 36px, so
+               matching top offsets alone left the two centers 3.28px
+               apart — measured directly in the browser (getBoundingClientRect
+               on both), not assumed from arithmetic, and subtracted here
+               so the centers land within a fraction of a pixel. Re-measure
+               if this toggle's own font-size/padding ever changes. -->
+          <div style="display:flex;width:calc(100% - 3rem);background:#fff;border-radius:9999px;padding:.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1);margin-top:calc(1rem - 3.28px);margin-bottom:1.25rem">
+            ${pageButtonsHtml}
+          </div>
+
+          <img id="timeline-image" src="${timelineData.pages[timelinePageIdx].src}" alt="" style="width:100%;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.1)" />
+
+          ${COPYRIGHT_HTML}
+        </div>
+      `;
+      listenBar.innerHTML = '';
+
+      content.querySelectorAll<HTMLButtonElement>('.timeline-page-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!timelineData) return;
+          timelinePageIdx = Number(btn.dataset.timelinePage);
+          const imgEl = document.getElementById('timeline-image') as HTMLImageElement | null;
+          if (imgEl) imgEl.src = timelineData.pages[timelinePageIdx].src;
+          content.querySelectorAll<HTMLButtonElement>('.timeline-page-btn').forEach((b) => {
+            b.classList.toggle('active', Number(b.dataset.timelinePage) === timelinePageIdx);
+          });
+          if (scrollDiv) scrollDiv.scrollTop = 0;
+        });
+      });
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      if (scrollDiv) scrollDiv.scrollTop = 0;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          panel.classList.remove('translate-y-full');
+          panel.classList.add('translate-y-0');
+        });
+      });
+      modalOpen = true;
+    }
+
     function openChapter(n: number) {
       const chapter = chapters.find((c) => c.chapterNumber === n);
       if (!chapter) return;
@@ -653,6 +867,8 @@ const chapterData = await Promise.all(
 
       openChapterEntry = chapter;
       introOpen = false;
+      bibleIntroOpen = false;
+      timelineOpen = false;
       const dialect = getDialect();
       const lang = getTextLang();
       const layout = getTextLayout();
@@ -661,7 +877,17 @@ const chapterData = await Promise.all(
       const scriptCls = scriptClass(lang);
 
       content.innerHTML = `
-        <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
+        <!-- Bottom padding is 3rem here, not the 1rem every other modal
+             content wrapper uses (openIntro/openBibleIntro/openTimeline
+             below) — only chapters have a LISTEN bar, and its dialect
+             notch pokes up ~21px above the tile's own top edge (see
+             "Audio player size reduction" in CLAUDE.md for exactly how
+             much). With just 1rem (16px) of clearance, the notch could
+             visually sit on top of the last line of the copyright text
+             when scrolled all the way down — John's own observation,
+             confirmed by Brett. 3rem clears that with real whitespace to
+             spare, not just the bare minimum needed to stop the overlap. -->
+        <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:3rem">
           <p id="modal-label" class="${scriptCls}" style="color:#a38a1e;font-weight:700;font-size:${lang === 'bo' ? '1.5rem' : '1rem'};text-align:${lang === 'bo' ? 'center' : 'left'};margin-bottom:.25rem;padding-right:2.5rem">${label}</p>
           <h2 id="modal-title" class="${scriptCls}" style="font-size:1.5rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.5;padding-right:2.5rem">${sectionTitle}</h2>
 
@@ -681,28 +907,53 @@ const chapterData = await Promise.all(
       `;
 
       listenBar.innerHTML = `
-        <div style="position:relative;margin:0 1.25rem 1rem;background:#cfb63c;border-radius:14px 0 14px 14px;padding:1.1rem;box-shadow:0 2px 8px rgba(0,0,0,.2)">
+        <div style="position:relative;margin:0 1.25rem 1rem;background:#cfb63c;border-radius:14px 0 14px 14px;padding:calc(1.1rem - 2px) calc(1.1rem - 2px) 1.1rem calc(1.1rem - 2px);box-shadow:0 2px 8px rgba(0,0,0,.2)">
           <!-- Dialect picker as a "notch" tab, gold (same as the tile, so
                it reads as one continuous shape, not a separate floating
                chip) and right-aligned, replacing the old full-width row 1
                (LISTEN label + dialect, removed per Brett's request — see
-               "Sticky LISTEN bar" in CLAUDE.md). bottom:100% sits it
-               flush on top of the tile's own top edge — no extra margin
-               reserved above the tile itself, so reading content still
-               flows/scrolls all the way up to the tile everywhere except
-               directly behind the notch's own small footprint. The tile's
-               own top-right corner is deliberately square (border-radius
-               "14px 0 14px 14px", not a flat 14px) so its right edge runs
-               straight up to meet the notch with no curve of its own —
-               the notch's right side (flush at right:0, square bottom
-               corner) continues that same straight line, and only curves
-               again at the very top (the notch's own rounded top-right
-               corner). One smooth right edge for the whole composite
-               shape, not two competing curves close together where the
-               notch meets the tile. -->
-          <div style="position:absolute;right:0;bottom:100%;z-index:5">
+               "Sticky LISTEN bar" in CLAUDE.md). The tile's own top-right
+               corner is deliberately square (border-radius "14px 0 14px
+               14px", not a flat 14px) so its right edge runs straight up
+               to meet the notch with no curve of its own — the notch's
+               right side (flush at right:0, square bottom corner)
+               continues that same straight line, and only curves again at
+               the very top (the notch's own rounded top-right corner).
+               One smooth right edge for the whole composite shape, not
+               two competing curves close together where the notch meets
+               the tile.
+
+               Per John/Scott's "audio player feels a bit big" feedback and
+               two rounds of Brett's own compromise (not John's more
+               drastic option of narrowing the seek track and dropping the
+               notch into the tile itself, which Brett explicitly turned
+               down): the notch's own BOTTOM padding is dropped to 0, and
+               its top/left/right padding is each reduced by 4px, tightening
+               the notch itself. The tile's own top/left/right padding
+               (not bottom) is separately reduced by 2px each, tightening
+               the tile without touching the seek track's width or the
+               bottom padding that keeps row 2's controls comfortably
+               clear of the tile's bottom edge.
+
+               The wrapper's "bottom" is NOT a flush 100% any more either —
+               Brett's final ask was to line up the *vertical midpoint* of
+               the notch's text with the tile's own top border, not just
+               tuck the text up against it, so the wrapper sits
+               calc(100% - 10.72px) (overlapping 10.72px down into the
+               tile) instead. 10.72px is half the label span's own line-box
+               height — measured directly in the browser, and confirmed
+               identical across all 3 Tibetan font choices (OuChan2/
+               ChoukMatik/Dutsa2), since the line-box the browser lays out
+               doesn't change with which font actually renders inside it —
+               so this one offset holds regardless of font choice. Verified
+               there's still ~10px of clear vertical space between the
+               notch and the play-position button even when that button is
+               all the way at the right end of the seek track (100%
+               playback) — the two never visually collide, including with
+               the cursive Dutsa2 font Brett specifically flagged checking. -->
+          <div id="modal-dialect-notch-wrap" style="position:absolute;right:0;bottom:calc(100% - 10.72px);z-index:5">
             <button id="modal-dialect-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Switch dialect"
-              style="display:flex;align-items:center;gap:.3rem;white-space:nowrap;background:#cfb63c;border:none;border-radius:14px 14px 0 0;padding:.5rem 1.1rem;font-size:.8rem;font-weight:700;color:#1c1710;cursor:pointer">
+              style="display:flex;align-items:center;gap:.3rem;white-space:nowrap;background:#cfb63c;border:none;border-radius:14px 14px 0 0;padding:calc(.5rem - 4px) calc(1.1rem - 4px) 0;font-size:.8rem;font-weight:700;color:#1c1710;cursor:pointer">
               <span id="modal-dialect-label">${dialectDisplay(dialect, lang)}</span>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
@@ -1055,6 +1306,8 @@ const chapterData = await Promise.all(
       modalOpen = false;
       openChapterEntry = null;
       introOpen = false;
+      bibleIntroOpen = false;
+      timelineOpen = false;
 
       const audio = document.getElementById('modal-audio') as HTMLAudioElement | null;
       if (audio) { audio.pause(); audio.src = ''; audio.load(); }
@@ -1085,17 +1338,31 @@ const chapterData = await Promise.all(
       }, { signal });
     });
 
-    // Book-introduction button — visible only when reading Tibetan (it has
-    // no other-language content at all, see openIntro() above). Bound/
-    // toggled once here, not per chapter-open, since it lives on the
-    // homepage outside the modal entirely.
-    const introBtn = document.getElementById('intro-btn');
-    function updateIntroBtnVisibility() {
-      introBtn?.classList.toggle('hidden', getTextLang() !== 'bo');
+    // Intro-items toggle (Jonah/Bible/Timeline) — visible only when reading
+    // Tibetan (none of the three have other-language content, see
+    // openIntro()/openBibleIntro()/openTimeline() above). Bound/toggled
+    // once here, not per chapter-open, since it lives on the homepage
+    // outside the modal entirely. Sets style.display directly rather than
+    // toggling a "hidden" class — this element's own inline style already
+    // sets `display:flex` for its layout, and an inline style always wins
+    // over a class-based rule regardless of specificity, so a plain
+    // classList.toggle('hidden', ...) here would silently do nothing (this
+    // exact bug shipped once already on ntb-ruth's copy of this same
+    // pattern before being caught and fixed — see CLAUDE.md).
+    const introToggle = document.getElementById('intro-toggle') as HTMLElement | null;
+    function updateIntroToggleVisibility() {
+      if (introToggle) introToggle.style.display = getTextLang() === 'bo' ? 'flex' : 'none';
     }
-    updateIntroBtnVisibility();
-    window.addEventListener('jonah:text-settings-changed', updateIntroBtnVisibility, { signal });
-    introBtn?.addEventListener('click', () => openIntro(), { signal });
+    updateIntroToggleVisibility();
+    window.addEventListener('jonah:text-settings-changed', updateIntroToggleVisibility, { signal });
+    introToggle?.querySelectorAll<HTMLButtonElement>('.intro-toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.introTab;
+        if (tab === 'jonah') openIntro();
+        else if (tab === 'bible') openBibleIntro();
+        else if (tab === 'timeline') openTimeline(timelinePageIdx);
+      }, { signal });
+    });
 
     closeBtn.addEventListener('click', () => closeModal(false), { signal });
     backdrop.addEventListener('click', () => closeModal(false), { signal });

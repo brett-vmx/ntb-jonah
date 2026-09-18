@@ -391,6 +391,62 @@ popover still opens **upward** (`bottom:100%`) for the same off-screen
 reason as before, right-aligned under the notch (`right:0`, no
 transform) — matching the notch's own alignment, not centered.
 
+### Audio player size reduction (John/Scott: "looks a bit big")
+John liked the player overall but flagged it as feeling slightly large;
+Scott separately made the same observation. He suggested two options: (1)
+bring the dialect notch down until the Tibetan text's descenders align
+with the tile's own top border, or (2) more drastically, narrow the seek
+track and drop the notch height-wise into the tile itself, freeing up
+enough space that the notch might not need to "stick up" at all. **Brett
+explicitly rejected option 2** across both rounds of this — he didn't
+want the notch absorbed into the tile or the seek track narrowed — and
+countered with padding-only compromises instead, refined over two rounds
+(the first round accidentally described as "the audio player's" padding
+when Brett actually meant the dialect picker's — corrected in the second
+round, tile padding from round 1 was kept as-is once caught):
+
+**Round 1** — tile padding, and the notch's own bottom padding zeroed:
+- The tile's own **top/left/right** padding (bottom deliberately left
+  alone) reduced by 2px each: `padding:calc(1.1rem - 2px) calc(1.1rem -
+  2px) 1.1rem calc(1.1rem - 2px)` instead of a flat `1.1rem`. Bottom stays
+  at the original `1.1rem` so row 2's controls (time/chevrons/loop/speed)
+  keep the same comfortable clearance from the tile's bottom edge.
+- The dialect notch's own **bottom** padding (top padding untouched at
+  the time) dropped from `.5rem` to `0`, so its text sat right at the
+  notch's own bottom edge.
+
+**Round 2** — Brett caught that he'd meant the *dialect picker's* padding
+in his first message, not the tile's (the tile's own -2px change was kept
+anyway, since it still looked fine) — plus a further, more precise ask:
+line up the notch text's *vertical midpoint* with the tile's own top
+border, not just tuck the text up against it.
+- The notch's own **top/left/right** padding (bottom already 0 from round
+  1) each reduced by a further 4px: `padding:calc(.5rem - 4px) calc(1.1rem
+  - 4px) 0` on `#modal-dialect-btn`.
+- `#modal-dialect-notch-wrap`'s `bottom` changed from a flush `100%` to
+  `calc(100% - 10.72px)` — the wrapper now overlaps 10.72px down into the
+  tile, rather than sitting exactly on top of it. 10.72px is half the
+  dialect label's own line-box height, measured directly in the browser
+  (not calculated by hand from font metrics) — and confirmed identical
+  across all 3 Tibetan font choices (OuChan2/ChoukMatik/Dutsa2), since
+  the line-box the browser lays out for a given font-size doesn't change
+  with which of the 3 fonts actually renders inside it, only the glyphs'
+  own ink do. That's what makes one fixed offset safe regardless of which
+  font the reader has picked. Verified there's still ~10px of clear
+  vertical space between the notch and the play-position button even when
+  that button is all the way at the right end of the seek track (100%
+  playback, same horizontal position as the right-aligned notch) — the
+  two never visually collide, checked specifically with the cursive
+  Dutsa2 font, which is the one Brett flagged double-checking himself
+  given its lower-hanging descenders.
+
+Don't go further than this (e.g. removing the notch, narrowing the seek
+track, or shaving more off the tile's or notch's padding) without
+checking first — Brett was explicit that once the layout starts feeling
+"crammed" the app loses the sense of "beauty" whitespace gives it, and
+both rounds were deliberately small, padding-only adjustments, not the
+start of a broader shrink.
+
 ### Play/pause is the position circle, not a separate 72px button
 Per feedback, there's no dedicated big play/pause button anymore — the
 small circle that marks the current position on the seek track
@@ -691,6 +747,17 @@ non-Latin script — same firewall problem.
 ```
 src/assets/chapters/covers/   Homepage chapter-card images (webp, square-cropped)
 src/assets/chapters/inline/   In-reading illustrations (webp)
+src/assets/timeline/          Creation-to-Christ timeline pages (John's request #21),
+                               page-{1-6}.webp — resized from the client's originals
+                               (1823x2556) down to 960px wide (~2x a phone's display
+                               width, same "retina without carrying the full-size
+                               original" reasoning as the About banner) and converted
+                               to webp with Pillow, quality 85. Source PNGs, renamed
+                               from the client's own long filenames, live in
+                               source-assets/timeline/page-{1-6}.png — pixel-identical
+                               to the originals, just renamed (verified with
+                               ImageChops.difference before deleting the originals).
+                               Re-derive the same way if the timeline is ever revised.
 src/assets/branding/          Logo variants — ntb-navbar-wordmark-gold.png (current
                                header logo, John's second-round Tibetan-wordmark-on-
                                gold-pill design) and jonah-about-banner.webp (About
@@ -866,8 +933,8 @@ popover's outside-click close, not a backdrop click handler.
 
 ## Page structure
 Essentially one page (`src/pages/index.astro`):
-1. Book-introduction button (`#intro-btn`, Tibetan reading language only —
-   see "Book introduction" above), directly above the grid
+1. Intro-items toggle (`#intro-toggle`, Tibetan reading language only — see
+   "Bible introduction & timeline toggle" above), directly above the grid
 2. 2-col grid of 4 chapter cards — square image, dark scrim + big white
    numeral (per client reference: a food-photography meal-plan app with the
    same "numeral over photo" card treatment), Tibetan chapter label at the
@@ -1017,11 +1084,13 @@ special list markup needed.
 **Text-only, Tibetan-only, by design** — per John, no introductions for
 English/Chinese/Hindi/Nepali (NTB hasn't translated them, and there's
 nothing to translate them *from* in-app the way other provisional
-translations in this doc are Claude's own). The `#intro-btn` button
-(index.astro, homepage markup) starts visible in the server-rendered HTML
+translations in this doc are Claude's own). The `#intro-toggle` element
+(index.astro, homepage markup — now a row of 3 independent buttons shared
+with the Bible introduction and timeline, see "Bible introduction &
+timeline buttons" below) starts visible in the server-rendered HTML
 (Tibetan is the default reading language) and is hidden/shown by
-`updateIntroBtnVisibility()` on every `jonah:text-settings-changed`, same
-event-driven pattern as every other reactive UI bit in this app. If the
+`updateIntroToggleVisibility()` on every `jonah:text-settings-changed`,
+same event-driven pattern as every other reactive UI bit in this app. If the
 introduction is open and the reader switches away from Tibetan mid-view, a
 dedicated listener closes the modal outright — `renderReadSection()`
 (bound to the same event) doesn't handle this itself, since it bails out
@@ -1104,6 +1173,167 @@ how [it's one-directional]... I'm leaning toward [both directions]"):
   introduction itself was opened from (its own entry was never pushed),
   not to the introduction a second time.
 
+### Bible introduction & timeline buttons (John's request #21, "grand slam")
+John's own prayer-walk idea, confirmed useful with Scott: add two more
+reference items alongside the existing book introduction — the NTB's own
+general Bible introduction (`source-assets/Bible introduction for NTB –
+for NTB PWA apps.rtf`) and its Creation-to-Christ timeline (6 pages,
+`source-assets/timeline/page-{1-6}.png`, renamed from the client's own
+`NTB Timeline_Tibetan Final_Pantone_7 April 2023-0N.png` — see "Asset
+locations" below). John's own suggestion was 3 separate links on the
+homepage. **Brett's placement/design call went through two rounds**: he
+first asked for all 3 combined into one row rather than cluttering the
+top of the homepage with 3 lines of text — built first as a single
+segmented toggle (one highlighted "active" segment, Jonah default-active,
+like a view-mode switcher) — then, after seeing it, preferred 3
+independent white pill buttons instead with no highlighted/default one,
+since these aren't really "modes" of a single view, just 3 separate
+things to open; the segmented-toggle version was removed in favor of this
+(see "Real bug, avoided..." below for the one piece of that first attempt
+worth remembering anyway). Also worth noting: Brett's *original* mental
+placement for this row was actually **inside** the book-introduction
+modal itself (above the Jonah intro text, when "Chapter 0" is open), not
+on the homepage — but after seeing the homepage version he was fine
+keeping it there instead of moving it. `#intro-toggle` in index.astro
+(the id/comments still say "toggle" — it isn't one anymore, but renaming
+it would just be churn) holds all 3 buttons: Jonah's own book intro |
+Bible intro | Timeline, Tibetan-only labels, no icons, no active/selected
+styling on any of them. Labels are John's own exact "Title for app
+toggle=" wording from each source document (སྔོན་འགྲོ for the Bible
+intro, དུས་ཀྱི་བྱུང་རིམ། for the timeline — his own note: "we had to make
+the title 4 syllables as it makes no sense otherwise") — the Jonah button
+keeps the existing `ངོ་སྤྲོད།` label, unchanged.
+
+**Content pipeline** — same "generated, not hand-authored" discipline as
+everything else:
+- **Bible introduction**: `parseBibleIntroRtf()` in gen-chapters.mjs
+  writes `src/content/bible-intro/bible-intro.json` (new `bibleIntro`
+  content collection, content.config.ts). Same Cocoa RTF export shape as
+  the book introduction's own RTF, reusing `decodeIntroRtf()` unchanged —
+  but a different, simpler marker set typed into John's source doc: one
+  `\mt` (this document's own title — no `\imt` pairing; there's no
+  separate book-name/introduction-title split here) plus `\s` section
+  headings and `\p` paragraphs (not `\is1`/`\ipi` — John's own marker
+  choice for this document, not a second convention this codebase
+  invented). Per his explicit instructions (typed into the RTF's own front
+  matter, not a separate email): `\s` section titles render gold, `\mt`
+  and `\p` text render black, same visual treatment `openIntro()` already
+  gives the book introduction, so `openBibleIntro()` needed no new
+  styling, just matching content shape (and no bottom chapter-nav, since
+  this isn't part of the chapter reading sequence at all).
+- **Real bug, caught while decoding this new RTF, not a guess**:
+  `decodeIntroRtf()` didn't handle Cocoa RTF's `\'HH` hex-escape (a single
+  cp1252-codepage byte — used for characters TextEdit treats as already
+  representable in the document's declared `\ansicpg1252`, e.g. curly
+  quotes, en/em dashes, and — what actually broke here — a non-breaking
+  space, `\'a0`, sitting mid-paragraph in real body text). Before this fix
+  the leading backslash was silently consumed with nothing else matching,
+  leaving the literal text `'a0` embedded in the generated Tibetan
+  content. Fixed with a small `CP1252_HIGH` lookup table (only the 0x80-
+  0x9F byte range actually differs from a direct byte→codepoint mapping;
+  everything else passes through as-is) — verified the fix doesn't change
+  Jonah's own existing `intro/jonah.json` output at all (that RTF never
+  happened to contain a `\'HH` escape in body text), so this was a latent
+  bug, not a regression. Watch for this again if a future RTF source ever
+  contains an em-dash, curly quote, or non-breaking space mid-paragraph.
+- **Timeline**: no text to parse at all — each of the 6 pages is a single
+  image with its own title baked in (John: "each page has its own title
+  ... it will speak for itself"). `gen-chapters.mjs` just enumerates the 6
+  pre-resized webp files in `src/assets/timeline/` into
+  `src/content/timeline/timeline.json` (new `timeline` collection) — kept
+  in the generated-JSON pipeline for consistency even though there's no
+  real parsing step, same "don't hand-edit generated JSON" discipline.
+
+**UI implementation** (index.astro): `openBibleIntro()`/`openTimeline()`
+sit alongside `openIntro()`, reusing the same modal shell (backdrop,
+panel, close button, swipe-down-to-dismiss) but — like the book
+introduction — with no LISTEN bar and no history entry (a homepage peek,
+not a deep link). Three boolean flags (`introOpen`/`bibleIntroOpen`/
+`timelineOpen`) track which of the three is open, mutually exclusive with
+each other and with `openChapterEntry`, reset together in `closeModal()`
+and in each `open*()` function — kept as three separate booleans rather
+than one enum because the existing `introOpen` checks elsewhere (the
+Tibetan-only auto-close listener, the swipe handler) already read
+naturally as "is this specific thing open", and a few call sites need
+"is any of the three open" as a group (just OR the three together) rather
+than a single tri-state needing its own null case.
+
+None of the 3 homepage buttons ever get an "active"/selected visual state
+— Brett's explicit second-round preference (see above), so there's no
+`setActiveIntroTab()`-style function here at all; each button's click
+handler just calls its own `open*()` function directly and nothing else.
+`timelinePageIdx` does still persist across closes, though (clicking the
+homepage Timeline button again reopens on whichever page was last
+viewed, not always page 1) — that's a real "which page am I on" bit of
+state, unlike the homepage row's 3 buttons, which aren't tracking a
+current selection at all. Only a fresh `openTimeline(0)` call (nothing
+currently makes one) would reset it.
+
+**Timeline's own secondary page picker** (Brett's spec: "a secondary
+toggle could appear that links people to the 6 images, with image 1 being
+the default") is rendered inside `openTimeline()`'s own content, not on
+the homepage — a numbered pill row (1-6) at the top of the modal. Unlike
+the homepage's 3 buttons, this one genuinely IS a segmented toggle with a
+real active/inactive state (`.timeline-page-btn`/`.timeline-page-btn
+.active`, solid ink fill on whichever page is current) — it's showing
+"which of the 6 pages am I on", real selection state the homepage row
+never had. Clicking a page number re-renders in place (swaps the `<img>`
+src + which segment is active) rather than closing and reopening the
+modal — the same re-entrant spirit as `openChapter()`'s own chapter-to-
+chapter nav, just without a history entry to manage.
+
+**Real layout bug, reported and fixed, then refined once more**: the
+page-picker toggle originally spanned the full content width (each of the
+6 buttons `flex:1`), which meant it could run underneath `#modal-close`
+(`position:absolute;top:1rem;right:1rem` on the panel, not this scrolling
+content) — unlike the other 3 content types, Timeline has no title text
+above the toggle to reserve that corner (they each give their title
+`padding-right:2.5rem` for exactly this reason; the toggle never had an
+equivalent). First fix: shrank the toggle to `display:inline-flex`
+(shrink-to-fit, each button its own fixed padding instead of `flex:1`).
+That solved the collision but lost the original's generous whitespace and
+bigger tap targets — Brett preferred the original spacious look after
+trying the shrunk version, so it's back to `flex:1` per button, with the
+**container** given an explicit `width:calc(100% - 3rem)` instead of a
+true `100%` — `#modal-close`'s left edge sits 3.25rem from the panel's
+right edge (`right:1rem` + its own `2.25rem` width), 2rem further in than
+this content's own `1.25rem` right padding already accounts for; 3rem
+reserves that 2rem plus a full 1rem of visible breathing room on top of
+it, landing the toggle's right edge a clean ~16px short of the close
+button rather than just barely missing it.
+
+Brett also asked for the toggle's vertical center to line up with the
+close button's — the shared `pt-6 md:pt-11` responsive top padding every
+other content type uses (sized for their title text, not this) was
+dropped for Timeline specifically in favor of a **fixed, non-responsive**
+`margin-top` on the toggle itself: `calc(1rem - 3.28px)`. 1rem matches
+`#modal-close`'s own fixed `top:1rem` (deliberately not responsive here
+either, since the close button's position never changes between
+breakpoints); the `-3.28px` corrects for the toggle's own rendered height
+being slightly taller than the close button's fixed 36px, which would
+otherwise leave their centers a few pixels apart even with matching top
+offsets. Both the sizing and the 3.28px correction came from measuring
+actual rendered positions in the browser (`getBoundingClientRect()` on
+both elements), not from calculating font metrics by hand — confirmed
+centers align within a fraction of a pixel and the horizontal gap holds
+at both phone and desktop-centered modal widths, in both the
+shrink-to-fit version and this wider one (the vertical math doesn't
+depend on the container's width, only its height, which is unchanged
+between the two — same `.25rem` container padding and `.4rem` button
+padding either way). Re-measure and adjust 3.28px if the toggle's own
+font-size/padding, or the close button's size, ever changes. Don't shrink
+this back to `inline-flex` without checking first — that was already
+tried and explicitly reverted for feeling too cramped/precise to tap.
+
+**Real bug, avoided by applying an already-learned lesson**: `#intro-
+toggle`'s own inline style sets `display:flex` for its layout — toggling
+a plain `hidden` class on it would have silently done nothing (an inline
+style always wins over a class-based rule regardless of specificity),
+exactly the bug that shipped once already on `ntb-ruth`'s copy of this
+same "hide unless Tibetan" pattern before being caught there. Avoided here
+from the start: `updateIntroToggleVisibility()` sets `style.display`
+directly (`'flex'`/`'none'`) instead of touching classList at all.
+
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
 - Do not add React, Preact, Vue, or any JS framework
@@ -1184,14 +1414,23 @@ how [it's one-directional]... I'm leaning toward [both directions]"):
   yohna.app — they're deliberately different domains now (see "About page"
   above); if this reads wrong, it's Claude's interpretation of an
   ambiguous instruction, not a settled decision — check with Brett first
-- Do not add a background, border, or shadow to `#intro-btn` (the book-
-  introduction button above the chapter grid) without checking with Brett
-  first — he was explicit it should read as plain text, not a primary
-  button, so it doesn't visually compete with the chapter grid right below
-  it (see "Book introduction" above)
+- The plain-text/no-background treatment Brett originally specified for
+  the book-introduction button (see "Book introduction" above) no longer
+  applies as of request #21 — it's now one of 3 white pill buttons in a
+  row (`#intro-toggle`, see "Bible introduction & timeline buttons"
+  above), Brett's own explicit design for accommodating the two new intro
+  items without cluttering the homepage; don't revert to a plain-text
+  button without checking first, since that would mean redesigning the
+  Bible-intro/timeline buttons too, not just Jonah's own
+- Do not add a highlighted/"active" visual state to any of the 3 homepage
+  intro-item buttons — Brett tried a segmented-toggle version with one
+  default-active button first and explicitly preferred all 3 identical
+  with none selected (see "Bible introduction & timeline buttons" above);
+  the Timeline modal's own internal 6-page picker is a different, real
+  selection state and keeps its active styling — don't confuse the two
 - Do not add English/Chinese/Hindi/Nepali content to the book introduction,
-  and don't show `#intro-btn` for any reading language but Tibetan — NTB
-  hasn't translated the introduction into those languages (see "Book
+  and don't show `#intro-toggle` for any reading language but Tibetan —
+  NTB hasn't translated the introduction into those languages (see "Book
   introduction" above)
 - Do not give the introduction its own history entry / URL — it's a
   homepage peek like the About/Settings sheets, even though chapter 1 now
@@ -1200,9 +1439,28 @@ how [it's one-directional]... I'm leaning toward [both directions]"):
   opened, not to the introduction itself
 - Do not add the chapter-1-back-to-introduction link/swipe for any reading
   language but Tibetan — it's gated in both `chapterNavHtml()` and the
-  swipe handler the same way `#intro-btn` is, and needs to disappear (not
-  just stay stale) if the reader switches language while chapter 1 is open
-  (see "Book introduction" above)
+  swipe handler the same way `#intro-toggle` is, and needs to disappear
+  (not just stay stale) if the reader switches language while chapter 1 is
+  open (see "Book introduction" above)
+- Do not add English/Chinese/Hindi/Nepali content to the Bible introduction
+  or timeline either, and don't show `#intro-toggle` for any reading
+  language but Tibetan — same reasoning and same gating mechanism as the
+  book introduction (see "Bible introduction & timeline buttons" above)
+- Do not toggle `#intro-toggle`'s visibility with `classList.toggle
+  ('hidden', ...)` — its own inline style sets `display:flex`, which wins
+  over any class-based rule regardless of specificity; use
+  `style.display = 'flex' | 'none'` directly (see
+  `updateIntroToggleVisibility()`) — this exact mistake already shipped
+  once on `ntb-ruth`'s copy of this pattern before being caught
+- Do not add the Bible introduction or timeline to the homepage as separate
+  standalone links, and don't move them into the book-introduction modal
+  either — Brett considered both (his own first mental placement was
+  actually inside that modal, above the Jonah intro text) but settled on
+  keeping all 3 as one row of homepage buttons instead (see "Bible
+  introduction & timeline buttons" above)
+- Do not reset the timeline's `timelinePageIdx` in `closeModal()` — it
+  deliberately persists across a close so re-opening Timeline doesn't
+  always land back on page 1; only visiting a *different* page changes it
 
 ## Deployment
 - **Netlify**, not Cloudflare Pages — push to GitHub → Netlify auto-deploys.

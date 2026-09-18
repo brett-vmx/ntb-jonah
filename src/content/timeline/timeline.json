@@ -1,0 +1,28 @@
+{
+  "pages": [
+    {
+      "n": 1,
+      "file": "../../assets/timeline/page-1.webp"
+    },
+    {
+      "n": 2,
+      "file": "../../assets/timeline/page-2.webp"
+    },
+    {
+      "n": 3,
+      "file": "../../assets/timeline/page-3.webp"
+    },
+    {
+      "n": 4,
+      "file": "../../assets/timeline/page-4.webp"
+    },
+    {
+      "n": 5,
+      "file": "../../assets/timeline/page-5.webp"
+    },
+    {
+      "n": 6,
+      "file": "../../assets/timeline/page-6.webp"
+    }
+  ]
+}
