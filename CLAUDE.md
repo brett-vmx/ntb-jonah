@@ -62,7 +62,13 @@ parser (content kept, tags dropped) — Nepali's source has neither. Inline
 image positions were hand-verified against `source-assets/NTB
 Jonah_final copy.pdf` page by page — see the `INLINE_IMAGES` map in the
 generator script for the exact chapter/verse mapping. Don't move images
-without re-checking the PDF.
+without re-checking the PDF — **except** where John explicitly corrects
+one: his request #24 found that the original PDF-derived placements for
+chapter 1 had two mistakes plus a missing illustration, so `p2_Jon_01_03_RG`
+now sits after v5 (was v6), `p3_Jon_01_05_RG` after v15 (was v14), and the
+new `32_Jon_01_04_RG` after v8. John's word on placement overrides the PDF
+in that case (the `before` field in each map entry is documentation only —
+nothing reads it, but keep it consistent with `after`).
 
 Hindi's USFM carries its own `\s1` section titles, used as-is (no
 translation needed). Nepali's source has none at all — `NEPALI_TITLES` in
@@ -746,7 +752,12 @@ non-Latin script — same firewall problem.
 ## Asset locations
 ```
 src/assets/chapters/covers/   Homepage chapter-card images (webp, square-cropped)
-src/assets/chapters/inline/   In-reading illustrations (webp)
+src/assets/chapters/inline/   In-reading illustrations (webp, 831px wide —
+                               ~2x the phone display width, same retina-headroom
+                               reasoning as the other images). The newest,
+                               32_Jon_01_04_RG, arrived as a 2000x1446 JPG
+                               (source-assets/images/) and was Lanczos-resized to
+                               831px / webp q85 with Pillow to match the rest.
 src/assets/timeline/          Creation-to-Christ timeline pages (John's request #21),
                                page-{1-6}.webp — resized from the client's originals
                                (1823x2556) down to 960px wide (~2x a phone's display
@@ -841,12 +852,14 @@ as English/Chinese/Hindi/Nepali). `updateHeaderTitle()` in Layout.astro's
 script looks both up from one `HEADER_TITLES` map, keyed by `TextLang`, and
 updates them together on `jonah:text-settings-changed` and on init —
 setting `#header-title`'s text and `.tibetan`/`.chinese` class, and
-toggling which of `#header-logo-img`/`#header-logo-text` is hidden. There's
-no Chinese wordmark asset or confirmed Chinese org-name translation (and
-none for Hindi/Nepali either), so every non-Tibetan mode deliberately falls
-back to the same English text logo rather than guessing at brand wording —
-don't add a guessed non-English logo translation without confirming with
-John/Brett first. **Only active on pages using the default title** — guarded by
+toggling which of `#header-logo-img`/`#header-logo-text` is hidden. The
+text logo reads from an `ORG_NAME_LOGO` map: Chinese shows John's confirmed
+name **藏文圣经新译本** (request #33, in the `.chinese` font — all 7
+characters were already in the subsetted Noto Sans SC, so no re-subsetting),
+and the same name replaced the provisional `《新藏文圣经》` in the Chinese
+About page's cross-promo line. There's still no confirmed Hindi/Nepali
+org-name translation, so those fall back to the English text logo — don't
+add a guessed one without confirming with John/Brett first. **Only active on pages using the default title** — guarded by
 `data-reactive-title` on `#header-title`, set server-side from `title ===
 'Jonah'` — so the static `/chapter/[n]` fallback page (which passes its own
 `Chapter N — Jonah` title) is untouched regardless of reading language;
@@ -931,10 +944,29 @@ a `document`-level click listener (checking the click target isn't inside
 the sheet panel or the settings button), the same pattern as the share
 popover's outside-click close, not a backdrop click handler.
 
+**Real bug, reported by a user, reproduced and fixed (request #34):** "if I
+change a setting while I'm in a chapter, it bombs back to the main menu."
+It wasn't the setting change — it was dismissing the sheet. Because that
+backdrop is `pointer-events:none` (and the About sheet's likewise), a tap in
+the dimmed gap above the sheet passes straight through to whatever's
+underneath; with a chapter open, that's the chapter panel's own close
+button (fixed top-right, exactly where people tap to dismiss an overlay),
+so one tap closed both. Reproduced on real mobile Safari (iOS Simulator);
+the gap only appears when the sheet doesn't reach the header, so it was
+invisible at desktop pane sizes. Fixed in index.astro's `initModal()`:
+`isOverlaySheetOpen()` (checks `#settings-sheet`/`#about-sheet` for the
+`hidden` class) guards the chapter modal's close button, backdrop click and
+swipe-down-to-close. The sheets' click-through behavior was deliberately
+left alone — it's what keeps the page scrollable. The LISTEN-bar dialect
+popover has no such overlay (just a small absolutely-positioned box), so it
+needed nothing. Don't remove the guard, and test any new overlay that uses
+`pointer-events:none` for the same pass-through.
+
 ## Page structure
 Essentially one page (`src/pages/index.astro`):
-1. Intro-items toggle (`#intro-toggle`, Tibetan reading language only — see
-   "Bible introduction & timeline toggle" above), directly above the grid
+1. Intro-items row (`#intro-toggle`: Bible intro | Jonah intro | Timeline,
+   Tibetan reading language only — see "Bible introduction & timeline
+   buttons" below), directly above the grid
 2. 2-col grid of 4 chapter cards — square image, dark scrim + big white
    numeral (per client reference: a food-photography meal-plan app with the
    same "numeral over photo" card treatment), Tibetan chapter label at the
@@ -998,7 +1030,8 @@ centered; it used to be fully centered like a lot of "About" screens
 default to, until Brett asked for the body to read like normal left-
 aligned prose instead. Content covers bo/cmn/en (Hindi/Nepali have no
 About-page translation yet and fall through to the English copy — same
-"no dedicated asset yet" fallback as the Chinese header logo below) and
+"no dedicated asset yet" fallback as Hindi/Nepali's English header logo
+text below) and
 re-renders on `jonah:text-settings-changed` same as the chapter modal's
 READ section — the English and Chinese copy are both Claude's provisional
 translations of John's Tibetan text and need his review, same caveat as
@@ -1196,13 +1229,19 @@ modal itself (above the Jonah intro text, when "Chapter 0" is open), not
 on the homepage — but after seeing the homepage version he was fine
 keeping it there instead of moving it. `#intro-toggle` in index.astro
 (the id/comments still say "toggle" — it isn't one anymore, but renaming
-it would just be churn) holds all 3 buttons: Jonah's own book intro |
-Bible intro | Timeline, Tibetan-only labels, no icons, no active/selected
-styling on any of them. Labels are John's own exact "Title for app
-toggle=" wording from each source document (སྔོན་འགྲོ for the Bible
-intro, དུས་ཀྱི་བྱུང་རིམ། for the timeline — his own note: "we had to make
-the title 4 syllables as it makes no sense otherwise") — the Jonah button
-keeps the existing `ངོ་སྤྲོད།` label, unchanged.
+it would just be churn) holds all 3 buttons, **left to right: Bible
+intro | Jonah's own book intro | Timeline** (John's in-country colleague's
+request, #27/#28 — reordered from the original Jonah | Bible | Timeline,
+and John asked for the same order in every book/app, not just Jonah),
+Tibetan-only labels, no icons, no active/selected styling on any of them.
+Labels are John's own exact "Title for app toggle=" wording from each
+source document (སྔོན་འགྲོ། for the Bible intro — now with a trailing
+shad/clause marker per the same colleague, #28; it was originally written
+without one — དུས་ཀྱི་བྱུང་རིམ། for the timeline — his own note: "we had to
+make the title 4 syllables as it makes no sense otherwise") — the Jonah
+button keeps the existing `ངོ་སྤྲོད།` label, unchanged. The click handler
+dispatches on each button's `data-intro-tab` attribute, not DOM position,
+so reordering the markup needed no script changes.
 
 **Content pipeline** — same "generated, not hand-authored" discipline as
 everything else:
@@ -1334,6 +1373,79 @@ same "hide unless Tibetan" pattern before being caught there. Avoided here
 from the start: `updateIntroToggleVisibility()` sets `style.display`
 directly (`'flex'`/`'none'`) instead of touching classList at all.
 
+**Timeline swipe (request #25):** the same left/right gesture as chapter
+reading now moves between the 6 timeline pages — a `timelineOpen` branch in
+the `scrollDiv` touchend handler (next to the `introOpen` one), calling
+`goToTimelinePage(idx)`, which the page-picker buttons also call now (it
+used to be inline in each button's click handler). `goToTimelinePage()`
+no-ops outside `0..pages.length-1`, so callers never bounds-check and
+swiping at the first/last page does nothing, same as chapter swiping at
+the book's edges.
+
+**Timeline font size (request #26) is a question for John, not code:** the
+pages are single baked-in images (960px-wide webp, displayed at roughly
+335–410 CSS px on a phone, so ~2.3–3x smaller than the file), so text size
+can only change by John re-exporting the images. Brett's answer to him: pick
+a minimum font size, test legibility by previewing at ~350–400px wide, trim
+page margins as needed, re-export. When new PNGs arrive, re-run the same
+resize/webp pipeline (see "Asset locations") — no code change needed.
+
+### Intro modals' gold titles are +1pt over body text (requests #29, #30)
+The gold master title (`mainTitle`) and gold section headings (`<h3>`) in
+the Jonah introduction (1 + 4 of them), and the gold section headings in
+the Bible introduction (2 of them), use `font-size:calc(var(--reading-font-
+size,1.15rem) + 1pt)` — not a fixed rem. Body paragraphs track the reader's
+text-size setting through that same variable, so a fixed heading size would
+stop being "1pt larger" the moment the reader changed size; verified in the
+browser (21.73px vs. 20.4px body, an exact 1.333px/1pt gap). The black
+`introTitle`/Bible-intro `<h2>` were deliberately left alone — the request
+was about the *gold* text only.
+
+### Tibetan typography: shad spacing and justification (requests #31, #32)
+John's in-country team asked for print-style Tibetan typesetting. Both
+pieces are **render-time transforms in index.astro** — the generated JSON
+and source SFM are never changed — applied wherever Tibetan *reading* text
+is rendered (verse-by-verse, paragraph mode, and the body/headings of both
+intro modals). The helper functions live next to `verseInnerHtml()`.
+
+**Shad spacing (`formatTibetanShads()`, #32).** Rules are John's, worked out
+with Claude Cowork on a PDF booklet:
+- A single shad keeps the source's ordinary space — untouched.
+- A double shad is two shads with a real U+2002 EN SPACE between them, set
+  in DejaVu Sans at `font-size:80%` (so it reads as 0.8 en; DejaVu rather
+  than the Tibetan font for predictable space metrics), inside a
+  `white-space:nowrap` span so it never breaks across lines. In the source
+  this appears **two ways** — literal `།།` (two U+0F0D) and the single
+  `༎` (U+0F0E); both get the same treatment, and `༎` is deliberately
+  *displayed* as །+། (source unchanged). Jonah's source has 22 `༎` (mostly
+  the line endings of chapter 2's poetry) and 33 literal `།།`; Ruth's has
+  no `༎` at all.
+- The four-shad book ending (`།། །།`, Jonah 4:11 / Ruth 4:22) is shad,
+  0.8-en, shad, **EM SPACE (U+2003)**, shad, 0.8-en, shad, all nowrap. Its
+  regex runs *before* the plain double-shad pass, or that pass would eat
+  each half separately and leave a plain space between them.
+
+**Justification (`justifyTibetanTsheg()` + `.tibetan-justify` + `.ts`, #31).**
+Goal: a straight right margin (Tibetan print convention). A browser's
+`text-align:justify` only stretches at U+0020 spaces, and Tibetan has few
+real ones, so every tsheg (U+0F0B) not already followed by whitespace gets
+`<span class="ts"> </span>` after it, where `.ts{word-spacing:-0.2735em}`.
+0.2735em is the space glyph's advance (279/1020 units, via fontTools
+`hmtx[cmap[32]]`) — **identical in all three bundled fonts**, so no
+per-font calibration — which makes the space zero-width at rest while still
+being a stretch point. `.tibetan-justify` (global.css) adds
+`text-align:justify; text-justify:inter-word`; it's applied only to Tibetan
+body blocks (verse blocks, paragraph `<p>`s, intro paragraphs), not headings
+or other languages. Verified on desktop (non-final lines flush to the
+container edge, final line unstretched) **and real mobile Safari** (iOS
+Simulator) — Safari's justify behavior was the real risk. The left-margin
+rules (no tsheg/shad starting a line) turned out to need nothing extra:
+both are break-*after* characters, so default line breaking already keeps
+them at line ends. This was built as a **prototype pending John's review**;
+if his team dislikes it, removing `justifyTibetanTsheg()` from the call
+sites and the `tibetan-justify` class is the whole revert. Don't add
+per-language or per-font tweaks without re-checking in Safari.
+
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
 - Do not add React, Preact, Vue, or any JS framework
@@ -1461,6 +1573,31 @@ directly (`'flex'`/`'none'`) instead of touching classList at all.
 - Do not reset the timeline's `timelinePageIdx` in `closeModal()` — it
   deliberately persists across a close so re-opening Timeline doesn't
   always land back on page 1; only visiting a *different* page changes it
+- Do not put the 3 homepage intro buttons back in Jonah | Bible | Timeline
+  order, or drop the trailing shad from the Bible intro label — the order
+  is Bible | Jonah | Timeline for every book (#27/#28)
+- Do not give the gold intro titles a fixed font size — they're `calc(var(
+  --reading-font-size,1.15rem) + 1pt)` so they stay 1pt over body text at
+  every text-size setting (#29/#30)
+- Do not hand-edit the generated JSON to add shad spacing or tsheg spans,
+  or change the shad rules (single shad untouched; double = two shads +
+  0.8-en space; four-shad ending gets an EM space) without John's say-so —
+  they're render-time only and come straight from his in-country team
+  (#31/#32). Don't give Tibetan justification per-font word-spacing values:
+  all three bundled fonts share 0.2735em
+- Do not remove `isOverlaySheetOpen()` from the chapter modal's close
+  button/backdrop/swipe-down handlers — without it, tapping outside the
+  settings/About sheet also closes the open chapter (#34)
+- Do not show a guessed Hindi/Nepali org name in the header; Chinese's is
+  藏文圣经新译本 (confirmed, #33) and the rest use the English text
+
+## Pending John's review
+Requests #24–34 shipped together (commit 45f420a) for John's team to review
+before anything is ported to `ntb-ruth`; #31 (justification) is the part most
+likely to draw changes. Also awaiting: re-exported timeline images with
+larger text (#26). Once John signs off, port the whole batch to Ruth —
+including #27/#28's button order and Bible-intro label, which he asked to
+apply to every book.
 
 ## Deployment
 - **Netlify**, not Cloudflare Pages — push to GitHub → Netlify auto-deploys.
