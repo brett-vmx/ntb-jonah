@@ -77,8 +77,8 @@ const chapterData = await Promise.all(
          ('hidden') alone doesn't work on an element whose own layout also
          needs an inline `display`. -->
     <div id="intro-toggle" class="tibetan mb-4" style="display:flex;gap:.5rem">
+      <button type="button" class="intro-toggle-btn" data-intro-tab="bible" style="flex:1;background:#fff;border:none;border-radius:9999px;padding:.6rem 0;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1)">སྔོན་འགྲོ།</button>
       <button type="button" class="intro-toggle-btn" data-intro-tab="jonah" style="flex:1;background:#fff;border:none;border-radius:9999px;padding:.6rem 0;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1)">ངོ་སྤྲོད།</button>
-      <button type="button" class="intro-toggle-btn" data-intro-tab="bible" style="flex:1;background:#fff;border:none;border-radius:9999px;padding:.6rem 0;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1)">སྔོན་འགྲོ</button>
       <button type="button" class="intro-toggle-btn" data-intro-tab="timeline" style="flex:1;background:#fff;border:none;border-radius:9999px;padding:.6rem 0;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.1)">དུས་ཀྱི་བྱུང་རིམ།</button>
     </div>
 
@@ -311,9 +311,61 @@ const chapterData = await Promise.all(
       Illustrations courtesy of Sweet Publishing (public domain).
     </p>`;
 
+  // Tibetan shad (punctuation) spacing — John's in-country team's formatting
+  // rules, request #32 (and the double/four-shad half of #31's reference
+  // photo). A single shad keeps the source's own plain space, untouched —
+  // nothing to do there. A double shad — written in source text either as
+  // two literal U+0F0D in a row, or as the single U+0F0E "nyis shad"
+  // character — is re-rendered as two separate shad glyphs with a real EN
+  // SPACE (U+2002) between them, scaled to 80% so it reads as 0.8 en
+  // (DejaVu Sans, not the active Tibetan font, for predictable space-glyph
+  // metrics — John's exact spec), the whole unit wrapped nowrap so it never
+  // breaks across a line; ༎ is deliberately displayed as །+། this way, the
+  // JSON source itself is never changed. The one four-shad end-of-book
+  // marker (two double-shads separated by a plain space — Jonah 4:11's own
+  // closing line) gets a full EM SPACE (U+2003) between its two halves
+  // instead of a plain space, still nowrap throughout. Must run before the
+  // plain double-shad pass below, or that pass would consume each half on
+  // its own and leave a plain, unformatted space between them.
+  const SHAD_SPACE_EN = `<span style="font-family:'DejaVu Sans',sans-serif;font-size:80%"> </span>`;
+  const SHAD_SPACE_EM = `<span style="font-family:'DejaVu Sans',sans-serif"> </span>`;
+  const DOUBLE_SHAD = `།${SHAD_SPACE_EN}།`;
+  const FOUR_SHAD_RE = /(?:།།|༎) (?:།།|༎)/g;
+  const DOUBLE_SHAD_RE = /།།|༎/g;
+
+  function formatTibetanShads(text: string): string {
+    return text
+      .replace(FOUR_SHAD_RE, `<span style="white-space:nowrap">${DOUBLE_SHAD}${SHAD_SPACE_EM}${DOUBLE_SHAD}</span>`)
+      .replace(DOUBLE_SHAD_RE, `<span style="white-space:nowrap">${DOUBLE_SHAD}</span>`);
+  }
+
+  // PROTOTYPE, request #31 — full right-margin justification, per the
+  // in-country team's standard Tibetan book-publishing rules (justified
+  // body text, straight right margin of tsheg dots). The source text's own
+  // literal spaces are the only natural justification points a browser's
+  // text-align:justify sees by default; Tibetan print typesetting instead
+  // stretches evenly at *every* syllable-separating tsheg. This inserts a
+  // synthetic U+0020 right after each tsheg (skipped where a real space
+  // already follows, to avoid stacking two stretch points back to back),
+  // wrapped in <span class="ts"> — CSS gives that span a negative
+  // word-spacing equal to Monlam's own space-glyph advance (see .ts in
+  // global.css), so the space's resting width is zero but it still counts
+  // as a real stretch point to the browser's justify algorithm. Needs
+  // `.tibetan-justify` (text-align:justify) on the containing block to do
+  // anything — see global.css. Untested outside this prototype pass:
+  // verify on real mobile Safari (not just desktop Chromium) before
+  // deciding whether to keep it, per Brett.
+  const TSHEG_RE = /་(?!\s)/g;
+
+  function justifyTibetanTsheg(text: string): string {
+    return text.replace(TSHEG_RE, '་<span class="ts"> </span>');
+  }
+
   function verseInnerHtml(b: VerseBlock, lang: TextLang): string {
     if (lang === 'bo') {
-      return b.bo.length > 1 ? b.bo.map((line) => `<div>${line}</div>`).join('') : b.bo[0];
+      return b.bo.length > 1
+        ? b.bo.map((line) => `<div>${formatTibetanShads(justifyTibetanTsheg(line))}</div>`).join('')
+        : formatTibetanShads(justifyTibetanTsheg(b.bo[0]));
     }
     switch (lang) {
       case 'cmn': return b.cmn;
@@ -332,8 +384,9 @@ const chapterData = await Promise.all(
         }
         const cls = scriptClass(lang);
         const lineHeight = lang === 'bo' ? 2 : lang === 'cmn' ? 1.9 : 1.75;
+        const justifyCls = lang === 'bo' ? ' tibetan-justify' : '';
         return `
-          <div class="verse-block${cls ? ' ' + cls : ''}" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">
+          <div class="verse-block${cls ? ' ' + cls : ''}${justifyCls}" data-verse="${b.number}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">
             <span class="verse-num" style="margin-right:.25rem">${b.number}</span>${verseInnerHtml(b, lang)}
           </div>`;
       })
@@ -355,9 +408,10 @@ const chapterData = await Promise.all(
     let html = '';
     let para = '';
 
+    const justifyCls = lang === 'bo' ? ' tibetan-justify' : '';
     const flush = () => {
       if (!para) return;
-      html += `<p class="verse-block${cls ? ' ' + cls : ''}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">${para}</p>`;
+      html += `<p class="verse-block${cls ? ' ' + cls : ''}${justifyCls}" style="margin-bottom:1rem;font-size:var(--reading-font-size,1.15rem);line-height:${lineHeight}">${para}</p>`;
       para = '';
     };
 
@@ -370,7 +424,7 @@ const chapterData = await Promise.all(
       if (b.paragraphStart) flush();
       let text: string;
       switch (lang) {
-        case 'bo': text = b.bo.join(' '); break;
+        case 'bo': text = formatTibetanShads(justifyTibetanTsheg(b.bo.join(' '))); break;
         case 'cmn': text = b.cmn; break;
         case 'hi': text = b.hi; break;
         case 'ne': text = b.ne; break;
@@ -652,16 +706,16 @@ const chapterData = await Promise.all(
         .map(
           (s) => `
             <div style="margin-bottom:1.5rem">
-              <h3 class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1.1rem;margin-bottom:.5rem">${s.heading}</h3>
-              ${s.paragraphs.map((p) => `<p class="tibetan" style="margin-bottom:.75rem;font-size:var(--reading-font-size,1.15rem);line-height:2">${p}</p>`).join('')}
+              <h3 class="tibetan" style="color:#a38a1e;font-weight:700;font-size:calc(var(--reading-font-size,1.15rem) + 1pt);margin-bottom:.5rem">${formatTibetanShads(s.heading)}</h3>
+              ${s.paragraphs.map((p) => `<p class="tibetan tibetan-justify" style="margin-bottom:.75rem;font-size:var(--reading-font-size,1.15rem);line-height:2">${formatTibetanShads(justifyTibetanTsheg(p))}</p>`).join('')}
             </div>`,
         )
         .join('');
 
       content.innerHTML = `
         <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
-          <p class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1rem;text-align:center;margin-bottom:.25rem;padding-right:2.5rem">${introData.mainTitle}</p>
-          <h2 class="tibetan" style="font-size:1.35rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.6;text-align:center;padding-right:2.5rem">${introData.introTitle}</h2>
+          <p class="tibetan" style="color:#a38a1e;font-weight:700;font-size:calc(var(--reading-font-size,1.15rem) + 1pt);text-align:center;margin-bottom:.25rem;padding-right:2.5rem">${formatTibetanShads(introData.mainTitle)}</p>
+          <h2 class="tibetan" style="font-size:1.35rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.6;text-align:center;padding-right:2.5rem">${formatTibetanShads(introData.introTitle)}</h2>
 
           <section>
             <div style="background:#fff;border-radius:10px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1)">
@@ -719,15 +773,15 @@ const chapterData = await Promise.all(
         .map(
           (s) => `
             <div style="margin-bottom:1.5rem">
-              <h3 class="tibetan" style="color:#a38a1e;font-weight:700;font-size:1.1rem;margin-bottom:.5rem">${s.heading}</h3>
-              ${s.paragraphs.map((p) => `<p class="tibetan" style="margin-bottom:.75rem;font-size:var(--reading-font-size,1.15rem);line-height:2">${p}</p>`).join('')}
+              <h3 class="tibetan" style="color:#a38a1e;font-weight:700;font-size:calc(var(--reading-font-size,1.15rem) + 1pt);margin-bottom:.5rem">${formatTibetanShads(s.heading)}</h3>
+              ${s.paragraphs.map((p) => `<p class="tibetan tibetan-justify" style="margin-bottom:.75rem;font-size:var(--reading-font-size,1.15rem);line-height:2">${formatTibetanShads(justifyTibetanTsheg(p))}</p>`).join('')}
             </div>`,
         )
         .join('');
 
       content.innerHTML = `
         <div class="pt-6 md:pt-11" style="padding-left:1.25rem;padding-right:1.25rem;padding-bottom:1rem">
-          <h2 class="tibetan" style="font-size:1.35rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.6;text-align:center;padding-right:2.5rem">${bibleIntroData.title}</h2>
+          <h2 class="tibetan" style="font-size:1.35rem;font-weight:700;color:#1c1710;margin-bottom:1.5rem;line-height:1.6;text-align:center;padding-right:2.5rem">${formatTibetanShads(bibleIntroData.title)}</h2>
 
           <section>
             <div style="background:#fff;border-radius:10px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.1)">
@@ -750,6 +804,21 @@ const chapterData = await Promise.all(
         });
       });
       modalOpen = true;
+    }
+
+    // Shared by the page-picker buttons and the swipe handler below (John's
+    // request #25) — both just need "go to this page index", clamped to a
+    // no-op at the first/last page rather than each call site re-deriving
+    // bounds-checking logic.
+    function goToTimelinePage(idx: number) {
+      if (!timelineData || idx < 0 || idx >= timelineData.pages.length) return;
+      timelinePageIdx = idx;
+      const imgEl = document.getElementById('timeline-image') as HTMLImageElement | null;
+      if (imgEl) imgEl.src = timelineData.pages[timelinePageIdx].src;
+      content.querySelectorAll<HTMLButtonElement>('.timeline-page-btn').forEach((b) => {
+        b.classList.toggle('active', Number(b.dataset.timelinePage) === timelinePageIdx);
+      });
+      if (scrollDiv) scrollDiv.scrollTop = 0;
     }
 
     // NTB Creation-to-Christ timeline (John's request #21, alongside the
@@ -831,16 +900,7 @@ const chapterData = await Promise.all(
       listenBar.innerHTML = '';
 
       content.querySelectorAll<HTMLButtonElement>('.timeline-page-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          if (!timelineData) return;
-          timelinePageIdx = Number(btn.dataset.timelinePage);
-          const imgEl = document.getElementById('timeline-image') as HTMLImageElement | null;
-          if (imgEl) imgEl.src = timelineData.pages[timelinePageIdx].src;
-          content.querySelectorAll<HTMLButtonElement>('.timeline-page-btn').forEach((b) => {
-            b.classList.toggle('active', Number(b.dataset.timelinePage) === timelinePageIdx);
-          });
-          if (scrollDiv) scrollDiv.scrollTop = 0;
-        });
+        btn.addEventListener('click', () => goToTimelinePage(Number(btn.dataset.timelinePage)));
       });
 
       modal.classList.remove('hidden');
@@ -1364,8 +1424,39 @@ const chapterData = await Promise.all(
       }, { signal });
     });
 
-    closeBtn.addEventListener('click', () => closeModal(false), { signal });
-    backdrop.addEventListener('click', () => closeModal(false), { signal });
+    // Real bug, reported and reproduced: changing a setting (language, font,
+    // dialect, etc.) from the header's settings sheet, then tapping outside
+    // it to dismiss it — the obvious, natural gesture — could instead close
+    // the whole open chapter, dropping back to the homepage. Root cause:
+    // the settings sheet's (and the About sheet's) backdrop is deliberately
+    // `pointer-events:none` (see Layout.astro — so the chapter/homepage
+    // underneath stays scrollable while the sheet is open), which means a
+    // tap in the dimmed gap ABOVE the sheet panel passes straight through
+    // to whatever's actually there — the open chapter's own panel, whose
+    // close button sits at a fixed top-right corner that's exactly the kind
+    // of spot people instinctively tap to dismiss an overlay. Reproduced by
+    // opening a chapter, opening Settings, and tapping that gap: it closed
+    // both the sheet and the chapter in one tap. Fixed by having the
+    // chapter modal's own close triggers (button, backdrop, swipe-down) all
+    // no-op while either sheet is actually open, rather than touching the
+    // sheets' intentional click-through behavior.
+    function isOverlaySheetOpen(): boolean {
+      const settingsSheet = document.getElementById('settings-sheet');
+      const aboutSheet = document.getElementById('about-sheet');
+      return (
+        (!!settingsSheet && !settingsSheet.classList.contains('hidden')) ||
+        (!!aboutSheet && !aboutSheet.classList.contains('hidden'))
+      );
+    }
+
+    closeBtn.addEventListener('click', () => {
+      if (isOverlaySheetOpen()) return;
+      closeModal(false);
+    }, { signal });
+    backdrop.addEventListener('click', () => {
+      if (isOverlaySheetOpen()) return;
+      closeModal(false);
+    }, { signal });
 
     let touchStartY = 0;
     panel.addEventListener('touchstart', (e) => {
@@ -1373,6 +1464,7 @@ const chapterData = await Promise.all(
     }, { passive: true, signal });
     panel.addEventListener('touchend', (e) => {
       if (window.innerWidth >= 768) return;
+      if (isOverlaySheetOpen()) return;
       const deltaY = e.changedTouches[0].clientY - touchStartY;
       if (deltaY > 80 && (scrollDiv?.scrollTop ?? 0) === 0) {
         closeModal(false);
@@ -1400,6 +1492,14 @@ const chapterData = await Promise.all(
         // "Chapter 0" — only a forward swipe means anything, into chapter 1;
         // there's nothing before the introduction to swipe back to.
         if (deltaX < 0) openChapter(1);
+        return;
+      }
+      // Timeline (John's request #25) — same left/right gesture as chapter
+      // reading, moving between its 6 pages instead of chapters;
+      // goToTimelinePage() already no-ops at the first/last page.
+      if (timelineOpen) {
+        if (deltaX < 0) goToTimelinePage(timelinePageIdx + 1);
+        else if (deltaX > 0) goToTimelinePage(timelinePageIdx - 1);
         return;
       }
       if (!openChapterEntry) return;

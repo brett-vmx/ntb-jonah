@@ -67,8 +67,9 @@ const COVER_DIR = '../../assets/chapters/covers';
 const INLINE_IMAGES = {
   1: [
     { after: 2, before: 3, file: `${INLINE_DIR}/p1_Jon_01_02_RG.webp` },
-    { after: 6, before: 7, file: `${INLINE_DIR}/p2_Jon_01_03_RG.webp` },
-    { after: 14, before: 15, file: `${INLINE_DIR}/p3_Jon_01_05_RG.webp` },
+    { after: 5, before: 6, file: `${INLINE_DIR}/p2_Jon_01_03_RG.webp` },
+    { after: 8, before: 9, file: `${INLINE_DIR}/32_Jon_01_04_RG.webp` },
+    { after: 15, before: 16, file: `${INLINE_DIR}/p3_Jon_01_05_RG.webp` },
   ],
   2: [{ after: 6, before: 7, file: `${INLINE_DIR}/p5_Jon_01_06_RG.webp` }],
   3: [{ after: 7, before: 8, file: `${INLINE_DIR}/p7_Jon_03_02_RG.webp` }],

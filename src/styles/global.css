@@ -101,6 +101,34 @@
     font-family: var(--font-tibetan-active, var(--font-tibetan));
   }
 
+  /* PROTOTYPE, request #31 — full right-margin justification. Each
+     syllable-separating tsheg gets a synthetic zero-width-but-stretchable
+     space inserted after it (see justifyTibetanTsheg() in index.astro),
+     giving the browser's own justify algorithm many more stretch points
+     than the source text's rare literal spaces alone — matching Tibetan
+     print typesetting's straight right margin of tsheg dots. inter-word
+     keeps the stretch confined to those space characters (not
+     inter-glyph); normal word-break/overflow-wrap keep a syllable from
+     ever splitting mid-run or a leading tsheg/shad wrapping to the next
+     line. Untested outside this prototype pass — verify on real mobile
+     Safari before deciding whether to keep it. */
+  .tibetan-justify {
+    text-align: justify;
+    text-justify: inter-word;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  /* The synthetic justification space inserted after each tsheg (see
+     above) — word-spacing is Monlam's own space-glyph advance (0.2735em,
+     measured via fontTools hmtx/unitsPerEm on all 3 bundled Tibetan
+     fonts, which all share this exact value) negated, so this specific
+     space's resting width is zero while still counting as a real stretch
+     point under text-align:justify. */
+  .ts {
+    word-spacing: -0.2735em;
+  }
+
   .chinese {
     font-family: var(--font-chinese);
   }

@@ -288,19 +288,29 @@ const {
         // the book, per the source USFM's \toc2) — same Devanagari word in
         // both, no separate Nepali translation needed.
         const HEADER_TITLES: Record<string, string> = { bo: 'ཡོ་ནཱ།', cmn: '约拿书', en: 'Jonah', hi: 'योना', ne: 'योना' };
+        // Org-name text logo (John's request #33) — Chinese has its own
+        // confirmed name now, 藏文圣经新译本, not a guessed translation like
+        // the placeholder reasoning this replaced; English/Hindi/Nepali
+        // still fall back to the plain English org name (no separate
+        // Hindi/Nepali translation exists).
+        const ORG_NAME_LOGO: Record<string, string> = { cmn: '藏文圣经新译本' };
         function updateHeaderTitle() {
           if (headerTitleEl?.dataset.reactiveTitle !== 'true') return;
           const lang = getTextLang();
           headerTitleEl.textContent = HEADER_TITLES[lang] ?? 'Jonah';
           headerTitleEl.classList.toggle('tibetan', lang === 'bo');
           headerTitleEl.classList.toggle('chinese', lang === 'cmn');
-          // Logo: image only in Tibetan mode, plain "New Tibetan Bible" text
-          // otherwise (English or Chinese) — no Chinese wordmark asset or
-          // confirmed Chinese org-name translation exists yet, so Chinese
-          // mode falls back to the same English text logo as English mode
-          // rather than guessing at brand wording.
+          // Logo: image only in Tibetan mode, text otherwise (English,
+          // Chinese, Hindi, Nepali) — Chinese now shows its own confirmed
+          // org name (see ORG_NAME_LOGO above); Hindi/Nepali still fall
+          // back to the English text, same "no dedicated asset/translation
+          // yet" reasoning as before.
           headerLogoImg?.classList.toggle('hidden', lang !== 'bo');
           headerLogoText?.classList.toggle('hidden', lang === 'bo');
+          if (headerLogoText) {
+            headerLogoText.textContent = ORG_NAME_LOGO[lang] ?? 'New Tibetan Bible';
+            headerLogoText.classList.toggle('chinese', lang === 'cmn');
+          }
         }
         updateHeaderTitle();
         window.addEventListener('jonah:text-settings-changed', updateHeaderTitle, { signal });
@@ -489,7 +499,7 @@ const {
               <p>版本 1.0</p>
               <p>版权所有 © 2026 yohna.app</p>
               <p style="margin-top:1rem">本应用程序可自由分享给他人。</p>
-              <p style="margin-top:1rem">如需其他圣经相关软件，以及《新藏文圣经》应用程序本身，请访问 <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a>。</p>
+              <p style="margin-top:1rem">如需其他圣经相关软件，以及藏文圣经新译本应用程序本身，请访问 <a href="https://new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">new-tibetan-bible.com</a>。</p>
               <p style="margin-top:1rem">有任何问题或建议？请通过以下邮箱与我们联系：<br /><a href="mailto:info@new-tibetan-bible.com" style="color:#a38a1e;text-decoration:none">info@new-tibetan-bible.com</a></p>
             </div>
           `;
