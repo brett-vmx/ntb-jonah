@@ -1603,12 +1603,14 @@ so this is a defensive port. Don't revert to a strict comparison.
   藏文圣经新译本 (confirmed, #33) and the rest use the English text
 
 ## Pending John's review
-Requests #24–34 shipped together (commit 45f420a) for John's team to review
-before anything is ported to `ntb-ruth`; #31 (justification) is the part most
-likely to draw changes. Also awaiting: re-exported timeline images with
-larger text (#26). Once John signs off, port the whole batch to Ruth —
-including #27/#28's button order and Bible-intro label, which he asked to
-apply to every book.
+Requests #24–34 shipped together (commit 45f420a) for John's team to review;
+#31 (justification) is the part most likely to draw changes. Also awaiting:
+re-exported timeline images with larger text (#26). **Brett had these ported
+to `ntb-ruth` ahead of John's sign-off** (the whole batch, verified there), and
+`ntb-esther` was built on this code, so it has them too — if John's team asks
+for changes to #31 or anything else here, make the same change in all three
+apps (and #26's re-exported timeline images go through the resize/webp
+pipeline in all three).
 
 ## Deployment
 - **Netlify**, not Cloudflare Pages — push to GitHub → Netlify auto-deploys.
