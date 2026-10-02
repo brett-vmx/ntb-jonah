@@ -445,10 +445,18 @@ const chapterData = await Promise.all(
   // seconds into it, otherwise jumps back a verse — standard music-player feel.
   const PREV_THRESHOLD = 1.5;
 
+  // SEEK_EPSILON: after `audio.currentTime = 4.06` the element can report
+  // 4.059999 (the media position is quantized), a hair BEFORE the verse's own
+  // start time. With a strict `time <= t` that reads as "still in the previous
+  // verse", so next-verse seeks to the same spot again and never advances
+  // (and the highlight lags a verse) — found on ntb-esther's English track.
+  // 50ms of slack is far below anything audible/visible for a highlight.
+  const SEEK_EPSILON = 0.05;
+
   function findVerseIndex(timings: { verse: number; time: number }[], t: number): number {
     let idx = -1;
     for (let i = 0; i < timings.length; i++) {
-      if (timings[i].time <= t) idx = i;
+      if (timings[i].time <= t + SEEK_EPSILON) idx = i;
       else break;
     }
     return idx;

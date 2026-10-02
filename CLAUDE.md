@@ -1446,6 +1446,17 @@ if his team dislikes it, removing `justifyTibetanTsheg()` from the call
 sites and the `tibetan-justify` class is the whole revert. Don't add
 per-language or per-font tweaks without re-checking in Safari.
 
+### Next-verse seek tolerance (`SEEK_EPSILON`)
+`findVerseIndex()` in index.astro compares verse start times against
+`audio.currentTime` with a 50ms tolerance (`time <= t + SEEK_EPSILON`), not a
+strict `<=`. After `audio.currentTime = 4.06` the media element can read back
+4.059999 — a hair before the verse's own start — which a strict comparison
+treats as "still in the previous verse", so **next-verse jumped to the same
+spot and never advanced** (and the highlight lagged a verse). Found on
+ntb-esther's English track; whether it triggers depends on the exact float
+values, and it did NOT reproduce on this app's own tracks in headless Chrome,
+so this is a defensive port. Don't revert to a strict comparison.
+
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
 - Do not add React, Preact, Vue, or any JS framework
