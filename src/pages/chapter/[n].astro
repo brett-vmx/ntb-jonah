@@ -53,7 +53,7 @@ const blockImages = await Promise.all(
               <div class="mb-4">
                 <p class="tibetan text-lg leading-loose text-ink">
                   <sup class="text-gold-deep font-bold mr-1">{b.number}</sup>
-                  {b.bo.join(' ')}
+                  {b.bo.join(' ').replace(/\{\{fn:\d+\}\}/g, '\u2020')}
                 </p>
                 <p class="text-ink/70 leading-relaxed mt-1">
                   <sup class="text-gold-deep font-bold mr-1">{b.number}</sup>

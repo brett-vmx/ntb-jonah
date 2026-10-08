@@ -133,10 +133,68 @@ const chapterData = await Promise.all(
         </svg>
       </button>
     </div>
+
+    <!-- Footnote popup (request #35). Lives directly in #chapter-modal, NOT in
+         #modal-panel: the panel has a transform, which would turn this
+         element's coordinates into panel-relative ones. Positioned in
+         viewport coordinates by showFootnote() in initModal(). -->
+    <div id="fn-popup" class="hidden" role="dialog" aria-live="polite" aria-label="Footnote">
+      <div id="fn-popup-arrow"></div>
+      <div id="fn-popup-text" class="tibetan"></div>
+    </div>
   </div>
 </Layout>
 
 <style is:global>
+  /* Footnote caller (†) and popup, request #35. The caller is a plain inline
+     span: superscript, line-height 0 so it can't change the Tibetan line
+     height, and a ::after that enlarges the tap target without moving any
+     text. Gold-deep like .verse-num. */
+  .fn-caller {
+    position: relative;
+    color: #a38a1e;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 0.8em;
+    vertical-align: super;
+    line-height: 0;
+    padding: 0 0.12em;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .fn-caller::after { content: ''; position: absolute; inset: -0.75em -0.6em; }
+  .fn-caller:hover, .fn-caller[aria-expanded="true"] { color: #1c1710; }
+  .fn-caller:focus-visible { outline: 2px solid #a38a1e; outline-offset: 2px; border-radius: 3px; }
+
+  #fn-popup {
+    position: absolute;
+    z-index: 5;
+    background: #fff;
+    color: #1c1710;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(28, 23, 16, 0.1);
+  }
+  #fn-popup-text {
+    font-size: calc(var(--reading-font-size, 1.15rem) * 0.95);
+    line-height: 1.9;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  #fn-popup-arrow {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    transform: rotate(45deg);
+    left: var(--ax, 50%);
+    margin-left: -6px;
+  }
+  #fn-popup[data-side="below"] #fn-popup-arrow { top: -6px; box-shadow: -1px -1px 0 rgba(28, 23, 16, 0.1); }
+  #fn-popup[data-side="above"] #fn-popup-arrow { bottom: -6px; box-shadow: 1px 1px 0 rgba(28, 23, 16, 0.1); }
+
   /* Read-along highlight for the verse currently playing (only lights up */
   /* when the active dialect has verse-timing data — see settings-store.ts). */
   #modal-blocks [data-verse].verse-active {
@@ -195,7 +253,7 @@ const chapterData = await Promise.all(
   import type { TextLang, Dialect } from '../i18n/settings-store';
 
   interface ImageBlock { type: 'image'; src: string }
-  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; cmn: string; hi: string; ne: string; paragraphStart: boolean }
+  interface VerseBlock { type: 'verse'; number: number; bo: string[]; en: string; cmn: string; hi: string; ne: string; paragraphStart: boolean; notes?: string[] }
   type Block = ImageBlock | VerseBlock;
   type TimingTrack = { verse: number; time: number }[] | null;
   type AudioMap<T> = { adx: T; bod: T; khg: T; eng: T; cmn: T };
@@ -355,17 +413,42 @@ const chapterData = await Promise.all(
   // anything — see global.css. Untested outside this prototype pass:
   // verify on real mobile Safari (not just desktop Chromium) before
   // deciding whether to keep it, per Brett.
-  const TSHEG_RE = /་(?!\s)/g;
+  const TSHEG_RE = /་(?!\s|\{\{fn:)/g; // not before a footnote marker either: the † stays glued to its syllable
 
   function justifyTibetanTsheg(text: string): string {
     return text.replace(TSHEG_RE, '་<span class="ts"> </span>');
   }
 
+  // Footnotes (request #35). gen-chapters.mjs lifts each \f note out of the
+  // Tibetan verse text into the block's `notes` array and leaves a `{{fn:N}}`
+  // marker where the caller belongs. Each marker becomes a † (U+2020) caller
+  // that opens its note in the #fn-popup popover — never bracketed text in the
+  // body. U+2060 WORD JOINER in front keeps the † from wrapping onto a new
+  // line alone; role=button on a span (not a <button>) so it stays a plain
+  // inline element that doesn't disturb the Tibetan line height.
+  // Footnote callers (request #35, see above). The syllable the note is attached
+  // to and its † are wrapped in one nowrap span so a line can never start with a
+  // detached †: mobile Safari breaks before a lone caller even with U+2060 in
+  // front (found on the iOS Simulator; headless Chrome didn't show it), because
+  // justifyTibetanTsheg()'s stretch space sits right there. A marker that
+  // follows punctuation instead of a syllable just gets the caller alone.
+  const FN_MARK_RE = /([^་\s།<>]+་?)?\{\{fn:(\d+)\}\}/g;
+  function withFootnoteCallers(html: string, b: VerseBlock): string {
+    return html.replace(FN_MARK_RE, (_m, syllable: string | undefined, i: string) =>
+      b.notes?.[Number(i)]
+        ? `<span style="white-space:nowrap">${syllable ?? ''}\u2060<span class="fn-caller" role="button" tabindex="0" aria-label="Footnote" aria-expanded="false" data-fn="${b.number}:${i}">\u2020</span></span>`
+        : (syllable ?? ''),
+    );
+  }
+
   function verseInnerHtml(b: VerseBlock, lang: TextLang): string {
     if (lang === 'bo') {
-      return b.bo.length > 1
-        ? b.bo.map((line) => `<div>${formatTibetanShads(justifyTibetanTsheg(line))}</div>`).join('')
-        : formatTibetanShads(justifyTibetanTsheg(b.bo[0]));
+      return withFootnoteCallers(
+        b.bo.length > 1
+          ? b.bo.map((line) => `<div>${formatTibetanShads(justifyTibetanTsheg(line))}</div>`).join('')
+          : formatTibetanShads(justifyTibetanTsheg(b.bo[0])),
+        b,
+      );
     }
     switch (lang) {
       case 'cmn': return b.cmn;
@@ -424,7 +507,7 @@ const chapterData = await Promise.all(
       if (b.paragraphStart) flush();
       let text: string;
       switch (lang) {
-        case 'bo': text = formatTibetanShads(justifyTibetanTsheg(b.bo.join(' '))); break;
+        case 'bo': text = withFootnoteCallers(formatTibetanShads(justifyTibetanTsheg(b.bo.join(' '))), b); break;
         case 'cmn': text = b.cmn; break;
         case 'hi': text = b.hi; break;
         case 'ne': text = b.ne; break;
@@ -1369,8 +1452,94 @@ const chapterData = await Promise.all(
       });
     }
 
+    // --- Footnote popup (request #35) -------------------------------------
+    // Tapping a † caller opens its note in #fn-popup, anchored under the
+    // caller (above it when there's no room before the LISTEN bar), clamped to
+    // the panel's width. Closes on: tapping outside, Escape, scrolling the
+    // reading content, the content being re-rendered (language/size change,
+    // chapter switch — the MutationObserver), and closeModal(). One popup for
+    // the whole modal; every listener uses { signal } so initModal()'s
+    // abort-and-rebind safety net still holds (see CLAUDE.md).
+    const fnPopup = document.getElementById('fn-popup');
+    const fnText = document.getElementById('fn-popup-text');
+    let fnCaller: HTMLElement | null = null;
+
+    function hideFootnote() {
+      if (!fnPopup) return;
+      fnPopup.classList.add('hidden');
+      if (fnCaller) fnCaller.setAttribute('aria-expanded', 'false');
+      fnCaller = null;
+    }
+
+    function showFootnote(caller: HTMLElement) {
+      if (!fnPopup || !fnText || !openChapterEntry) return;
+      const [verse, idx] = (caller.dataset.fn ?? '').split(':').map(Number);
+      const block = openChapterEntry.blocks.find((b): b is VerseBlock => b.type === 'verse' && b.number === verse);
+      const note = block?.notes?.[idx];
+      if (!note) return;
+      hideFootnote();
+      fnCaller = caller;
+      caller.setAttribute('aria-expanded', 'true');
+      fnText.innerHTML = formatTibetanShads(note.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+
+      // Measure while invisible, then place.
+      fnPopup.style.visibility = 'hidden';
+      fnPopup.classList.remove('hidden');
+      const pr = panel!.getBoundingClientRect();
+      const cr = caller.getBoundingClientRect();
+      const width = Math.min(340, pr.width - 24);
+      fnPopup.style.width = `${width}px`;
+      const height = fnPopup.offsetHeight;
+      const left = Math.max(pr.left + 12, Math.min(cr.left + cr.width / 2 - width / 2, pr.right - 12 - width));
+      const headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 90;
+      const barTop = listenBar!.firstElementChild ? listenBar!.getBoundingClientRect().top : pr.bottom;
+      const below = cr.bottom + 10 + height <= barTop;
+      const top = below ? cr.bottom + 10 : Math.max(headerH + 8, cr.top - 10 - height);
+      fnPopup.dataset.side = below ? 'below' : 'above';
+      fnPopup.style.left = `${left}px`;
+      fnPopup.style.top = `${top}px`;
+      fnPopup.style.setProperty('--ax', `${Math.max(18, Math.min(cr.left + cr.width / 2 - left, width - 18))}px`);
+      fnPopup.style.visibility = '';
+    }
+
+    function toggleFootnote(caller: HTMLElement) {
+      if (fnCaller === caller) hideFootnote();
+      else showFootnote(caller);
+    }
+
+    content.addEventListener('click', (e) => {
+      const caller = (e.target as HTMLElement).closest<HTMLElement>('.fn-caller');
+      if (!caller) return;
+      e.preventDefault();
+      toggleFootnote(caller);
+    }, { signal });
+    content.addEventListener('keydown', (e) => {
+      const caller = (e.target as HTMLElement).closest<HTMLElement>('.fn-caller');
+      if (!caller || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      toggleFootnote(caller);
+    }, { signal });
+    document.addEventListener('pointerdown', (e) => {
+      if (!fnCaller) return;
+      const t = e.target as Node;
+      if (fnPopup?.contains(t) || fnCaller.contains(t)) return;
+      hideFootnote();
+    }, { signal });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !fnCaller) return;
+      const c = fnCaller;
+      hideFootnote();
+      c.focus();
+    }, { signal });
+    scrollDiv?.addEventListener('scroll', hideFootnote, { passive: true, signal });
+    window.addEventListener('resize', hideFootnote, { signal });
+    const fnObserver = new MutationObserver(hideFootnote);
+    fnObserver.observe(content, { childList: true, subtree: true }); // #modal-blocks re-renders one level down
+    signal.addEventListener('abort', () => fnObserver.disconnect());
+
     function closeModal(fromPopstate = false) {
       if (!modalOpen) return;
+      hideFootnote();
       modalOpen = false;
       openChapterEntry = null;
       introOpen = false;

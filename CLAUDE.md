@@ -1457,6 +1457,72 @@ ntb-esther's English track; whether it triggers depends on the exact float
 values, and it did NOT reproduce on this app's own tracks in headless Chrome,
 so this is a defensive port. Don't revert to a strict comparison.
 
+### Footnotes (request #35)
+John (Oct 2026): the web apps were missing the footnotes that exist in the SFM
+files, the print NTB and the NTB app/YouVersion. Wanted: **pop-up footnotes, not
+bracketed text in the body, with the dagger † (U+2020) as the caller.**
+
+**Data.** In the Tibetan SFM a footnote is `\f + \ft note text\f*`, placed right
+after the word it explains, often mid-sentence (2 footnotes in Jonah: 1:3 and 4:11). `parseSfm()` in
+gen-chapters.mjs lifts each one out via `extractFootnotes()`: the note text goes
+into the verse block's `notes` array (schema: optional `z.array(z.string())`,
+absent when a verse has none) and the verse text keeps a `{{fn:N}}` marker where
+the caller belongs (N = index into that verse's `notes`; poetry `\q1` lines
+share the verse's one array). It accepts any caller character (`+`, `-`, `*`)
+and strips inner `\fr`/`\ft`/`\fq`/`\fk` tags, so a future book's variants
+shouldn't need parser changes. **Tibetan only** — the English/Chinese/Hindi/
+Nepali sources have their own footnotes, but those are different texts' notes,
+so their parsers still strip them; readers of those languages see no callers.
+Never hand-edit the generated JSON — the markers are an encoding, not content.
+
+**Rendering (index.astro).** `withFootnoteCallers()` turns each marker into a
+`<span class="fn-caller" role="button" tabindex="0" data-fn="verse:index">†</span>`
+(verse-by-verse and paragraph modes both). It runs *after* `justifyTibetanTsheg()`
+and `formatTibetanShads()` — those regexes never touch `{{fn:N}}` — and it wraps
+the **preceding syllable together with the †** in one `white-space:nowrap` span.
+**Real bug, found only on the iOS Simulator (headless Chrome didn't show it):**
+in mobile Safari a lone † got pushed to the *start of the next line*, detached
+from its word, because the justification space after the tsheg gave Safari a
+break point right before it and U+2060 WORD JOINER doesn't hold across element
+boundaries there. So: syllable+† are one unbreakable unit, and `TSHEG_RE` skips
+a tsheg that is followed by a marker (`/་(?!\s|\{\{fn:)/g`) so no stretch space
+sits between them. Don't "simplify" either half. The caller is a `span`
+(not a `<button>`) with `line-height:0; vertical-align:super` so it can't
+change the Tibetan line height, and a `::after` that enlarges the tap target
+without moving text. Colored gold-deep like `.verse-num`.
+
+**Popup.** One `#fn-popup` (white card with an arrow) lives directly inside
+`#chapter-modal`, NOT inside `#modal-panel` — the panel has a CSS transform,
+which would make `position:absolute` coordinates panel-relative instead of
+viewport-relative. `showFootnote()` in `initModal()` places it in viewport
+coordinates: centered under the caller, clamped to the panel's width (works at
+phone and desktop-card widths), flipped **above** the caller when there's no
+room before the LISTEN bar, never above the header (`--header-h`). The note is
+HTML-escaped, passed through `formatTibetanShads()`, and set in the active
+Tibetan font at 95% of the reading size. **Closes on:** tapping outside
+(`pointerdown` on the document — covers touch), Escape (focus returns to the
+caller), scrolling the reading content, window resize, `closeModal()`, and
+*any re-render of `#modal-content`* — a `MutationObserver` with `subtree:true`
+(the verses re-render one level down inside `#modal-blocks`, so watching only
+direct children misses them: caught by testing). Tapping the same † again
+toggles it closed. Every listener uses `{ signal }` per the abort-and-rebind
+rule; the observer disconnects on abort. aria: `aria-expanded` on the caller,
+`role=dialog` + `aria-live=polite` on the popup.
+
+**Static fallback page** (`chapter/[n].astro`) prints the Tibetan text
+directly, so it replaces markers with a plain † — otherwise raw `{{fn:0}}`
+would show. Verified: no raw markers in any built static page.
+
+**Verified** in headless Chrome at phone and desktop widths and in **real
+mobile Safari** (iOS Simulator; real touch tap opens it, tap elsewhere closes
+it), on every chapter that has a footnote: opens, toggles, Escape, tap outside,
+tap inside stays open, scroll, re-render, paragraph mode, English shows no
+callers, modal close hides it, no console errors.
+**Ported identically to ntb-jonah, ntb-ruth and ntb-esther** — a change to the
+footnote UX goes in all three. Not yet confirmed with John: whether he wants
+footnote text for the *other* reading languages' sources too (we only have
+the NTB Tibetan notes in the SFM).
+
 ## What NOT to do
 - Do not add SSR or any adapter — static output only
 - Do not add React, Preact, Vue, or any JS framework
@@ -1601,6 +1667,13 @@ so this is a defensive port. Don't revert to a strict comparison.
   settings/About sheet also closes the open chapter (#34)
 - Do not show a guessed Hindi/Nepali org name in the header; Chinese's is
   藏文圣经新译本 (confirmed, #33) and the rest use the English text
+
+- Do not put footnote text in brackets in the body, change the caller from the
+  dagger †, or move `#fn-popup` inside `#modal-panel` (its transform breaks the
+  viewport coordinates) — see "Footnotes (request #35)"
+- Do not detach the † from its syllable (the nowrap wrapper in
+  `withFootnoteCallers()`) or let `justifyTibetanTsheg()` put a stretch space
+  between them — mobile Safari then leaves a stranded † at the start of a line
 
 ## Pending John's review
 Requests #24–34 shipped together (commit 45f420a) for John's team to review;

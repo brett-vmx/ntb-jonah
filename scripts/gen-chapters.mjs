@@ -153,11 +153,31 @@ function parseSfm(raw) {
   let pendingParagraph = false; // saw \p or \m, not yet attached to the next verse
 
   const ensureChapter = (n) => {
-    if (!chapters[n]) chapters[n] = { label: '', section: '', verses: {}, paragraphStarts: new Set() };
+    if (!chapters[n]) chapters[n] = { label: '', section: '', verses: {}, notes: {}, paragraphStarts: new Set() };
     return chapters[n];
   };
 
-  const stripFootnotes = (s) => s.replace(/\\f \+ \\ft.*?\\f\*/gs, '').trim();
+  // Footnotes (request #35): "\f + \ft note text\f*" sits right after the word
+  // it explains. Each is lifted OUT of the verse text into `notes[v]` (a plain
+  // array of strings, in order of appearance) and replaced in the text by a
+  // `{{fn:N}}` marker — N is the index into that verse's notes. index.astro turns
+  // each marker into a † caller that opens the note in a popup; nothing is
+  // left in the body text itself (no brackets). Only the Tibetan text carries
+  // them: the English/Chinese/Hindi/Nepali sources' own footnotes are different
+  // texts' notes and stay stripped (see their parsers). A verse can have
+  // several; poetry lines (\q1) share the verse's one notes array.
+  const FOOTNOTE_RE = /\\f [+\-*] ?(.*?)\\f\*/gs;
+  const extractFootnotes = (s, notes) =>
+    s
+      .replace(FOOTNOTE_RE, (_, inner) => {
+        const note = inner
+          .replace(/\\fr\s+\S+\s*/g, '') // verse-reference marker, if a source ever has one
+          .replace(/\\f[a-z]+\*?\s?/g, '') // \ft, \fq, \fk ... — keep their text, drop the tags
+          .trim();
+        notes.push(note);
+        return `{{fn:${notes.length - 1}}}`;
+      })
+      .trim();
 
   for (const rawLine of lines) {
     const line = rawLine;
@@ -186,8 +206,10 @@ function parseSfm(raw) {
       const m = line.match(/^\\v (\d+) (.*)$/s);
       if (!m) continue;
       verseNum = parseInt(m[1], 10);
-      const text = stripFootnotes(m[2]);
+      const vnotes = [];
+      const text = extractFootnotes(m[2], vnotes);
       chapters[chapterNum].verses[verseNum] = [text];
+      if (vnotes.length) chapters[chapterNum].notes[verseNum] = vnotes;
       if (pendingParagraph) {
         chapters[chapterNum].paragraphStarts.add(verseNum);
         pendingParagraph = false;
@@ -195,10 +217,11 @@ function parseSfm(raw) {
       continue;
     }
     if (line.startsWith('\\q1')) {
-      const text = stripFootnotes(line.replace(/^\\q1\s?/, ''));
-      if (text && verseNum !== null) {
-        chapters[chapterNum].verses[verseNum].push(text);
-      }
+      if (verseNum === null) continue;
+      const vnotes = chapters[chapterNum].notes[verseNum] ?? [];
+      const text = extractFootnotes(line.replace(/^\\q1\s?/, ''), vnotes);
+      if (vnotes.length) chapters[chapterNum].notes[verseNum] = vnotes;
+      if (text) chapters[chapterNum].verses[verseNum].push(text);
       continue;
     }
     // ignore blank lines / anything else
@@ -602,6 +625,9 @@ function buildChapter(n, sfmChapter, bsbChapter, cmnChapter, hiChapter, neChapte
       // Reused for every reading language (not just bo) — see CLAUDE.md's
       // "Verse-by-verse vs. paragraph layout" note.
       paragraphStart: sfmChapter.paragraphStarts.has(v),
+      // Footnote texts for the {{fn:N}} markers in `bo` (Tibetan only; omitted
+      // when the verse has none, so most blocks are unchanged).
+      ...(sfmChapter.notes[v] ? { notes: sfmChapter.notes[v] } : {}),
     });
     if (imageAfter.has(v)) {
       blocks.push({ type: 'image', file: imageAfter.get(v) });
