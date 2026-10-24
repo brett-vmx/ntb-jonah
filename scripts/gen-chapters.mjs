@@ -71,7 +71,7 @@ const INLINE_IMAGES = {
     { after: 8, before: 9, file: `${INLINE_DIR}/32_Jon_01_04_RG.webp` },
     { after: 15, before: 16, file: `${INLINE_DIR}/p3_Jon_01_05_RG.webp` },
   ],
-  2: [{ after: 6, before: 7, file: `${INLINE_DIR}/p5_Jon_01_06_RG.webp` }],
+  2: [{ after: 9, before: 10, file: `${INLINE_DIR}/p5_Jon_01_06_RG.webp` }], // John (Oct 2026): after v9 (was v6)
   3: [{ after: 7, before: 8, file: `${INLINE_DIR}/p7_Jon_03_02_RG.webp` }],
   4: [
     { after: 6, before: 7, file: `${INLINE_DIR}/p8_Jon_04_02_RG.webp` },
@@ -315,6 +315,10 @@ function parseCmnUsfm(raw) {
   for (const c of Object.values(chapters)) {
     for (const v of Object.keys(c.verses)) {
       c.verses[v] = c.verses[v]
+        // Whole footnotes first (\f + or - ... \f*): the generic pass below only drops bare
+        // markers and used to leave the note's own text merged into the verse (Jonah 3:5 read
+        // "...穿麻衣-3:5或译：披上麻布。").
+        .replace(/\\f [+-].*?\\f\*/gs, '')
         .replace(/\\pn\*/g, '')
         .replace(/\\pn/g, '')
         .replace(/\\[a-zA-Z0-9]+\*?/g, '')
