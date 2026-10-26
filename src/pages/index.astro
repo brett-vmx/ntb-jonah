@@ -388,13 +388,34 @@ const chapterData = await Promise.all(
   const SHAD_SPACE_EN = `<span style="font-family:'DejaVu Sans',sans-serif;font-size:80%"> </span>`;
   const SHAD_SPACE_EM = `<span style="font-family:'DejaVu Sans',sans-serif"> </span>`;
   const DOUBLE_SHAD = `།${SHAD_SPACE_EN}།`;
-  const FOUR_SHAD_RE = /(?:།།|༎) (?:།།|༎)/g;
-  const DOUBLE_SHAD_RE = /།།|༎/g;
 
+  // A shad must never start a line (John's rule): it stays bound to the last word before it.
+  // Real Safari showed why a space/no-break-space isn't enough: a shad is a "break after"
+  // character, so a line can break right after the FIRST shad of "སོ། །" and leave the second
+  // alone at the left margin (and WebKit does so even across a no-break space). The only
+  // reliable binding is an explicit nowrap wrapper, so every shad cluster is wrapped together
+  // with the last syllable before it. Cluster = shads separated only by plain spaces:
+  //   "སོ །"     a space before a shad (the source has these after some syllables) is kept, as
+  //             a no-break space inside the group, so the shad can't wrap alone either
+  //   "།"        single shad       -> unchanged
+  //   "།།" / "༎" double shad       -> two shads + 0.8-en space (John's rule, #32)
+  //   "། །"      shad, space, shad -> kept as written, but with a no-break space
+  //   "(།།|༎) (།།|༎)" the four-shad book ending -> double + EM space + double
+  // The syllable captured is just the last one (up to its tsheg), never the whole clause, so
+  // normal wrapping between words is untouched; { } are excluded so a {{fn:N}} marker is never
+  // swallowed (withFootnoteCallers() glues † to its own syllable).
+  const SHAD_CLUSTER_RE = /([^་\s།༎<>{}]+་?)?([ \t]*)([།༎]+(?:[ \t]+[།༎]+)*)/g;
   function formatTibetanShads(text: string): string {
-    return text
-      .replace(FOUR_SHAD_RE, `<span style="white-space:nowrap">${DOUBLE_SHAD}${SHAD_SPACE_EM}${DOUBLE_SHAD}</span>`)
-      .replace(DOUBLE_SHAD_RE, `<span style="white-space:nowrap">${DOUBLE_SHAD}</span>`);
+    return text.replace(SHAD_CLUSTER_RE, (_m, syl: string | undefined, gap: string, cluster: string) => {
+      const groups = cluster.split(/[ \t]+/);
+      const isDouble = (g: string) => g === '།།' || g === '༎';
+      let out = '';
+      groups.forEach((g, i) => {
+        if (i > 0) out += isDouble(groups[i - 1]) && isDouble(g) ? SHAD_SPACE_EM : '\u00A0';
+        out += isDouble(g) ? DOUBLE_SHAD : g;
+      });
+      return `<span style="white-space:nowrap">${syl ?? ''}${gap ? '\u00A0' : ''}${out}</span>`;
+    });
   }
 
   // PROTOTYPE, request #31 — full right-margin justification, per the
@@ -413,7 +434,10 @@ const chapterData = await Promise.all(
   // anything — see global.css. Untested outside this prototype pass:
   // verify on real mobile Safari (not just desktop Chromium) before
   // deciding whether to keep it, per Brett.
-  const TSHEG_RE = /་(?!\s|\{\{fn:)/g; // not before a footnote marker either: the † stays glued to its syllable
+  // Skipped before a footnote marker (the † stays glued to its syllable) and before a shad:
+  // a stretch space between a tsheg and its shad ("ཤིང་།") is a break point that let the shad wrap
+  // alone onto the next line.
+  const TSHEG_RE = /་(?!\s|\{\{fn:|[།༎])/g;
 
   function justifyTibetanTsheg(text: string): string {
     return text.replace(TSHEG_RE, '་<span class="ts"> </span>');
